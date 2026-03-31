@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState } from 'react';
 // Define the shape of our Global Signal & Preference State
 interface KimooContextType {
   // --- SIGNAL FILTERING ---
+  risk: any;
+  setRisk: any;
   watchlist: string[];
   setWatchlist: React.Dispatch<React.SetStateAction<string[]>>;
 
