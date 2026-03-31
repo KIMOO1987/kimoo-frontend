@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { 
-  LineChart, TrendingUp, Award, BarChart2, Zap, 
+  LineChart, TrendingUp, Award, BarChart2, Zap, Target, 
   Settings2, Activity, LayoutGrid, History, ShieldCheck,
   ChevronRight
 } from 'lucide-react';
