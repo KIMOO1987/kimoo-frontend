@@ -1,17 +1,31 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { 
-  LineChart, TrendingUp, Award, BarChart2, Zap, Target, 
-  Settings2, Activity, LayoutGrid, History, ShieldCheck,
+  LineChart, 
+  TrendingUp, 
+  Award, 
+  BarChart2, 
+  Zap, 
+  Target, 
+  Settings2, 
+  Activity, 
+  LayoutGrid, 
+  History, 
+  ShieldCheck,
   ChevronRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function PerformancePage() {
   const [stats, setStats] = useState({
-    winRate: 0, profitFactor: 0, totalSignals: 0, avgRR: 3.2, growth: 0, cashProfit: "$0.00"
+    winRate: 0, 
+    profitFactor: 0, 
+    totalSignals: 0, 
+    avgRR: 3.2, 
+    growth: 0, 
+    cashProfit: "$0.00"
   });
   const [recentTradeFlags, setRecentTradeFlags] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +77,7 @@ export default function PerformancePage() {
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h2 className="text-2xl md:text-5xl font-black italic uppercase tracking-tighter flex items-center gap-3">
             KIMOO <span className="text-blue-500 not-italic">CRT</span>
-            <span className="text-[10px] not-italic bg-blue-500 text-white px-2 py-0.5 rounded-md h-fit mb-4">PRO</span>
+            <span className="text-[10px] not-italic bg-blue-500 text-white px-2 py-0.5 rounded-md h-fit mb-4 shadow-[0_0_15px_rgba(59,130,246,0.5)]">PRO</span>
           </h2>
           <p className="text-[8px] md:text-[10px] text-zinc-500 font-bold uppercase tracking-[0.4em] -mt-1">Institutional Signal Node</p>
         </motion.div>
@@ -152,8 +166,7 @@ export default function PerformancePage() {
   );
 }
 
-// Sub-components for cleaner code
-function StatCard({ title, value, icon, trend }: any) {
+function StatCard({ title, value, icon, trend }: { title: string, value: string, icon: any, trend: string }) {
   return (
     <div className="bg-[#0a0a0a] border border-white/5 p-6 md:p-10 rounded-[2rem] hover:bg-white/[0.02] transition-all group">
       <div className="flex justify-between items-start mb-6">
