@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/* 1. CRTBOTS THEME DESIGN TOKENS */
+@theme inline {
+  --color-background: #05070a;
+  --color-foreground: #ffffff;
+  --color-card: #0a0c10;
+  --color-accent-blue: #3b82f6;
+  --color-accent-green: #22c55e;
+  --color-accent-red: #ef4444;
+  --color-border-muted: rgba(255, 255, 255, 0.05);
+  
+  --font-sans: 'Inter', var(--font-geist-sans), sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+/* 2. BASE STYLING */
+:root {
+  --background: #05070a;
+  --foreground: #ffffff;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 3. CRTBOTS CUSTOM COMPONENTS */
+@layer components {
+  /* The Institutional Card Style (Images 1, 4, 5) */
+  .crt-card {
+    background-color: #0a0c10;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* High-Performance Action Button */
+  .crt-btn-primary {
+    background-color: #3b82f6;
+    color: white;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 10px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .crt-btn-primary:hover {
+    background-color: #2563eb;
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.3);
+  }
+
+  .crt-btn-primary:active {
+    transform: scale(0.95);
+  }
+
+  /* Status Badges (LONG/SHORT) */
+  .status-badge {
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-width: 1px;
+  }
+
+  /* Deep Glossy Inputs for Profile/Settings */
+  .crt-input {
+    background-color: #000000;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    font-size: 12px;
+    color: white;
+    transition: border-color 0.2s;
+  }
+
+  .crt-input:focus {
+    border-color: #3b82f6;
+    outline: none;
+  }
+}
+
+/* 4. CUSTOM SCROLLBAR (To match Image 3/4) */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #05070a;
+}
+::-webkit-scrollbar-thumb {
+  background: #1a1c20;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a2c30;
+}
