@@ -17,7 +17,9 @@ interface DashboardClientProps {
 export default function DashboardClient({ isPro, expiryDate, userProfile }: DashboardClientProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(userProfile?.avatarUrl || null);
+  
+  // This state now looks for the new 'avatar_url' column we just created
+  const [avatarUrl, setAvatarUrl] = useState(userProfile?.avatar_url || null);
   const [accountSize, setAccountSize] = useState(10000); 
   
   const [realStats, setRealStats] = useState({
@@ -35,7 +37,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   const currentTier = userProfile?.subscriptionTier?.toUpperCase() || (isPro ? "PRO" : "FREE MEMBER");
   const daysLeft = expiryDate ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
 
-  // --- AUTO REFRESH ---
+  // --- AUTO REFRESH (30S) ---
   useEffect(() => {
     fetchData(); 
     const interval = setInterval(fetchData, 30000); 
@@ -90,20 +92,39 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
     try {
       setUploading(true);
       if (!event.target.files?.[0]) return;
+      
       const file = event.target.files[0];
       const filePath = `avatars/${userProfile.id}-${Date.now()}.${file.name.split('.').pop()}`;
+
+      // 1. Storage Upload
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
       if (uploadError) throw uploadError;
+
+      // 2. Get Public URL
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      await supabase.from('profiles').update({ avatarUrl: publicUrl }).eq('id', userProfile.id);
+
+      // 3. Database Save (to the column you just added)
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl }) 
+        .eq('id', userProfile.id);
+
+      if (updateError) throw updateError;
+
+      // 4. Update UI
       setAvatarUrl(publicUrl);
-    } catch (e: any) { alert(e.message); } finally { setUploading(false); }
+      
+    } catch (e: any) { 
+      alert("Error: " + e.message); 
+    } finally { 
+      setUploading(false); 
+    }
   }
 
   return (
     <div className="p-4 md:p-8 max-w-[1800px] mx-auto bg-[#0b0e14] min-h-screen text-zinc-400 font-sans">
       
-      {/* 1. HEADER - Spread out but original size */}
+      {/* 1. HEADER - Original Size, Maximum Spread */}
       <div className="flex flex-col xl:flex-row justify-between items-center mb-10 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-6 shadow-2xl">
         <div className="flex items-center gap-6">
           <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
@@ -130,10 +151,10 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
         </div>
 
         <div className="flex flex-wrap gap-4 items-center">
-            <div className="bg-white/5 border border-white/10 p-4 px-6 rounded-2xl flex items-center gap-4 group hover:border-emerald-500/30 transition-all">
+            <div className="bg-white/5 border border-white/10 p-4 px-6 rounded-2xl flex items-center gap-4 transition-all">
                 <Wallet className="text-emerald-500" size={24} />
                 <div>
-                    <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Account Size</p>
+                    <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Capital</p>
                     <div className="flex items-center gap-1">
                         <span className="text-white font-black text-xl">$</span>
                         <input type="number" value={accountSize} onChange={(e) => setAccountSize(Number(e.target.value))} className="bg-transparent text-white font-black text-xl w-28 outline-none focus:text-emerald-400" />
@@ -143,26 +164,27 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
             <div className="bg-white/5 border border-white/10 p-4 px-6 rounded-2xl flex items-center gap-4">
                 <Clock className="text-indigo-500" size={24} />
                 <div>
-                    <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Subscription</p>
+                    <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Access</p>
                     <p className="text-white font-black text-xl italic uppercase">{daysLeft} Days</p>
                 </div>
             </div>
         </div>
       </div>
 
-      {/* 2. STATS GRID - 4 Columns Wide */}
+      {/* 2. STATS GRID - Original Proportion, Spread out */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
         <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
         <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
         <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
         <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Star size={18}/>} color="text-emerald-500" />
+        
         <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="Alpha Asset" />
-        <StatCard label="Most Traded" value={realStats.mostTraded} sub="Volume Dominance" />
+        <StatCard label="Most Traded" value={realStats.mostTraded} sub="Volume focus" />
         <StatCard label="High WR Symbol" value={realStats.highWRPair} sub="Accuracy Lead" />
-        <StatCard label="Status" value="Live" color="text-emerald-500" sub="Engine Synced" />
+        <StatCard label="Engine" value="Live" color="text-emerald-500" sub="Synced" />
       </div>
 
-      {/* 3. ROADMAP - Fill empty space with spacing, not size */}
+      {/* 3. ROADMAP - Filling the empty area via spacing */}
       <div className="w-full mb-24 border-t border-white/5 pt-16">
         <div className="flex items-center gap-3 text-indigo-500 mb-6">
             <div className="h-[2px] w-10 bg-indigo-500" />
@@ -174,10 +196,10 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-24 gap-y-16">
-          <FeatureItem icon={<Activity size={24}/>} title="Live Execution Visibility" desc="Track R:R growth in real-time as market hits levels. See active exit progress live on a dedicated performance ticker." />
-          <FeatureItem icon={<BarChart3 size={24}/>} title="Strategy-Grade Validation" desc="Audit symbol performance across multiple timeframes. Open the Backtest Simulator to stress-test your strategy." />
-          <FeatureItem icon={<Target size={24}/>} title="Radar + Diagnostics" desc="Identify symbol clustering and timing edge instantly. Inspect institutional liquidity zones and volatility behavior." />
-          <FeatureItem icon={<MessageSquare size={24}/>} title="Discord API Workflow" desc="Route filtered premium signals directly to your Private Discord. Turn the dashboard into an operational signal desk." />
+          <FeatureItem icon={<Activity size={24}/>} title="Live Execution Visibility" desc="Track R:R growth in real-time as market hits levels. See active exit progress live on performance ticker." />
+          <FeatureItem icon={<BarChart3 size={24}/>} title="Strategy-Grade Validation" desc="Audit symbol performance across multiple timeframes. Open the Simulator to stress-test your strategy." />
+          <FeatureItem icon={<Target size={24}/>} title="Radar + Diagnostics" desc="Identify symbol clustering and timing edge instantly. Inspect institutional liquidity zones." />
+          <FeatureItem icon={<MessageSquare size={24}/>} title="Discord API Workflow" desc="Route filtered premium signals directly to your Private Discord. Turn dashboard into an operational desk." />
         </div>
       </div>
 
@@ -186,7 +208,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
         <p>© 2026 KIMOO CRT ENGINE</p>
         <p className="flex items-center gap-3"> 
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" /> 
-          Server: Synced
+          Server Status: Online
         </p>
       </div>
     </div>
