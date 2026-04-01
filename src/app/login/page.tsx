@@ -14,7 +14,7 @@ export default function LoginPage() {
         
         <div className="text-center mb-10">
           <h1 className="text-3xl font-black italic tracking-tighter text-white">
-            CRT<span className="text-blue-500 underline decoration-blue-500/20 underline-offset-8">BOTS</span>
+            KIMOO CRT<span className="text-blue-500 underline decoration-blue-500/20 underline-offset-8">(+Pro)</span>
           </h1>
           <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-2">
             Institutional Access
