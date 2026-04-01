@@ -23,15 +23,15 @@ const menuGroups = [
   { 
     label: 'RADAR & ANALYSIS', 
     items: [
-      { name: 'All Signals', icon: Zap, path: '/dashboard/signals', proRequired: false },
-      { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', proRequired: false },
-      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', proRequired: false },
+      { name: 'All Signals', icon: Zap, path: '/dashboard/signals', proRequired: : true },
+      { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', proRequired: true },
+      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', proRequired: true },
     ]
   },
   { 
     label: 'STRATEGY LAB', 
     items: [
-      { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', proRequired: false },
+      { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', proRequired: true },
       { name: 'Performance', icon: LineChart, path: '/dashboard/performance', proRequired: true },
     ]
   },
