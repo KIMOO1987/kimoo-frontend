@@ -14,10 +14,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth'; // New Addition
 
 export default function ProfilePage() {
-  const { user, loading: authLoading } = useAuth(); // New Addition
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
@@ -29,11 +27,11 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (user) fetchProfile();
-  }, [user]); // Added user dependency
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
-    // Replaced manual getUser with hook data
+    const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data, error } = await supabase
         .from('profiles')
@@ -55,6 +53,8 @@ export default function ProfilePage() {
   const handleUpdateProfile = async () => {
     setLoading(true);
     setMessage(null);
+
+    const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) return;
 
@@ -75,15 +75,6 @@ export default function ProfilePage() {
     }
     setLoading(false);
   };
-
-  // New Addition: Auth Loading State
-  if (authLoading) {
-    return (
-      <div className="h-screen bg-[#05070a] flex items-center justify-center">
-        <RefreshCcw className="animate-spin text-blue-500" size={32} />
-      </div>
-    );
-  }
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-10">
