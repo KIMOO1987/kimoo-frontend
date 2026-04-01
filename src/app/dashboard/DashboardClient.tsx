@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   TrendingUp, Zap, Star, Activity, BarChart3, Target, 
-  User, ShieldCheck, Clock, Wallet, MessageSquare
+  ShieldCheck, Clock, Wallet, MessageSquare
 } from 'lucide-react';
 
 interface DashboardClientProps {
@@ -27,9 +27,13 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
     avgDuration: "3.2h"
   });
 
+  // Calculate remaining days for the label
   const daysLeft = expiryDate ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+  
+  // Determine Tier display (Alpha, Pro, Ultimate)
+  const currentTier = userProfile?.subscriptionTier || (isPro ? "PRO" : "ALPHA");
 
-  // --- 1. AUTO REFRESH (30 SECONDS) ---
+  // --- AUTO REFRESH (30 SECONDS) ---
   useEffect(() => {
     fetchData(); 
     const interval = setInterval(fetchData, 30000); 
@@ -83,61 +87,66 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   return (
     <div className="p-4 md:p-8 max-w-[1800px] mx-auto bg-[#0b0e14] min-h-screen text-zinc-400 font-sans">
       
-      {/* HEADER SECTION - ELEMENTS SPREAD OUT ACROSS 1800px */}
+      {/* HEADER SECTION - NO PROFILE PICTURE */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
         
-        {/* LEFT SIDE: USER PROFILE + NESTED STATUS */}
-        <div className="flex items-center gap-6">
-          <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-700 relative">
-            <User size={36} />
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-4 border-[#0b0e14] flex items-center justify-center shadow-lg">
-              <ShieldCheck size={12} className="text-white" />
-            </div>
+        <div className="flex flex-col">
+          {/* USER NAME AND BADGE */}
+          <div className="flex items-center gap-4 mb-5">
+            <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
+              {userProfile?.fullName || 'KALIM AHMED GILL'}
+            </h1>
+            <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest shadow-lg shadow-indigo-500/20">
+              KIMOO ADMIN
+            </span>
           </div>
           
-          <div className="flex flex-col">
+          {/* ACCOUNT & SUBSCRIPTION ROW */}
+          <div className="flex flex-wrap items-center gap-12">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">{userProfile?.fullName || 'Trader'}</h1>
-              <span className="bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded italic uppercase tracking-widest">KIMOO ADMIN</span>
+              <Wallet size={18} className="text-emerald-500" />
+              <span className="text-[11px] font-black text-zinc-600 uppercase tracking-widest">ACCOUNT:</span>
+              <div className="flex items-center border-b border-white/10 pb-0.5">
+                 <span className="text-white font-black text-xl mr-1">$</span>
+                 <input 
+                   type="number" 
+                   value={accountSize} 
+                   onChange={(e) => setAccountSize(Number(e.target.value))} 
+                   className="bg-transparent text-white font-black text-xl w-32 outline-none focus:text-emerald-400 transition-colors" 
+                 />
+              </div>
             </div>
             
-            {/* ADDED BELOW NAME: ACCOUNT & SUBSCRIPTION STATUS */}
-            <div className="flex flex-wrap items-center gap-6 mt-4">
+            <div className="flex items-center gap-3">
+              <Clock size={18} className="text-indigo-500" />
+              <span className="text-[11px] font-black text-zinc-600 uppercase tracking-widest">SUBSCRIPTION:</span>
               <div className="flex items-center gap-2">
-                <Wallet size={14} className="text-emerald-500" />
-                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Account:</span>
-                <div className="flex items-center">
-                   <span className="text-white font-black text-sm mr-1">$</span>
-                   <input 
-                     type="number" 
-                     value={accountSize} 
-                     onChange={(e) => setAccountSize(Number(e.target.value))} 
-                     className="bg-transparent text-white font-black text-sm w-24 outline-none focus:text-emerald-400 border-b border-white/5" 
-                   />
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Clock size={14} className="text-indigo-500" />
-                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Subscription:</span>
-                <span className="text-white font-black text-sm italic uppercase">{daysLeft} Days Remaining</span>
+                <span className="text-white font-black text-xl italic uppercase tracking-tight">
+                  {currentTier}
+                </span>
+                <span className="text-zinc-700 text-sm mx-1 font-bold">|</span>
+                <span className="text-white font-black text-xl italic uppercase tracking-tight">
+                  REMAINING DAYS: <span className="text-indigo-400 ml-1">{daysLeft}</span>
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT SIDE: SERVER STATUS */}
-        <div className="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl flex items-center gap-4">
+        {/* STATUS PILL & EMAIL */}
+        <div className="bg-white/5 border border-white/10 px-8 py-4 rounded-3xl flex items-center gap-6 shadow-inner">
            <div className="flex items-center gap-3">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Signal Engine: Online</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
+              <span className="text-[11px] font-black text-emerald-500 uppercase tracking-[0.25em]">SIGNAL ENGINE: ONLINE</span>
            </div>
-           <div className="h-4 w-[1px] bg-white/10 mx-2" />
-           <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest font-mono">{userProfile?.email}</p>
+           <div className="h-6 w-[1px] bg-white/10" />
+           <p className="text-[11px] font-bold text-zinc-600 uppercase tracking-widest font-mono">
+             {userProfile?.email || 'KALEEM.AHMAD87@ICLOUD.COM'}
+           </p>
         </div>
       </div>
 
-      {/* STATS GRID */}
+      {/* STATS GRID - 4 COLS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
         <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
         <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
@@ -147,7 +156,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
         <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="Alpha Asset" />
         <StatCard label="Most Traded" value={realStats.mostTraded} sub="Volume Dominance" />
         <StatCard label="High WR Symbol" value={realStats.highWRPair} sub="Accuracy Lead" />
-        <StatCard label="Refresh Interval" value="30s" color="text-emerald-500" sub="Live Sync" />
+        <StatCard label="Live Sync" value="30s" color="text-emerald-500" sub="Server Active" />
       </div>
 
       {/* ROADMAP SECTION */}
@@ -171,8 +180,11 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
 
       {/* FOOTER */}
       <div className="pt-10 border-t border-white/5 flex justify-between items-center text-[10px] font-bold uppercase tracking-[0.5em] text-zinc-800">
-        <p>© 2026 KIMOO CRT ENGINE — V4.0.1</p>
-        <p>Operational Status: Stable</p>
+        <p>© 2026 KIMOO CRT ENGINE — VERSION 4.0.3</p>
+        <p className="flex items-center gap-2">
+          <ShieldCheck size={12} className="text-emerald-600" />
+          Institutional Grade Protection Active
+        </p>
       </div>
     </div>
   );
@@ -195,11 +207,11 @@ function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
 function FeatureItem({ icon, title, desc }: any) {
   return (
     <div className="flex gap-6 group">
-      <div className="w-16 h-16 shrink-0 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+      <div className="w-16 h-16 shrink-0 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-lg">
         {icon}
       </div>
       <div>
-        <h4 className="text-white font-black uppercase italic text-xl mb-2 group-hover:text-indigo-400 transition-colors">{title}</h4>
+        <h4 className="text-white font-black uppercase italic text-xl mb-2 group-hover:text-indigo-400 transition-colors tracking-tighter">{title}</h4>
         <p className="text-zinc-500 text-sm leading-relaxed font-medium max-w-md">{desc}</p>
       </div>
     </div>
