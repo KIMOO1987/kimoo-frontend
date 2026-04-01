@@ -1,10 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+// Throwing an error is better than a console.error because it stops 
+// the app from running with a "broken" client.
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Supabase environment variables are missing!");
+  throw new Error(
+    "Missing Supabase Environment Variables. Check your .env.local file."
+  );
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
