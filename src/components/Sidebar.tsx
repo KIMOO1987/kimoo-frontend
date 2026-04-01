@@ -78,7 +78,7 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
       {/* Brand Logo */}
       <div className="mb-8 px-2">
         <h1 className="text-xl font-black tracking-tighter text-white italic">
-          CRT<span className="text-blue-500 underline decoration-blue-500/30 underline-offset-4">BOTS</span>
+          KIMOO CRT<span className="text-blue-500 underline decoration-blue-500/30 underline-offset-4">(+Pro)</span>
         </h1>
         <p className="text-[7px] uppercase tracking-[0.5em] text-zinc-600 font-bold mt-1 leading-none">
           Candle Range Theory
