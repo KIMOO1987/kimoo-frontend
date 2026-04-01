@@ -74,7 +74,7 @@ export default function BacktestPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
         <div>
           <h1 className="text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase">
-            Strategy <span className="text-blue-450">Backtester</span>
+            Strategy <span className="text-blue-500">Backtester</span>
           </h1>
           <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-3">
             Real-Time Equity Simulation • KIMOO CRT Engine
