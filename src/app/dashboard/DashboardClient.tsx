@@ -29,6 +29,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
     avgDuration: "3.2h"
   });
 
+  // Handle year 3000 date logic
   const daysLeft = expiryDate 
     ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
     : 0;
@@ -88,52 +89,34 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   return (
     <div className="relative min-h-screen bg-[#05070a] overflow-x-hidden w-full flex text-zinc-400 font-sans">
       
-      {/* 1. FIXED OVERLAY SIDEBAR (Hides content underneath on mobile) */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-[150] w-72 bg-[#0b0e14] border-r border-white/10 transform transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
-        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-      `}>
-        {/* Your existing Sidebar components/links go here */}
-        <div className="p-8">
-           <h2 className="text-white font-black italic text-2xl tracking-tighter">KIMOO CRT<span className="text-blue-500">(+Pro)</span></h2>
-           {/* Sidebar content... */}
-        </div>
-      </aside>
-
-      {/* 2. BACKGROUND DIMMER (When sidebar is open) */}
-      {isSidebarOpen && (
-        <div 
-          onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[140] lg:hidden"
-        />
-      )}
-
-      {/* 3. MENU TOGGLE (Moved to Bottom Left) */}
+      {/* MOBILE MENU TOGGLE */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="lg:hidden fixed bottom-8 left-6 z-[200] p-4 bg-indigo-600 rounded-full text-white shadow-2xl shadow-indigo-500/40 active:scale-90 transition-all"
+        className="lg:hidden fixed top-6 left-6 z-[100] p-3 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-500/20"
       >
         {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* 4. MAIN CONTENT AREA */}
+      {/* MAIN CONTENT AREA */}
       <main className="flex-1 p-4 md:p-12 lg:p-16 w-full max-w-[100vw]">
-        <div className="max-w-[1700px] mx-auto lg:mt-0">
+        <div className="max-w-[1700px] mx-auto mt-14 lg:mt-0">
           
           {/* HEADER SECTION */}
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 p-6 md:p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
             
             <div className="w-full">
+              {/* FLUID NAME: Resizes with screen width [7vw] */}
               <div className="flex flex-wrap items-center gap-4 mb-6">
-                <h1 className="text-[9vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none break-words max-w-full">
+                <h1 className="text-[7vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none break-words max-w-full">
                   {userProfile?.full_name || 'KALIM AHMED GILL'}
                 </h1>
-                <span className="bg-indigo-600 text-white text-[9px] md:text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit">
+                <span className="bg-indigo-600 text-white text-[9px] md:text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit shadow-lg shadow-indigo-500/20">
                   {userProfile?.role?.toUpperCase() || 'KIMOO ADMIN'}
                 </span>
               </div>
               
               <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12 border-t border-white/5 pt-6 md:border-none md:pt-0">
+                {/* ACCOUNT */}
                 <div className="flex items-center gap-3">
                   <Wallet size={18} className="text-emerald-500 shrink-0" />
                   <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">ACCOUNT:</span>
@@ -148,6 +131,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
                   </div>
                 </div>
                 
+                {/* SUBSCRIPTION */}
                 <div className="flex items-center gap-3">
                   <Clock size={18} className="text-indigo-500 shrink-0" />
                   <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">PLAN:</span>
@@ -161,6 +145,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
               </div>
             </div>
 
+            {/* STATUS BOX */}
             <div className="w-full xl:w-auto bg-black/40 border border-white/10 px-6 py-4 rounded-3xl flex flex-col sm:flex-row items-center gap-4">
                <div className="flex items-center gap-3">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -186,6 +171,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
             <StatCard label="Live Sync" value="30s" color="text-emerald-500" sub="Server Active" />
           </div>
 
+          {/* ROADMAP SECTION */}
           <div className="w-full border-t border-white/5 pt-16 mb-20">
             <h2 className="text-3xl md:text-6xl font-black text-white mb-12 tracking-tighter italic uppercase leading-tight">
               Institutional <br/>
