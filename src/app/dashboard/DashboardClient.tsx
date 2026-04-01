@@ -33,11 +33,20 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
     highWRPair: "---",
   });
 
+  // Dynamic Logic for Role and Subscription
+  const getDisplayRole = () => {
+    const role = userProfile?.role?.toLowerCase();
+    if (role === 'admin' || role === 'moderator') return role.toUpperCase();
+    return isPro ? 'PREMIUM' : 'FREE';
+  };
+
+  const currentTier = userProfile?.plan_type 
+    ? userProfile.plan_type.toUpperCase() 
+    : (userProfile?.subscription_status?.toUpperCase() || "NILL");
+
   const daysLeft = expiryDate 
     ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
     : 0;
-  
-  const currentTier = (userProfile?.plan_type || userProfile?.subscription_status || "ALPHA").toUpperCase();
 
   useEffect(() => {
     fetchData(); 
@@ -65,7 +74,6 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
 
         const status = s.status?.toUpperCase() || "";
         
-        // Calculation logic using dynamic Risk and Reward values
         if (status.includes('TP2')) { 
           totalRRCount += rewardValue; 
           pairMap[sym].profit += rewardValue; 
@@ -128,10 +136,12 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
           <div className="w-full">
             <div className="flex flex-wrap items-center gap-4 mb-6">
               <h2 className="text-[7vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
-                {userProfile?.full_name || 'KALIM AHMED GILL'}
+                {userProfile?.full_name || 'TRADER'}
               </h2>
-              <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit">
-                {userProfile?.role?.toUpperCase() || 'KIMOO ADMIN'}
+              <span className={`text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit shadow-lg ${
+                isPro || userProfile?.role === 'admin' ? 'bg-indigo-600 shadow-indigo-500/20' : 'bg-zinc-700 shadow-black/10'
+              }`}>
+                {getDisplayRole()}
               </span>
             </div>
             
@@ -194,8 +204,12 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Subscription</span>
                   <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="text-white font-black text-xl italic uppercase tracking-tight">{currentTier}</span>
-                      <span className="text-zinc-600 font-bold text-[10px] uppercase">({daysLeft} DAYS)</span>
+                      <span className={`font-black text-xl italic uppercase tracking-tight ${currentTier === 'NILL' ? 'text-zinc-500' : 'text-white'}`}>
+                        {currentTier}
+                      </span>
+                      {currentTier !== 'NILL' && (
+                        <span className="text-zinc-600 font-bold text-[10px] uppercase">({daysLeft} DAYS)</span>
+                      )}
                   </div>
                 </div>
               </div>
@@ -210,7 +224,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
              </div>
              <div className="hidden sm:block h-4 w-[1px] bg-white/10" />
              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter font-mono whitespace-nowrap">
-               {userProfile?.email || 'KALEEM.AHMAD87@ICLOUD.COM'}
+               {userProfile?.email || 'NO EMAIL LOADED'}
              </p>
           </div>
         </div>
@@ -236,9 +250,9 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
-            <FeatureItem icon={<Activity size={24}/>} title="Real-Time Trade Intelligence" desc="Track every active position with precision—monitor live R:R evolution, dynamic exit flow, and instantly review your latest closed trades. No delays. No refresh. Just pure execution clarity." />
-            <FeatureItem icon={<BarChart3 size={24}/>} title="Audit-Grade Analytics" desc="Dissect symbol performance across multiple timeframes with precision—identify strengths, weaknesses, and high-probability opportunities like a pro." />
-            <FeatureItem icon={<Target size={24}/>} title="Radar Technology" desc="Instantly detect symbol clustering and timing inefficiencies—pinpoint where smart money is aligning before the move unfolds." />
+            <FeatureItem icon={<Activity size={24}/>} title="Real-Time Trade Intelligence" desc="Track every active position with precision—monitor live R:R evolution, dynamic exit flow, and instantly review your latest closed trades." />
+            <FeatureItem icon={<BarChart3 size={24}/>} title="Audit-Grade Analytics" desc="Dissect symbol performance across multiple timeframes with precision—identify strengths and high-probability opportunities." />
+            <FeatureItem icon={<Target size={24}/>} title="Radar Technology" desc="Instantly detect symbol clustering and timing inefficiencies—pinpoint where smart money is aligning." />
             <FeatureItem icon={<TrendingUp size={24}/>} title="Exclusive Indicator Access" desc="Unlock a full suite of advanced indicators—reserved for Ultimate users seeking precision and edge." />
           </div>
         </div>
