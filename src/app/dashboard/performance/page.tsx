@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/useAuth'; // New Addition
+import AccessGuard from '@/components/AccessGuard'; // New Addition
 import { 
   LineChart, TrendingUp, Award, BarChart2, Zap, Target, 
   Settings2, DollarSign, Activity, ChevronRight
@@ -18,6 +20,7 @@ interface PerformanceStats {
 }
 
 export default function PerformancePage() {
+  const { tier, loading: authLoading } = useAuth(); // New Addition
   const [stats, setStats] = useState<PerformanceStats>({
     winRate: 0, profitFactor: 0, totalSignals: 0, avgRR: 3.2, growth: 0, cashProfit: "$0.00"
   });
@@ -31,6 +34,7 @@ export default function PerformancePage() {
   const [targetRR, setTargetRR] = useState(3.2);
 
   const fetchPerformance = async () => {
+    if (tier < 3) return; // New Addition: Prevent fetch for unauthorized tiers
     setLoading(true);
     let query = supabase.from('signals').select('*').order('created_at', { ascending: false });
 
@@ -76,7 +80,21 @@ export default function PerformancePage() {
 
   useEffect(() => {
     fetchPerformance();
-  }, [selectedSymbol, accountSize, riskPercent, targetRR]);
+  }, [selectedSymbol, accountSize, riskPercent, targetRR, tier]); // Added tier dependency
+
+  // New Addition: Auth Loading State
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
+        <Activity size={32} className="text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // New Addition: Tier Restriction (Requires Ultra/Tier 3)
+  if (tier < 3) {
+    return <AccessGuard tierName="Ultra" />;
+  }
 
   return (
     <div className="p-8 lg:p-12 bg-[#05070a] min-h-screen text-white">
