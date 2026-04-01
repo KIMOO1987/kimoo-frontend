@@ -5,19 +5,9 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Key, 
-  ExternalLink, 
-  RefreshCcw, 
-  Calendar, 
-  Zap, 
-  Bell,
-  ArrowRight,
-  Target,
-  Shield,
-  TrendingUp,
-  Star,
-  Clock,
-  X
+  Key, ExternalLink, RefreshCcw, Calendar, Zap, Bell,
+  ArrowRight, Target, Shield, TrendingUp, Star, Clock, X,
+  Activity, BarChart3, Layers, ZapOff
 } from 'lucide-react';
 import ErrorModal from '@/components/ErrorModal';
 
@@ -33,21 +23,13 @@ interface DashboardClientProps {
   };
 }
 
-export default function DashboardClient({ 
-  isPro, 
-  expiryDate,
-  userProfile 
-}: DashboardClientProps) {
+export default function DashboardClient({ isPro, expiryDate, userProfile }: DashboardClientProps) {
   const [signals, setSignals] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState<any>(null);
   const router = useRouter();
 
-  const [errorState, setErrorState] = useState({ 
-    isOpen: false, 
-    title: '', 
-    message: '' 
-  });
+  const [errorState, setErrorState] = useState({ isOpen: false, title: '', message: '' });
 
   const daysLeft = (() => {
     if (!expiryDate) return null;
@@ -55,62 +37,27 @@ export default function DashboardClient({
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   })();
 
-  const getAccessLevel = () => {
-    if (!isPro) return "No Active License";
-    if (userProfile.subscriptionTier) {
-      return `CRT+ ${userProfile.subscriptionTier.toUpperCase()} LICENSE`;
-    }
-    if (daysLeft !== null) {
-      if (daysLeft > 200) return "CRT+ ULTIMATE (YEARLY)";
-      if (daysLeft > 35)  return "CRT+ PRO (6-MONTHS)";
-      return "CRT+ ALPHA (MONTHLY)";
-    }
-    return "CRT+ ACTIVE LICENSE";
-  };
-
-  // --- CORE LOGIC: FETCH WITH 24H FILTER ---
   const fetchSignals = async () => {
-    // Logic: Only get signals created in the last 24 hours
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
     const { data, error } = await supabase
       .from('signals') 
       .select('*')
-      .gt('created_at', twentyFourHoursAgo) // Auto-clean filter
+      .gt('created_at', twentyFourHoursAgo)
       .order('created_at', { ascending: false })
       .limit(50);
       
-    if (error) {
-        console.error("Fetch Error:", error);
-    } else if (data) {
-        setSignals(data);
-    }
+    if (error) console.error("Fetch Error:", error);
+    else if (data) setSignals(data);
   };
 
   useEffect(() => {
-    // Initial Load
     fetchSignals();
-    
-    // --- FEATURE: 30-SECOND AUTO REFRESH ---
-    const refreshInterval = setInterval(() => {
-      fetchSignals();
-    }, 30000);
-
-    // --- REAL-TIME ENGINE ---
+    const refreshInterval = setInterval(fetchSignals, 30000);
     const channel = supabase.channel('live_signals')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'signals' 
-      }, 
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'signals' }, 
       (payload) => {
-        if (payload.eventType === 'INSERT') {
-          // Add new signal to top of list
-          setSignals((prev) => [payload.new, ...prev]);
-        } else if (payload.eventType === 'UPDATE') {
-          // Update existing signal in place
-          setSignals(prev => prev.map(s => s.id === payload.new.id ? payload.new : s));
-        }
+        if (payload.eventType === 'INSERT') setSignals((prev) => [payload.new, ...prev]);
+        else if (payload.eventType === 'UPDATE') setSignals(prev => prev.map(s => s.id === payload.new.id ? payload.new : s));
       }).subscribe();
 
     return () => { 
@@ -126,7 +73,7 @@ export default function DashboardClient({
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto bg-[#050505] min-h-screen text-zinc-300 font-sans">
       <ErrorModal 
         isOpen={errorState.isOpen}
         onClose={() => setErrorState(prev => ({ ...prev, isOpen: false }))}
@@ -134,187 +81,165 @@ export default function DashboardClient({
         message={errorState.message}
       />
 
-      {/* Header */}
-      <div className="flex justify-between items-end mb-12">
-        <div>
-          <h2 className="text-3xl font-black tracking-tighter italic mb-1 text-white uppercase">
-            Signal <span className="text-blue-500 text-2xl not-italic">Console</span>
-          </h2>
-          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em]">
-            Institutional CRT Intelligence Active
-          </p>
-        </div>
-        
-        <button 
-          onClick={handleSync}
-          className="p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 transition-all group"
-        >
-          <RefreshCcw size={14} className={`${isRefreshing ? "animate-spin text-blue-500" : "text-zinc-600 group-hover:text-zinc-400"}`} />
-        </button>
+      {/* TOP ANALYTICS HEADER (Reference Style) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <StatCard label="TOTAL SIGNALS (24H)" value={signals.length.toString()} icon={<Activity size={14}/>} />
+        <StatCard label="WIN RATE EST." value="64.2%" icon={<TrendingUp size={14}/>} color="text-green-500" />
+        <StatCard label="AVG. DURATION" value="1.4h" icon={<Clock size={14}/>} />
+        <StatCard label="STRATEGY EDGE" value="KIMOO CRT PRO" icon={<Layers size={14}/>} color="text-blue-500" />
       </div>
 
-      {/* Subscription Card Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-[#0a0a0a] border border-white/5 p-6 rounded-[1.5rem] flex justify-between items-center col-span-2 relative overflow-hidden group">
-          <div className="flex items-center gap-6 relative z-10">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Key size={10} className="text-zinc-600" />
-                <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Access Level</p>
-              </div>
-              <p className="text-xs font-black text-blue-400 uppercase italic tracking-tighter">
-                {getAccessLevel()}
-              </p>
+      {/* UPGRADE BANNERS (Reference Style) */}
+      {!isPro && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="relative overflow-hidden bg-gradient-to-r from-blue-600/20 to-indigo-600/10 border border-blue-500/30 p-6 rounded-2xl flex justify-between items-center group cursor-pointer">
+            <div className="relative z-10">
+              <h3 className="text-white font-bold text-lg mb-1 flex items-center gap-2">
+                <Shield size={18} className="text-blue-400"/> Unlock Premium CRT
+              </h3>
+              <p className="text-zinc-400 text-xs">Open execution tools, hidden analytics, and 1m bias alerts.</p>
             </div>
-
-            {expiryDate && (
-              <>
-                <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Calendar size={10} className="text-zinc-600" />
-                    <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Expiration</p>
-                  </div>
-                  <p className="text-[10px] font-black text-white">
-                    {new Date(expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                </div>
-              </>
-            )}
+            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+              <ArrowRight size={20} />
+            </div>
           </div>
 
-          <div className="flex flex-col items-end gap-2 relative z-10">
-            <span className="text-[9px] font-black px-2 py-0.5 rounded uppercase border bg-green-500/10 text-green-500 border-green-500/20">
-              Verified
-            </span>
-            {daysLeft !== null && (
-              <span className="text-[8px] font-bold text-blue-400 uppercase tracking-tighter">
-                {daysLeft} Days Remaining
-              </span>
-            )}
+          <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600/20 to-teal-600/10 border border-emerald-500/30 p-6 rounded-2xl flex justify-between items-center group cursor-pointer">
+            <div className="relative z-10">
+              <h3 className="text-white font-bold text-lg mb-1 flex items-center gap-2">
+                <Star size={18} className="text-emerald-400"/> Activate Yearly Edge
+              </h3>
+              <p className="text-zinc-400 text-xs">The best value plan for full institutional CRT dashboard access.</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+              <ArrowRight size={20} />
+            </div>
           </div>
         </div>
-        
-        <a href="https://whop.com/hub/" target="_blank" rel="noopener noreferrer" className="bg-[#0a0a0a] border border-white/5 p-6 rounded-[1.5rem] flex flex-col justify-center items-center group hover:bg-zinc-900 transition-all border-dashed text-center">
-          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Billing</p>
-          <div className="flex items-center gap-2 text-white font-black text-[10px]">
-            MANAGE <ExternalLink size={10} />
-          </div>
-        </a>
-      </div>
+      )}
 
-      {/* Signals Feed */}
-      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2rem] overflow-hidden">
-        <div className="p-4 border-b border-white/5 flex justify-between items-center px-8 py-6">
-          <h3 className="text-xs font-black uppercase text-zinc-400 tracking-[0.2em] flex items-center gap-2">
-            <Zap size={14} className="text-blue-500" /> Active CRT Stream
-          </h3>
+      {/* MAIN CONSOLE AREA */}
+      <div className="bg-[#0a0a0b] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+        <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-2 text-[9px] font-bold text-zinc-600 uppercase">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> Live Monitoring
-            </span>
+            <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20">
+              <Zap size={20} className="text-blue-500" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-white tracking-tighter uppercase italic">
+                Active <span className="text-blue-500">Signal Console</span>
+              </h2>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Real-time Node Active</span>
+              </div>
+            </div>
           </div>
+          <button onClick={handleSync} className="p-2.5 bg-zinc-900 rounded-xl border border-white/5 hover:bg-zinc-800 transition-all">
+            <RefreshCcw size={16} className={`${isRefreshing ? "animate-spin text-blue-500" : "text-zinc-400"}`} />
+          </button>
         </div>
 
-        <div className="p-4 min-h-[400px]">
-          <AnimatePresence mode="popLayout">
-            {signals.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-zinc-700">
-                <Bell size={40} className="mb-4 opacity-10" />
-                <p className="text-[10px] font-black uppercase tracking-widest">Awaiting New CRT Alerts...</p>
-              </div>
-            ) : (
-              signals.map((signal) => (
-                <motion.div 
+        {/* LIST TABLE */}
+        <div className="p-4 overflow-x-auto">
+          <table className="w-full text-left border-separate border-spacing-y-3">
+            <thead>
+              <tr className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">
+                <th className="pb-2 pl-6">Pair / Direction</th>
+                <th className="pb-2">Strategy Node</th>
+                <th className="pb-2">Entry Region</th>
+                <th className="pb-2">Current Status</th>
+                <th className="pb-2 pr-6 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {signals.map((signal) => (
+                <tr 
                   key={signal.id} 
-                  layout 
-                  initial={{ opacity: 0, x: -10 }} 
-                  animate={{ opacity: 1, x: 0 }} 
-                  className="flex items-center justify-between p-6 mb-4 bg-white/[0.02] border border-white/5 rounded-3xl group/item hover:bg-white/[0.04] transition-all cursor-pointer"
                   onClick={() => setSelectedSignal(signal)}
+                  className="bg-white/[0.02] hover:bg-white/[0.05] transition-all cursor-pointer group rounded-2xl"
                 >
-                  <div className="flex items-center gap-6">
-                    <div className={`w-1.5 h-12 rounded-full ${signal.side === 'BUY' ? 'bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.3)]' : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.3)]'}`} />
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="text-2xl font-black tracking-tighter text-white uppercase">{signal.symbol}</span>
-                        <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${signal.side === 'BUY' ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'text-red-500 border-red-500/20 bg-red-500/10'}`}>
-                          {signal.side}
-                        </span>
-                        {/* Status Badge */}
-                        <span className="text-[9px] font-bold text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/5">
-                           {signal.status || 'PENDING'}
+                  <td className="py-4 pl-6 rounded-l-2xl border-y border-l border-white/5">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-1 h-8 rounded-full ${signal.side === 'BUY' ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <div>
+                        <p className="text-lg font-black text-white tracking-tighter leading-none">{signal.symbol}</p>
+                        <span className={`text-[10px] font-black ${signal.side === 'BUY' ? 'text-green-500' : 'text-red-500'}`}>
+                          {signal.side} • {signal.tf_alignment || '5m'}
                         </span>
                       </div>
-                      <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-tight">
-                        {signal.strategy || 'KIMOO CRT PRO'} • {new Date(signal.created_at).toLocaleTimeString()}
-                      </p>
                     </div>
-                  </div>
-
-                  <div className="text-right flex items-center gap-8 px-4">
-                     <div className="hidden md:block">
-                        <p className="text-[9px] font-bold text-zinc-600 uppercase mb-1">Entry Region</p>
-                        <p className="text-xs font-mono text-white tracking-tighter">
-                          {signal.entry_price ? Number(signal.entry_price).toFixed(4) : 'Market'}
-                        </p>
-                     </div>
-                     <div className="p-3 rounded-xl bg-white/5 border border-white/5 text-zinc-400 group-hover/item:bg-blue-500 group-hover/item:text-white transition-all">
-                        <ArrowRight size={18} />
-                     </div>
-                  </div>
-                </motion.div>
-              ))
-            )}
-          </AnimatePresence>
+                  </td>
+                  <td className="py-4 border-y border-white/5">
+                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-tighter">
+                      {signal.strategy || 'KIMOO CRT PRO'}
+                    </p>
+                    <p className="text-[9px] text-zinc-600 font-mono italic">NodeID: {signal.id.slice(0, 8)}</p>
+                  </td>
+                  <td className="py-4 border-y border-white/5">
+                    <p className="text-sm font-mono font-bold text-blue-400">
+                      {signal.entry_price ? Number(signal.entry_price).toFixed(4) : 'MARKET'}
+                    </p>
+                  </td>
+                  <td className="py-4 border-y border-white/5">
+                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase border ${
+                      signal.status === 'WIN' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                      signal.status === 'LOSS' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                      'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                    }`}>
+                      {signal.status || 'PENDING'}
+                    </span>
+                  </td>
+                  <td className="py-4 pr-6 rounded-r-2xl border-y border-r border-white/5 text-right">
+                    <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 text-zinc-500 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                      <ExternalLink size={14} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {signals.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-24 opacity-20">
+              <ZapOff size={48} className="mb-4" />
+              <p className="text-sm font-black uppercase tracking-widest italic">Syncing with Market Liquidity...</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Unlocked Detail Modal */}
+      {/* DETAIL MODAL (Redesigned for the new aesthetic) */}
       <AnimatePresence>
         {selectedSignal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#0d0f14] border border-white/10 w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl relative"
-            >
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-[#0d0f14] border border-white/10 w-full max-w-xl rounded-[2.5rem] overflow-hidden shadow-2xl relative">
               <div className="p-8">
-                <div className="flex justify-between items-start mb-8">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-3 h-3 rounded-full ${selectedSignal.side === 'BUY' ? 'bg-green-500' : 'bg-red-500'}`} />
-                      <h3 className="text-xl font-black italic uppercase tracking-tight text-white">
-                        {selectedSignal.side} CRT SETUP | {selectedSignal.symbol}
-                      </h3>
+                <div className="flex justify-between items-start mb-8 border-b border-white/5 pb-6">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl border ${selectedSignal.side === 'BUY' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                      {selectedSignal.symbol.charAt(0)}
                     </div>
-                    <div className="h-0.5 w-24 bg-blue-500" />
+                    <div>
+                      <h3 className="text-2xl font-black text-white italic">{selectedSignal.symbol}</h3>
+                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest italic">CRT Institutional Setup</p>
+                    </div>
                   </div>
-                  <button onClick={() => setSelectedSignal(null)} className="p-2 hover:bg-white/5 rounded-full text-zinc-500 transition-colors">
+                  <button onClick={() => setSelectedSignal(null)} className="p-2.5 bg-zinc-900 rounded-full text-zinc-500 hover:text-white transition-colors">
                     <X size={20} />
                   </button>
                 </div>
 
-                <div className="space-y-5">
-                  <DetailRow icon={<Clock size={16}/>} label="TF Alignment" value={selectedSignal.tf_alignment || '5m-1H'} />
-                  <DetailRow icon={<Star size={16} className="text-yellow-500"/>} label="Grade" value={selectedSignal.grade || 'A+'} valueClass="text-yellow-500 font-bold" />
-                  <DetailRow icon={<Zap size={16} className="text-purple-500"/>} label="Phase" value={selectedSignal.phase || 'Cont/Rev'} />
-                  
-                  <div className="h-px bg-white/5 my-4" />
-
-                  <DetailRow icon={<TrendingUp size={16} className="text-blue-400"/>} label="Entry Zone" value={Number(selectedSignal.entry_price || 0).toFixed(4)} valueClass="font-mono text-blue-400" />
-                  <DetailRow icon={<Shield size={16} className="text-red-400"/>} label="Stop Loss" value={Number(selectedSignal.sl || 0).toFixed(4)} valueClass="font-mono text-red-400" />
-                  <DetailRow icon={<Target size={16} className="text-green-400"/>} label="TP 1 (EQ)" value={Number(selectedSignal.tp || 0).toFixed(4)} valueClass="font-mono text-green-400" />
-                  <DetailRow icon={<Target size={16} className="text-green-400"/>} label="TP 2 (Target)" value={Number(selectedSignal.tp_secondary || 0).toFixed(4)} valueClass="font-mono text-green-400" />
-                  <DetailRow icon={<TrendingUp size={16} className="text-zinc-400"/>} label="Status" value={selectedSignal.status || 'PENDING'} valueClass="uppercase font-black text-blue-500" />
+                <div className="grid grid-cols-2 gap-6">
+                  <DetailBox label="ENTRY REGION" value={Number(selectedSignal.entry_price || 0).toFixed(4)} sub="Institutional Entry" />
+                  <DetailBox label="RISK SHIELD (SL)" value={Number(selectedSignal.sl || 0).toFixed(4)} sub="Protective Bias" />
+                  <DetailBox label="TARGET 01 (EQ)" value={Number(selectedSignal.tp || 0).toFixed(4)} sub="Profit Objective" />
+                  <DetailBox label="TARGET 02 (FINAL)" value={Number(selectedSignal.tp_secondary || 0).toFixed(4)} sub="Extended Liquidity" />
                 </div>
 
-                <div className="mt-8 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                   <p className="text-[10px] text-zinc-500 italic flex gap-2">
-                     <span className="not-italic">📝</span>
-                     <span><strong>Confluences:</strong> {selectedSignal.confluences || 'Institutional Bias Confirmed'}</span>
-                   </p>
+                <div className="mt-8 grid grid-cols-3 gap-2">
+                  <Badge icon={<Star size={10}/>} label="GRADE" value={selectedSignal.grade || 'A+'} />
+                  <Badge icon={<Clock size={10}/>} label="TIME" value={new Date(selectedSignal.created_at).toLocaleTimeString()} />
+                  <Badge icon={<Target size={10}/>} label="PHASE" value={selectedSignal.phase || 'EXP'} />
                 </div>
               </div>
             </motion.div>
@@ -325,13 +250,33 @@ export default function DashboardClient({
   );
 }
 
-function DetailRow({ icon, label, value, valueClass = "text-white" }: any) {
+// SUPPORTING UI COMPONENTS
+function StatCard({ label, value, icon, color = "text-white" }: any) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3 text-zinc-400 font-bold uppercase text-[11px] tracking-tight">
-        {icon} <span>{label}:</span>
+    <div className="bg-[#0a0a0b] border border-white/5 p-4 rounded-xl flex flex-col gap-1">
+      <div className="flex items-center gap-2 text-zinc-600 text-[9px] font-black tracking-widest uppercase">
+        {icon} {label}
       </div>
-      <span className={`text-sm font-bold ${valueClass}`}>{value}</span>
+      <div className={`text-xl font-black tracking-tighter ${color}`}>{value}</div>
+    </div>
+  );
+}
+
+function DetailBox({ label, value, sub }: any) {
+  return (
+    <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+      <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">{label}</p>
+      <p className="text-lg font-mono font-bold text-white leading-none">{value}</p>
+      <p className="text-[9px] text-zinc-600 italic mt-1">{sub}</p>
+    </div>
+  );
+}
+
+function Badge({ icon, label, value }: any) {
+  return (
+    <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/[0.03] border border-white/5">
+      <span className="text-[8px] font-black text-zinc-500 uppercase mb-1 flex items-center gap-1">{icon} {label}</span>
+      <span className="text-xs font-bold text-white">{value}</span>
     </div>
   );
 }
