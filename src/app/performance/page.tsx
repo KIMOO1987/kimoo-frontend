@@ -1,195 +1,175 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { 
-  LineChart, 
-  TrendingUp, 
-  Award, 
-  BarChart2, 
-  Zap, 
-  Target, 
-  Settings2, 
-  Activity, 
-  LayoutGrid, 
-  History, 
-  ShieldCheck,
-  ChevronRight
+  TrendingUp, Zap, Star, Activity, BarChart3, Target, 
+  ShieldCheck, Clock, Wallet, MessageSquare, Menu, X
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 
-export default function PerformancePage() {
-  const [stats, setStats] = useState({
-    winRate: 0, 
-    profitFactor: 0, 
-    totalSignals: 0, 
-    avgRR: 3.2, 
-    growth: 0, 
-    cashProfit: "$0.00"
+interface DashboardClientProps {
+  isPro: boolean;
+  expiryDate?: string | null;
+  userProfile: any; 
+}
+
+export default function DashboardClient({ isPro, expiryDate, userProfile }: DashboardClientProps) {
+  const [accountSize, setAccountSize] = useState(userProfile?.account_size || 100000); 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [realStats, setRealStats] = useState({
+    total: 0,
+    winRate: "0%",
+    avgRR: "0.00R",
+    totalRR: "0.00R",
+    profitUSD: "$0.00",
+    mostProfitable: "---",
+    mostTraded: "---",
+    highWRPair: "---",
   });
-  const [recentTradeFlags, setRecentTradeFlags] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedSymbol, setSelectedSymbol] = useState('ALL');
+
+  const daysLeft = expiryDate 
+    ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
+    : 0;
+  
+  const currentTier = (userProfile?.plan_type || userProfile?.subscription_status || "ALPHA").toUpperCase();
 
   useEffect(() => {
-    const fetchPerformance = async () => {
-      setLoading(true);
-      try {
-        let query = supabase.from('signals').select('*').order('created_at', { ascending: false });
-        if (selectedSymbol !== 'ALL') query = query.eq('symbol', selectedSymbol);
-        
-        const { data, error } = await query;
-        if (error) throw error;
+    fetchData(); 
+    const interval = setInterval(fetchData, 30000); 
+    return () => clearInterval(interval);
+  }, [accountSize]);
 
-        if (data && data.length > 0) {
-          const wins = data.filter(s => s.status === 'TP2').length;
-          const partials = data.filter(s => s.status === 'TP1 + SL (BE)').length;
-          const losses = data.filter(s => s.status === 'SL').length;
-          const netR = (wins * 3.2) + (partials * 0.5) - (losses * 1);
-          
-          setRecentTradeFlags(data.slice(0, 15).map(s => 
-            s.status === 'TP2' ? 100 : s.status === 'SL' ? 25 : 60
-          ).reverse());
+  async function fetchData() {
+    try {
+      const { data: signals } = await supabase.from('signals').select('*');
+      if (!signals || signals.length === 0) return;
 
-          setStats({
-            totalSignals: data.length,
-            winRate: Math.round(((wins + partials) / (wins + partials + losses)) * 100) || 0,
-            profitFactor: Number(((wins * 3.2 + partials * 0.5) / (losses || 1)).toFixed(2)),
-            avgRR: 3.2,
-            growth: Number(netR.toFixed(1)),
-            cashProfit: (netR * 1000).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching signals:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPerformance();
-  }, [selectedSymbol]);
+      const wins = signals.filter(s => s.status?.toUpperCase().includes('TP'));
+      const losses = signals.filter(s => s.status?.toUpperCase() === 'SL');
+      const netR = (wins.length * 2) - losses.length; // Simplified logic for demo
+
+      setRealStats({
+        total: signals.length,
+        winRate: (wins.length + losses.length) > 0 ? ((wins.length / (wins.length + losses.length)) * 100).toFixed(1) + "%" : "0%",
+        totalRR: netR.toFixed(2) + "R",
+        avgRR: "2.1R",
+        profitUSD: `$${(netR * (accountSize * 0.01)).toLocaleString()}`,
+        mostProfitable: "XAUUSD",
+        mostTraded: "NAS100",
+        highWRPair: "US30",
+      });
+    } catch (err) { console.error(err); }
+  }
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-white pb-36 md:pb-12 selection:bg-blue-500/30">
+    <div className="flex min-h-screen bg-[#05070a] text-zinc-400 font-sans overflow-x-hidden">
       
-      {/* HEADER SECTION */}
-      <div className="p-6 md:p-12 flex justify-between items-center max-w-7xl mx-auto w-full">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h2 className="text-2xl md:text-5xl font-black italic uppercase tracking-tighter flex items-center gap-2 md:gap-3">
-            KIMOO <span className="text-blue-500 not-italic">CRT</span>
-            <span className="text-[9px] md:text-[10px] not-italic bg-blue-500 text-white px-2 py-0.5 rounded-md h-fit mb-4 shadow-[0_0_15px_rgba(59,130,246,0.5)]">PRO</span>
-          </h2>
-          <p className="text-[7px] md:text-[10px] text-zinc-500 font-bold uppercase tracking-[0.3em] md:tracking-[0.4em] -mt-1 md:-mt-2">Institutional Signal Node</p>
-        </motion.div>
+      {/* MOBILE MENU TOGGLE */}
+      <button 
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="lg:hidden fixed top-6 left-6 z-[100] p-3 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-500/20"
+      >
+        {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 p-4 md:p-8 lg:p-12 w-full max-w-[100vw]">
         
-        <div className="bg-white/5 p-2.5 md:p-3 rounded-xl md:rounded-2xl border border-white/10 backdrop-blur-md">
-          <Activity size={18} className={`${loading ? "animate-pulse text-blue-500" : "text-blue-400"}`} />
-        </div>
-      </div>
-
-      <div className="px-6 space-y-6 md:space-y-8 max-w-7xl mx-auto">
-        
-        {/* ASSET SELECTOR */}
-        <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar -mx-2 px-2 scroll-smooth">
-          {['ALL', 'XAUUSD', 'BTCUSD', 'NAS100', 'US30'].map((sym) => (
-            <button 
-              key={sym}
-              onClick={() => setSelectedSymbol(sym)}
-              className={`px-5 md:px-8 py-2 md:py-3 rounded-full text-[9px] md:text-[10px] font-black uppercase border transition-all duration-300 whitespace-nowrap ${
-                selectedSymbol === sym 
-                ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(59,130,246,0.4)]' 
-                : 'bg-white/5 border-white/10 text-zinc-500 hover:border-white/20'
-              }`}
-            >
-              {sym}
-            </button>
-          ))}
-        </div>
-
-        {/* CORE STATS GRID */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8">
-          <StatCard title="Win Rate" value={`${stats.winRate}%`} icon={<Award size={16}/>} trend="+2.4%" />
-          <StatCard title="Profit Factor" value={stats.profitFactor.toString()} icon={<TrendingUp size={16}/>} trend="Stable" />
-          <StatCard title="Growth" value={`${stats.growth}R`} icon={<Zap size={16}/>} trend="High" />
-          <StatCard title="Net Est." value={stats.cashProfit} icon={<BarChart2 size={16}/>} trend="Live" />
-        </div>
-
-        {/* EDGE SEQUENCE CHART */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-12 relative overflow-hidden group"
-        >
-          <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-            <LineChart size={80} className="md:w-[120px] md:h-[120px]" />
-          </div>
-
-          <div className="flex justify-between items-center mb-6 md:mb-10 relative z-10">
-            <div>
-              <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] text-zinc-400 flex items-center gap-2">
-                <Target size={14} className="text-blue-500" /> Sequence Analysis
-              </h3>
-              <p className="text-[8px] md:text-[9px] text-zinc-600 font-medium uppercase mt-1">Last 15 verified CRT entries</p>
+        {/* HEADER SECTION */}
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl mt-12 lg:mt-0">
+          
+          <div className="w-full">
+            <div className="flex flex-wrap items-center gap-4 mb-6">
+              <h1 className="text-2xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none break-words">
+                {userProfile?.full_name || 'KALIM AHMED GILL'}
+              </h1>
+              <span className="bg-indigo-600 text-white text-[9px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit">
+                {userProfile?.role?.toUpperCase() || 'ADMIN'}
+              </span>
             </div>
-            <button className="text-[9px] md:text-[10px] font-bold text-blue-500 flex items-center gap-1 hover:underline">
-              Full History <ChevronRight size={12}/>
-            </button>
+            
+            <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
+              <div className="flex items-center gap-3">
+                <Wallet size={20} className="text-emerald-500 shrink-0" />
+                <div className="flex items-center border-b border-white/10 pb-1">
+                   <span className="text-white font-black text-lg md:text-2xl mr-1">$</span>
+                   <input 
+                     type="number" 
+                     value={accountSize} 
+                     onChange={(e) => setAccountSize(Number(e.target.value))} 
+                     className="bg-transparent text-white font-black text-lg md:text-2xl w-32 outline-none focus:text-emerald-400" 
+                   />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Clock size={20} className="text-indigo-500 shrink-0" />
+                <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                    <span className="text-white font-black text-lg md:text-2xl italic uppercase">{currentTier}</span>
+                    <span className="hidden md:block text-zinc-700">|</span>
+                    <span className="text-zinc-500 font-bold text-xs md:text-sm uppercase tracking-tighter">
+                      REMAINING: <span className="text-indigo-400">{daysLeft} DAYS</span>
+                    </span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="h-32 md:h-56 w-full flex items-end gap-1 md:gap-2 px-1 relative z-10">
-            {recentTradeFlags.map((h, i) => (
-              <motion.div 
-                key={i}
-                initial={{ height: 0 }}
-                animate={{ height: `${h}%` }}
-                transition={{ delay: i * 0.05 }}
-                className={`flex-1 rounded-t-lg md:rounded-t-xl transition-all duration-500 ${
-                  h === 100 ? 'bg-gradient-to-t from-blue-600 to-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 
-                  h === 60 ? 'bg-white/10' : 'bg-white/5'
-                }`}
-              />
-            ))}
+          {/* STATUS BOX */}
+          <div className="w-full xl:w-auto bg-black/40 border border-white/10 px-6 py-4 rounded-3xl flex flex-col sm:flex-row items-center gap-4">
+             <div className="flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">ENGINE: ONLINE</span>
+             </div>
+             <div className="hidden sm:block h-6 w-[1px] bg-white/10" />
+             <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-tight truncate max-w-[200px]">
+               {userProfile?.email || 'SYSTEM@KIMOOCRT.APP'}
+             </p>
           </div>
-        </motion.div>
-      </div>
-
-      {/* FIXED BOTTOM NAVIGATION (MOBILE ONLY) */}
-      <div className="fixed bottom-0 left-0 right-0 z-[999] md:hidden px-4 pb-8 pt-4 bg-gradient-to-t from-[#05070a] via-[#05070a] to-transparent">
-        <div className="bg-zinc-900/95 backdrop-blur-2xl border border-white/10 rounded-3xl px-6 py-4 flex justify-between items-center shadow-[0_-15px_40px_rgba(0,0,0,0.6)]">
-          <NavIcon icon={<LayoutGrid size={20} />} label="Node" active />
-          <NavIcon icon={<History size={20} />} label="Signals" />
-          <NavIcon icon={<ShieldCheck size={20} />} label="Verify" />
-          <NavIcon icon={<Settings2 size={20} />} label="Admin" />
         </div>
-      </div>
+
+        {/* STATS GRID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
+          <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
+          <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
+          <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
+          <StatCard label="Profit" value={realStats.profitUSD} icon={<Star size={18}/>} color="text-emerald-500" />
+        </div>
+
+        {/* ROADMAP / FEATURES */}
+        <div className="w-full border-t border-white/5 pt-12 mb-20">
+          <h2 className="text-3xl md:text-6xl font-black text-white mb-12 tracking-tighter italic uppercase leading-tight">
+            Institutional <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-600">CRT Intelligence.</span>
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
+            <FeatureItem title="Live Visibility" desc="Track R:R growth in real-time as market hits levels." />
+            <FeatureItem title="Strategy Validation" desc="Audit symbol performance across timeframes." />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
 
-function StatCard({ title, value, icon, trend }: { title: string, value: string, icon: any, trend: string }) {
+function StatCard({ label, value, icon, color = "text-white" }: any) {
   return (
-    <div className="bg-[#0a0a0a] border border-white/5 p-4 md:p-10 rounded-2xl md:rounded-[2rem] hover:bg-white/[0.02] transition-all group">
-      <div className="flex justify-between items-start mb-4 md:mb-6">
-        <div className="p-2 md:p-3 rounded-xl bg-white/5 text-blue-500 group-hover:scale-110 transition-transform">
-          {icon}
-        </div>
-        <span className="text-[6px] md:text-[7px] font-black text-blue-500 bg-blue-500/10 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md md:rounded-lg uppercase tracking-tighter">
-          {trend}
-        </span>
+    <div className="bg-white/[0.03] border border-white/5 p-6 md:p-8 rounded-[2rem] shadow-xl">
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{label}</p>
+        <div className="text-zinc-500">{icon}</div>
       </div>
-      <p className="text-[8px] md:text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1 md:mb-2">{title}</p>
-      <p className="text-sm md:text-3xl font-black text-white italic tracking-tighter truncate">{value}</p>
+      <p className={`text-2xl md:text-4xl font-black italic tracking-tighter ${color}`}>{value}</p>
     </div>
   );
 }
 
-function NavIcon({ icon, label, active = false }: { icon: any, label: string, active?: boolean }) {
+function FeatureItem({ title, desc }: any) {
   return (
-    <button className={`flex flex-col items-center gap-1 transition-all active:scale-90 ${active ? 'text-blue-500' : 'text-zinc-500'}`}>
-      {icon}
-      <span className={`text-[7px] font-black uppercase tracking-widest ${active ? 'opacity-100' : 'opacity-50'}`}>
-        {label}
-      </span>
-    </button>
+    <div className="flex flex-col gap-2 p-6 rounded-3xl bg-white/[0.01] border border-white/5">
+      <h4 className="text-white font-black uppercase italic text-lg md:text-xl tracking-tighter">{title}</h4>
+      <p className="text-zinc-500 text-sm leading-relaxed">{desc}</p>
+    </div>
   );
 }
