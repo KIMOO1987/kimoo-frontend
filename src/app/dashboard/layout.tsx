@@ -1,4 +1,5 @@
 import Sidebar from '@/components/Sidebar';
+import MobileNav from '@/components/MobileNav'; //
 import { KimooProvider } from '@/context/KimooContext';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -30,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Get user to fetch profile
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Fetch Pro Status (Matching your Debug Log: Pro Status: true)
+  // Fetch Pro Status
   let isPro = false;
   if (user) {
     const { data: profile } = await supabase
@@ -44,9 +45,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <KimooProvider>
-      <div className="flex bg-[#050505] min-h-screen">
+      <div className="flex bg-[#050505] min-h-screen relative">
+        {/* DESKTOP SIDEBAR: Handled via 'hidden lg:flex' inside its own file */}
         <Sidebar isPro={isPro} />
-        <main className="flex-1 overflow-y-auto">
+
+        {/* MOBILE NAVIGATION: Handled via 'lg:hidden' inside its own file */}
+        <MobileNav isPro={isPro} />
+
+        <main className="flex-1 overflow-y-auto w-full">
           {children}
         </main>
       </div>
