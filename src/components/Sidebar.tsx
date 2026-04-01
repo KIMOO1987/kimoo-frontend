@@ -21,9 +21,9 @@ const menuGroups = [
     ]
   },
   { 
-    label: 'RADAR & ANALYSIS', 
+    label: 'RADAR & ANALYSIS',
     items: [
-      { name: 'All Signals', icon: Zap, path: '/dashboard/signals', proRequired: : true },
+      { name: 'All Signals', icon: Zap, path: '/dashboard/signals', proRequired: true },
       { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', proRequired: true },
       { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', proRequired: true },
     ]
@@ -36,7 +36,7 @@ const menuGroups = [
     ]
   },
   { 
-    label: 'ACCOUNT & SETTINGS', 
+    label: 'ACCOUNT & SETTINGS',
     items: [
       { name: 'Profile', icon: User, path: '/dashboard/profile', proRequired: false },
       { name: 'Payments', icon: CreditCard, path: '/dashboard/payments', proRequired: false },
