@@ -14,9 +14,7 @@ export async function middleware(request: NextRequest) {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
+          response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           )
@@ -25,18 +23,18 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // 1. Get the current user
+  // This is the ONLY way to reliably refresh the session in Next.js Middleware
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 2. PROTECT THE DASHBOARD
-  // If no user and trying to access /dashboard, send to /login
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+  // ROUTE PROTECTION
+  const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
+  const isLoginPage = request.nextUrl.pathname === '/login'
+
+  if (!user && isDashboard) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // 3. PREVENT DOUBLE LOGIN
-  // If user IS logged in and tries to go to /login, send to /dashboard
-  if (user && request.nextUrl.pathname.startsWith('/login')) {
+  if (user && isLoginPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
@@ -44,14 +42,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public (public images/assets)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }
