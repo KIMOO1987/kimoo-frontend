@@ -7,7 +7,7 @@ import {
   LogOut, Lock, X, Menu 
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation'; // Removed useRouter as we'll use window.location
 import { supabase } from '@/lib/supabaseClient';
 import { useEffect, useState } from 'react';
 
@@ -44,10 +44,8 @@ const menuGroups = [
   }
 ];
 
-// Changed isPro: boolean to tier: number
 export default function Sidebar({ tier }: { tier: number }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -55,7 +53,6 @@ export default function Sidebar({ tier }: { tier: number }) {
     setMounted(true);
   }, []);
 
-  // Force scroll lock on mobile when open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -64,11 +61,23 @@ export default function Sidebar({ tier }: { tier: number }) {
     }
   }, [isOpen]);
 
+  // --- UPDATED LOGOUT LOGIC ---
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
-      router.push('/login');
-      router.refresh();
+    try {
+      // 1. Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // 2. Clear all local storage and session data
+      // This prevents the "Subscription Nill" issue for the next login
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+      
+      // 3. Perform a HARD REDIRECT
+      // This forces the server to clear cookies and the middleware to reset
+      window.location.href = '/login';
+    } catch (error) {
+      console.error("Logout Error:", error);
+      window.location.href = '/login';
     }
   };
 
@@ -118,7 +127,6 @@ export default function Sidebar({ tier }: { tier: number }) {
                 <div className="space-y-1">
                   {group.items.map((item) => {
                     const isActive = pathname === item.path;
-                    // Logic: Locked if user tier is less than the item's minTier
                     const isLocked = tier < item.minTier;
 
                     return (
@@ -138,7 +146,6 @@ export default function Sidebar({ tier }: { tier: number }) {
                             <span className="text-[12px] font-bold tracking-tight">{item.name}</span>
                           </div>
                           
-                          {/* Visual feedback for locked items */}
                           {isLocked ? (
                             <Lock size={12} className="text-zinc-600" />
                           ) : (
@@ -153,14 +160,14 @@ export default function Sidebar({ tier }: { tier: number }) {
             ))}
           </nav>
 
-          {/* Bottom Bar */}
+          {/* Bottom Bar / Logout */}
           <div className="mt-auto pt-6 border-t border-white/5 shrink-0">
             <button 
               onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-red-500 transition-all rounded-xl w-full"
+              className="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-red-500 transition-all rounded-xl w-full group"
             >
-              <LogOut size={18} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Logout</span>
+              <LogOut size={18} className="group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Terminate Session</span>
             </button>
           </div>
         </div>
