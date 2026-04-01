@@ -86,6 +86,27 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   }
 
   return (
+    <div className="p-8 lg:p-12 bg-[#05070a] min-h-screen text-white font-sans">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+        <div>
+          <h1 className="text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase">
+            Magic <span className="text-blue-500">Dashboard</span>
+          </h1>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-3">
+            Real-Time Equity Simulation • KIMOO CRT Engine
+          </p>
+        </div>
+        <button 
+          onClick={runSimulation}
+          disabled={isSimulating}
+          className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 text-white flex items-center justify-center gap-3 px-10 py-4 rounded-2xl font-black italic tracking-widest transition-all"
+        >
+          {isSimulating ? <RotateCcw className="animate-spin" size={16} /> : <Play size={16} />}
+          {isSimulating ? "COMPUTING..." : "GENERATE GROWTH GRAPH"}
+        </button>
+      </div>
+    
     <div className="relative min-h-screen bg-[#05070a] overflow-x-hidden w-full flex text-zinc-400 font-sans">
       
       {/* MAIN CONTENT AREA */}
