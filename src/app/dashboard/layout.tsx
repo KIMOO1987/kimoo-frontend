@@ -3,6 +3,7 @@ import MobileNav from '@/components/MobileNav';
 import { KimooProvider } from '@/context/KimooContext';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -21,39 +22,42 @@ export default async function DashboardLayout({ children }: { children: React.Re
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Ignore if handled by middleware
+            // Handled by middleware
           }
         },
       },
     }
   );
 
-  // 1. Get user to fetch profile
+  // 1. STRENGTHENED AUTH CHECK: Get user session
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 2. Fetch the numeric Tier (instead of isPro)
-  let userTier = 0; // Default to Free
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('tier') // Use your new 'tier' column
-      .eq('id', user.id)
-      .single();
-    
-    // If the profile has a tier, use it, otherwise stay at 0
-    userTier = profile?.tier ?? 0;
+  // 2. IMMEDIATE REDIRECT: If no user on the server, kick to login
+  if (!user) {
+    redirect('/login');
   }
+
+  // 3. FETCH PROFILE DATA: Ensure we get the tier and details
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('tier, plan_type, subscription_status')
+    .eq('id', user.id)
+    .single();
+
+  // 4. FALLBACK LOGIC: If profile doesn't exist yet, default to Tier 0
+  const userTier = profile?.tier ?? 0;
 
   return (
     <KimooProvider>
       <div className="flex bg-[#050505] min-h-screen relative">
-        {/* 3. Pass 'userTier' to your Sidebar and MobileNav */}
+        {/* Pass the verified Tier to navigation components */}
         <Sidebar tier={userTier} />
-
-        {/* Note: Make sure MobileNav.tsx is also updated to accept 'tier' */}
         <MobileNav tier={userTier} />
 
         <main className="flex-1 overflow-y-auto w-full">
+          {/* Optionally pass the profile as a prop to children 
+              if your pages need server-side data immediately 
+          */}
           {children}
         </main>
       </div>
