@@ -1,5 +1,5 @@
 import Sidebar from '@/components/Sidebar';
-import MobileNav from '@/components/MobileNav'; //
+import MobileNav from '@/components/MobileNav';
 import { KimooProvider } from '@/context/KimooContext';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -21,36 +21,37 @@ export default async function DashboardLayout({ children }: { children: React.Re
               cookieStore.set(name, value, options)
             );
           } catch {
-            // This can be ignored if middleware handles session refreshes
+            // Ignore if handled by middleware
           }
         },
       },
     }
   );
 
-  // Get user to fetch profile
+  // 1. Get user to fetch profile
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Fetch Pro Status
-  let isPro = false;
+  // 2. Fetch the numeric Tier (instead of isPro)
+  let userTier = 0; // Default to Free
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_pro')
+      .select('tier') // Use your new 'tier' column
       .eq('id', user.id)
       .single();
     
-    isPro = !!profile?.is_pro;
+    // If the profile has a tier, use it, otherwise stay at 0
+    userTier = profile?.tier ?? 0;
   }
 
   return (
     <KimooProvider>
       <div className="flex bg-[#050505] min-h-screen relative">
-        {/* DESKTOP SIDEBAR: Handled via 'hidden lg:flex' inside its own file */}
-        <Sidebar isPro={isPro} />
+        {/* 3. Pass 'userTier' to your Sidebar and MobileNav */}
+        <Sidebar tier={userTier} />
 
-        {/* MOBILE NAVIGATION: Handled via 'lg:hidden' inside its own file */}
-        <MobileNav isPro={isPro} />
+        {/* Note: Make sure MobileNav.tsx is also updated to accept 'tier' */}
+        <MobileNav tier={userTier} />
 
         <main className="flex-1 overflow-y-auto w-full">
           {children}
