@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/useAuth'; // New Addition
+import AccessGuard from '@/components/AccessGuard'; // New Addition
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, RotateCcw, TrendingUp, Target, BarChart3, 
@@ -10,6 +12,7 @@ import {
 } from 'lucide-react';
 
 export default function BacktestPage() {
+  const { tier, loading: authLoading } = useAuth(); // New Addition
   const [isSimulating, setIsSimulating] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [equityCurve, setEquityCurve] = useState<number[]>([]);
@@ -23,6 +26,7 @@ export default function BacktestPage() {
   const [endDate, setEndDate] = useState('');
 
   const runSimulation = async () => {
+    if (tier < 3) return; // New Addition: Prevent execution for tiers below Ultra
     setIsSimulating(true);
     
     let query = supabase.from('signals').select('*').order('created_at', { ascending: true });
@@ -67,6 +71,20 @@ export default function BacktestPage() {
       setIsSimulating(false);
     }, 1200);
   };
+
+  // New Addition: Auth Loading State
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
+        <Activity size={32} className="text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // New Addition: Tier Restriction (Requires Ultra/Tier 3)
+  if (tier < 3) {
+    return <AccessGuard tierName="Ultra" />;
+  }
 
   return (
     <div className="p-8 lg:p-12 bg-[#05070a] min-h-screen text-white font-sans">
