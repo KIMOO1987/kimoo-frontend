@@ -15,31 +15,31 @@ const menuGroups = [
   { 
     label: 'TERMINAL', 
     items: [
-      { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', proRequired: false },
-      { name: 'Active Trades', icon: Clock, path: '/dashboard/active', proRequired: true },
-      { name: 'Trade History', icon: History, path: '/dashboard/history', proRequired: true },
+      { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', minTier: 0 },
+      { name: 'Active Trades', icon: Clock, path: '/dashboard/active', minTier: 1 },
+      { name: 'Trade History', icon: History, path: '/dashboard/history', minTier: 1 },
     ]
   },
   { 
     label: 'RADAR & ANALYSIS',
     items: [
-      { name: 'All Signals', icon: Zap, path: '/dashboard/signals', proRequired: true },
-      { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', proRequired: true },
-      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', proRequired: true },
+      { name: 'All Signals', icon: Zap, path: '/dashboard/signals', minTier: 1 },
+      { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', minTier: 2 },
+      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', minTier: 3 },
     ]
   },
   { 
     label: 'STRATEGY LAB', 
     items: [
-      { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', proRequired: true },
-      { name: 'Performance', icon: LineChart, path: '/dashboard/performance', proRequired: true },
+      { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', minTier: 3 },
+      { name: 'Performance', icon: LineChart, path: '/dashboard/performance', minTier: 3 },
     ]
   },
   { 
     label: 'ACCOUNT & SETTINGS',
     items: [
-      { name: 'Profile', icon: User, path: '/dashboard/profile', proRequired: false },
-      { name: 'Payments', icon: CreditCard, path: '/dashboard/payments', proRequired: false },
+      { name: 'Profile', icon: User, path: '/dashboard/profile', minTier: 0 },
+      { name: 'Payments', icon: CreditCard, path: '/dashboard/payments', minTier: 0 },
     ]
   }
 ];
