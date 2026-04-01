@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/useAuth'; // New Addition
+import AccessGuard from '@/components/AccessGuard'; // New Addition
 import { motion } from 'framer-motion';
 import { 
   History as HistoryIcon, 
@@ -10,15 +12,19 @@ import {
   CheckCircle2, 
   XCircle, 
   Clock,
-  AlertTriangle 
+  AlertTriangle,
+  Activity // Added for loading state
 } from 'lucide-react';
 
 export default function SignalHistoryPage() {
+  const { tier, loading: authLoading } = useAuth(); // New Addition
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
+    if (tier < 1) return; // New Addition: Prevent fetch for Tier 0
+
     const fetchHistory = async () => {
       const { data } = await supabase
         .from('signals')
@@ -31,11 +37,25 @@ export default function SignalHistoryPage() {
     };
 
     fetchHistory();
-  }, []);
+  }, [tier]); // New Addition: Dependency on tier
 
   const filteredHistory = history.filter(s => 
     s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // New Addition: Auth Loading State
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
+        <Activity size={32} className="text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // New Addition: Tier Restriction (Tier 0 / Free)
+  if (tier < 1) {
+    return <AccessGuard tierName="Alpha" />;
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
@@ -84,7 +104,6 @@ export default function SignalHistoryPage() {
                     key={signal.id} 
                     className="group hover:bg-blue-500/[0.02] transition-colors"
                   >
-                    {/* Timestamp - Hidden on Mobile */}
                     <td className="hidden md:table-cell px-8 py-5 text-[11px] font-mono text-zinc-500">
                       {new Date(signal.created_at).toLocaleDateString()}
                       <span className="block opacity-40 text-[9px]">
@@ -92,14 +111,12 @@ export default function SignalHistoryPage() {
                       </span>
                     </td>
 
-                    {/* Instrument - Padded on mobile */}
                     <td className="px-4 md:px-0 py-5">
                       <span className="text-sm font-black text-white uppercase tracking-tighter italic">
                         {signal.symbol}
                       </span>
                     </td>
 
-                    {/* Side */}
                     <td className="py-5">
                       <span className={`text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded border ${
                         signal.side === 'BUY' 
@@ -110,22 +127,18 @@ export default function SignalHistoryPage() {
                       </span>
                     </td>
 
-                    {/* Entry */}
                     <td className="py-5 text-xs md:text-sm font-mono font-bold text-zinc-300">
                       {signal.entry_price}
                     </td>
 
-                    {/* Strategy - Hidden on Mobile */}
                     <td className="hidden md:table-cell py-5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                       {signal.strategy || 'CRT Alpha'}
                     </td>
 
-                    {/* Result */}
                     <td className="py-5">
                       <ResultBadge status={signal.status} />
                     </td>
 
-                    {/* Action - Hidden on Mobile */}
                     <td className="hidden md:table-cell px-8 py-5 text-right">
                       <button className="p-2 rounded-xl hover:bg-white/5 text-zinc-600 hover:text-white transition-all">
                         <ChevronRight size={18} />
