@@ -52,7 +52,7 @@ export default function SignUpPage() {
             <span className="text-[8px] font-black text-blue-500 uppercase tracking-[0.2em]">New Operator Registration</span>
           </div>
           <h1 className="text-3xl font-black italic tracking-tighter text-white">
-            CRT<span className="text-blue-500">BOTS</span>
+            KIMOO CRT<span className="text-blue-500">(+Pro)</span>
           </h1>
           <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-2">
             Establish Secure Identity
