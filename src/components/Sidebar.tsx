@@ -44,7 +44,8 @@ const menuGroups = [
   }
 ];
 
-export default function Sidebar({ isPro }: { isPro: boolean }) {
+// Changed isPro: boolean to tier: number
+export default function Sidebar({ tier }: { tier: number }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -75,7 +76,7 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
 
   return (
     <>
-      {/* 2. MOBILE OVERLAY */}
+      {/* MOBILE OVERLAY */}
       <AnimatePresence>
         {isOpen && (
           <motion.div 
@@ -88,7 +89,7 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
         )}
       </AnimatePresence>
 
-      {/* 3. SIDEBAR PANEL */}
+      {/* SIDEBAR PANEL */}
       <aside className={`
         fixed inset-y-0 left-0 w-72 bg-[#05070a] border-r border-white/5 flex flex-col
         transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen lg:sticky lg:top-0
@@ -117,26 +118,31 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
                 <div className="space-y-1">
                   {group.items.map((item) => {
                     const isActive = pathname === item.path;
-                    const isLocked = item.proRequired && !isPro;
+                    // Logic: Locked if user tier is less than the item's minTier
+                    const isLocked = tier < item.minTier;
 
                     return (
                       <Link 
                         key={item.name} 
                         href={isLocked ? "#" : item.path}
-                        onClick={() => setIsOpen(false)}
+                        onClick={() => !isLocked && setIsOpen(false)}
                         className="block w-full"
                       >
                         <div className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
                           isActive 
                             ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' 
                             : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
-                        } ${isLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}>
+                        } ${isLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
                           <div className="flex items-center gap-3">
                             <item.icon size={18} />
                             <span className="text-[12px] font-bold tracking-tight">{item.name}</span>
                           </div>
-                          {isLocked ? <Lock size={11} /> : isActive && (
-                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                          
+                          {/* Visual feedback for locked items */}
+                          {isLocked ? (
+                            <Lock size={12} className="text-zinc-600" />
+                          ) : (
+                            isActive && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
                           )}
                         </div>
                       </Link>
