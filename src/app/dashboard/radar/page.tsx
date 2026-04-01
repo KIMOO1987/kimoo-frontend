@@ -9,25 +9,19 @@ export default function RadarPage() {
   const [liveSignals, setLiveSignals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Fetch live signals & Setup Real-time Listeners
   useEffect(() => {
     fetchRadarData();
 
-    // --- OPTIMIZATION: Heartbeat ---
-    // Forces a re-render every 60s to update "Confidence" and "Signal Age" 
-    // so the UI stays accurate without a page refresh.
     const heartbeat = setInterval(() => {
       setLiveSignals(prev => [...prev]);
     }, 60000);
 
-    // --- OPTIMIZATION: Filtered Subscription ---
     const channel = supabase.channel('radar_updates')
       .on('postgres_changes', 
         { 
           event: 'INSERT', 
           schema: 'public', 
           table: 'signals'
-          // Optional: filter: 'type=eq.ENTRY' if you add a type column later
         }, 
       (payload) => {
         setLiveSignals(prev => [payload.new, ...prev].slice(0, 10));
@@ -41,8 +35,6 @@ export default function RadarPage() {
 
   const fetchRadarData = async () => {
     setIsLoading(true);
-    // --- OPTIMIZATION: Column Selection ---
-    // We only select the columns needed for the Radar to save bandwidth
     const { data, error } = await supabase
       .from('signals')
       .select('id, symbol, category, side, created_at, status')
@@ -54,7 +46,6 @@ export default function RadarPage() {
     setIsLoading(false);
   };
 
-  // Helper to calculate "Confidence" based on signal age (Live update via Heartbeat)
   const getConfidence = (timestamp: string) => {
     const minutesAgo = (Date.now() - new Date(timestamp).getTime()) / 60000;
     if (minutesAgo < 15) return { val: 98, label: 'PRIME' };
@@ -64,29 +55,29 @@ export default function RadarPage() {
   };
 
   return (
-    <div className="p-8 lg:p-12 bg-[#05070a] min-h-screen text-white">
+    <div className="p-4 md:p-8 lg:p-12 bg-[#05070a] min-h-screen text-white">
       {/* Header */}
-      <div className="flex justify-between items-start mb-12">
+      <div className="flex justify-between items-start mb-8 md:mb-12">
         <div>
-          <h1 className="text-3xl font-black tracking-tighter italic flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tighter italic flex items-center gap-3">
             ALPHA <span className="text-blue-500">RADAR</span>
             <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse mt-1" />
           </h1>
-          <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-2 leading-none">
+          <p className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] md:tracking-[0.4em] text-zinc-600 font-bold mt-2 leading-none">
             Institutional Liquidity Scanner • Global Signal Stream
           </p>
         </div>
         <div className="flex gap-4">
           <RadarStat label="Live Feed" value="ACTIVE" color="text-green-500" />
-          <RadarStat label="Signals Found" value={liveSignals.length.toString()} />
+          <RadarStat label="Signals" value={liveSignals.length.toString()} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Live Signal Stream */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-[#0a0a0a] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl shadow-black/50">
-            <div className="p-6 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
+          <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl md:rounded-[2rem] overflow-hidden shadow-2xl shadow-black/50">
+            <div className="p-5 md:p-6 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Scanner Stream</h3>
               <div className="flex items-center gap-2">
                 <Radio size={12} className="text-blue-500 animate-pulse" />
@@ -99,8 +90,9 @@ export default function RadarPage() {
                 <thead>
                   <tr className="text-[9px] font-black text-zinc-700 uppercase tracking-widest bg-black/40">
                     <th className="px-6 py-4">Instrument</th>
-                    <th className="py-4">Category</th>
-                    <th className="py-4">CRT Confidence</th>
+                    {/* CATEGORY: Hidden on Mobile */}
+                    <th className="hidden md:table-cell py-4">Category</th>
+                    <th className="py-4 text-center md:text-left">CRT Confidence</th>
                     <th className="py-4">Bias</th>
                     <th className="px-6 py-4">Status</th>
                   </tr>
@@ -121,12 +113,15 @@ export default function RadarPage() {
                           <td className="px-6 py-5 font-black text-sm tracking-tighter text-white uppercase">
                             {signal.symbol}
                           </td>
-                          <td className="py-5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                          
+                          {/* CATEGORY: Hidden on Mobile */}
+                          <td className="hidden md:table-cell py-5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                             {signal.category || 'Global'}
                           </td>
+
                           <td className="py-5">
                             <div className="flex items-center gap-2">
-                              <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
+                              <div className="w-12 md:w-16 h-1 bg-white/5 rounded-full overflow-hidden">
                                 <motion.div 
                                   initial={{ width: 0 }}
                                   animate={{ width: `${conf.val}%` }}
@@ -134,11 +129,11 @@ export default function RadarPage() {
                                   className={`h-full ${conf.val > 80 ? 'bg-blue-500' : conf.val > 60 ? 'bg-zinc-500' : 'bg-red-900/50'}`} 
                                 />
                               </div>
-                              <span className="text-[10px] font-bold text-zinc-500">{conf.val}%</span>
+                              <span className="text-[9px] md:text-[10px] font-bold text-zinc-500">{conf.val}%</span>
                             </div>
                           </td>
                           <td className="py-5">
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${
+                            <span className={`text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded border ${
                               signal.side === 'BUY' 
                                 ? 'text-green-500 border-green-500/20 bg-green-500/10' 
                                 : 'text-red-500 border-red-500/20 bg-red-500/10'
@@ -169,9 +164,9 @@ export default function RadarPage() {
           </div>
         </div>
 
-        {/* Right: Visual Radar Circle */}
+        {/* Right: Visual Radar Circle (Hidden on smaller mobiles or stacked) */}
         <div className="space-y-6">
-          <div className="bg-[#0a0a0a] border border-white/5 p-10 flex flex-col items-center justify-center aspect-square relative rounded-[2rem] overflow-hidden">
+          <div className="bg-[#0a0a0a] border border-white/5 p-10 flex flex-col items-center justify-center aspect-square relative rounded-2xl md:rounded-[2rem] overflow-hidden">
             <div className="absolute inset-4 border border-blue-500/5 rounded-full" />
             <div className="absolute inset-12 border border-blue-500/10 rounded-full" />
             <div className="absolute inset-0 border border-blue-500/5 rounded-full animate-[spin_6s_linear_infinite] pointer-events-none">
@@ -183,7 +178,7 @@ export default function RadarPage() {
             <p className="text-[8px] font-bold text-zinc-600 uppercase mt-2 text-center px-4">Aggregating Global CRT Liquidity</p>
           </div>
 
-          <div className="bg-green-500/[0.02] border border-green-500/10 p-6 rounded-[2rem]">
+          <div className="bg-green-500/[0.02] border border-green-500/10 p-6 rounded-2xl md:rounded-[2rem]">
             <div className="flex items-center gap-3 mb-4">
               <Shield size={16} className="text-green-500" />
               <h4 className="text-[10px] font-black uppercase tracking-widest text-green-500">Signal Integrity</h4>
@@ -201,7 +196,7 @@ export default function RadarPage() {
 function RadarStat({ label, value, color = "text-zinc-400" }: { label: string, value: string, color?: string }) {
   return (
     <div className="text-right">
-      <p className="text-[8px] font-black text-zinc-700 uppercase tracking-widest">{label}</p>
+      <p className="text-[8px] font-black text-zinc-700 uppercase tracking-widest leading-none">{label}</p>
       <p className={`text-xs font-black mt-1 ${color}`}>{value}</p>
     </div>
   );
