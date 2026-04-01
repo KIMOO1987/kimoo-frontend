@@ -48,26 +48,19 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserEmail(user.email ?? null);
-    };
-    getUser();
   }, []);
 
-  // Prevent background scrolling when sidebar is open
+  // Force scroll lock on mobile when open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
-    return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
 
   const handleLogout = async () => {
@@ -82,15 +75,15 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
 
   return (
     <>
-      {/* 1. MOBILE TOGGLE BUTTON (Highest Z-Index) */}
+      {/* 1. TRIGGER BUTTON - ALWAYS TOP LAYER */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed bottom-8 left-6 z-[999] p-4 bg-indigo-600 rounded-full text-white shadow-2xl active:scale-95 transition-all border border-white/20"
+        className="lg:hidden fixed bottom-8 left-6 z-[9999] p-4 bg-indigo-600 rounded-full text-white shadow-2xl active:scale-90 transition-transform border border-white/20"
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* 2. OVERLAY */}
+      {/* 2. MOBILE OVERLAY */}
       <AnimatePresence>
         {isOpen && (
           <motion.div 
@@ -98,20 +91,21 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/90 backdrop-blur-md z-[997] lg:hidden"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9997] lg:hidden"
           />
         )}
       </AnimatePresence>
 
       {/* 3. SIDEBAR PANEL */}
       <aside className={`
-        fixed inset-y-0 left-0 z-[998] w-72 bg-[#05070a] border-r border-white/5 flex flex-col
+        fixed inset-y-0 left-0 w-72 bg-[#05070a] border-r border-white/5 flex flex-col
         transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen lg:sticky lg:top-0
+        z-[9998] 
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
         
         <div className="flex flex-col h-full w-full p-6">
-          {/* Brand Logo */}
+          {/* Logo */}
           <div className="mb-10 px-2 shrink-0">
             <h1 className="text-xl font-black tracking-tighter text-white italic">
               KIMOO CRT<span className="text-blue-500 underline decoration-blue-500/30 underline-offset-4">(+Pro)</span>
@@ -121,8 +115,8 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
             </p>
           </div>
 
-          {/* Navigation - Forced Block Display */}
-          <nav className="flex-1 overflow-y-auto pr-2 relative no-scrollbar">
+          {/* Nav Links */}
+          <nav className="flex-1 overflow-y-auto pr-2 no-scrollbar">
             {menuGroups.map((group) => (
               <div key={group.label} className="mb-8">
                 <p className="text-[9px] font-black text-zinc-500 tracking-[0.2em] mb-4 px-2 uppercase">
@@ -138,25 +132,19 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
                         key={item.name} 
                         href={isLocked ? "#" : item.path}
                         onClick={() => setIsOpen(false)}
-                        className="block w-full no-underline"
+                        className="block w-full"
                       >
-                        <div
-                          className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full border ${
-                            isActive 
-                              ? 'bg-blue-600/20 text-blue-400 border-blue-500/20' 
-                              : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
-                          } ${isLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
+                        <div className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+                          isActive 
+                            ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' 
+                            : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                        } ${isLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}>
                           <div className="flex items-center gap-3">
-                            <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="text-[12px] font-bold tracking-tight">
-                              {item.name}
-                            </span>
+                            <item.icon size={18} />
+                            <span className="text-[12px] font-bold tracking-tight">{item.name}</span>
                           </div>
-                          {isLocked ? (
-                            <Lock size={11} className="text-zinc-700" />
-                          ) : isActive && (
-                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+                          {isLocked ? <Lock size={11} /> : isActive && (
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
                           )}
                         </div>
                       </Link>
@@ -167,21 +155,11 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
             ))}
           </nav>
 
-          {/* Footer/Logout */}
+          {/* Bottom Bar */}
           <div className="mt-auto pt-6 border-t border-white/5 shrink-0">
-            <div className="flex items-center justify-between px-2 mb-4">
-               <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">
-                 {isPro ? 'Pro Active' : 'Live Mode'}
-               </span>
-               {userEmail && (
-                 <span className="text-[8px] font-mono text-zinc-700 truncate max-w-[80px]">
-                   {userEmail.split('@')[0]}
-                 </span>
-               )}
-            </div>
             <button 
               onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-red-500 transition-all hover:bg-red-500/5 rounded-xl w-full border border-transparent hover:border-red-500/10"
+              className="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-red-500 transition-all rounded-xl w-full"
             >
               <LogOut size={18} />
               <span className="text-[10px] font-black uppercase tracking-widest">Logout</span>
