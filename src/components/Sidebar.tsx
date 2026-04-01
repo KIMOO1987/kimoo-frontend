@@ -75,14 +75,6 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
 
   return (
     <>
-      {/* 1. TRIGGER BUTTON - ALWAYS TOP LAYER */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed bottom-8 left-6 z-[9999] p-4 bg-indigo-600 rounded-full text-white shadow-2xl active:scale-90 transition-transform border border-white/20"
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
       {/* 2. MOBILE OVERLAY */}
       <AnimatePresence>
         {isOpen && (
