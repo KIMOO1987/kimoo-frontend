@@ -1,0 +1,109 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  LayoutGrid, Clock, History, Zap, Compass, BarChart3, 
+  CheckSquare, LineChart, User, CreditCard, 
+  LogOut, Lock, X, Menu 
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+
+const menuGroups = [
+  { label: 'TERMINAL', items: [
+    { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', pro: false },
+    { name: 'Active Trades', icon: Clock, path: '/dashboard/active', pro: true },
+    { name: 'Trade History', icon: History, path: '/dashboard/history', pro: true },
+  ]},
+  { label: 'RADAR', items: [
+    { name: 'All Signals', icon: Zap, path: '/dashboard/signals', pro: false },
+    { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', pro: false },
+  ]},
+  { label: 'ACCOUNT', items: [
+    { name: 'Profile', icon: User, path: '/dashboard/profile', pro: false },
+    { name: 'Payments', icon: CreditCard, path: '/dashboard/payments', pro: false },
+  ]}
+];
+
+export default function MobileNav({ isPro }: { isPro: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
+  }, [isOpen]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
+  return (
+    <div className="lg:hidden">
+      {/* TRIGGER BUTTON */}
+      <button 
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-8 left-6 z-[100] p-4 bg-indigo-600 rounded-full text-white shadow-2xl border border-white/20"
+      >
+        <Menu size={24} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-[110] bg-[#05070a] flex flex-col p-8"
+          >
+            {/* CLOSE BUTTON */}
+            <button 
+              onClick={() => setIsOpen(false)}
+              className="absolute top-8 right-8 p-2 text-zinc-500"
+            >
+              <X size={32} />
+            </button>
+
+            <div className="mb-12">
+              <h1 className="text-2xl font-black text-white italic">KIMOO CRT<span className="text-indigo-500">(+Pro)</span></h1>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto space-y-10 no-scrollbar">
+              {menuGroups.map((group) => (
+                <div key={group.label}>
+                  <p className="text-[10px] font-black text-zinc-600 tracking-widest mb-4">{group.label}</p>
+                  <div className="space-y-2">
+                    {group.items.map((item) => {
+                      const isActive = pathname === item.path;
+                      const locked = item.pro && !isPro;
+                      return (
+                        <Link key={item.name} href={locked ? "#" : item.path} onClick={() => setIsOpen(false)}>
+                          <div className={`flex items-center justify-between p-4 rounded-2xl ${isActive ? 'bg-indigo-600 text-white' : 'text-zinc-400 bg-white/5'}`}>
+                            <div className="flex items-center gap-4">
+                              <item.icon size={20} />
+                              <span className="font-bold">{item.name}</span>
+                            </div>
+                            {locked && <Lock size={14} />}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            <button onClick={handleLogout} className="mt-8 p-4 text-zinc-500 font-bold uppercase text-xs tracking-widest border-t border-white/5">
+              Terminate Session
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
