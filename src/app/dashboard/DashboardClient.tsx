@@ -31,7 +31,8 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   const daysLeft = expiryDate ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
   
   // Determine Tier display (Alpha, Pro, Ultimate)
-  const currentTier = userProfile?.subscriptionTier || (isPro ? "PRO" : "ALPHA");
+  // const currentTier = (userProfile?.plan_type || userProfile?.subscription_status || "ALPHA").toUpperCase();
+  const currentTier = userProfile?.plan_type || (isPro ? "PRO" : "ALPHA" : "ULTIMATE");
 
   // --- AUTO REFRESH (30 SECONDS) ---
   useEffect(() => {
