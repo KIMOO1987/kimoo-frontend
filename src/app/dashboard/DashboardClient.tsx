@@ -29,7 +29,7 @@ interface DashboardClientProps {
     country: string;
     address: string;
     email: string;
-    subscriptionTier?: string; // Added to support your 3 specific tiers
+    subscriptionTier?: string; 
   };
 }
 
@@ -55,31 +55,48 @@ export default function DashboardClient({
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   })();
 
-  /**
-   * UPDATED ACCESS LEVEL LOGIC
-   * Maps precisely to: Alpha (Monthly), Pro (6-Month), Ultimate (Yearly)
-   */
   const getAccessLevel = () => {
     if (!isPro) return "No Active License";
-    
-    // 1. Check if tier is explicitly provided in profile
     if (userProfile.subscriptionTier) {
       return `CRT+ ${userProfile.subscriptionTier.toUpperCase()} LICENSE`;
     }
-
-    // 2. Fallback logic based on your 3 specific durations
     if (daysLeft !== null) {
       if (daysLeft > 200) return "CRT+ ULTIMATE (YEARLY)";
       if (daysLeft > 35)  return "CRT+ PRO (6-MONTHS)";
       return "CRT+ ALPHA (MONTHLY)";
     }
-
     return "CRT+ ACTIVE LICENSE";
   };
 
+  // --- CORE LOGIC: FETCH WITH 24H FILTER ---
+  const fetchSignals = async () => {
+    // Logic: Only get signals created in the last 24 hours
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabase
+      .from('signals') 
+      .select('*')
+      .gt('created_at', twentyFourHoursAgo) // Auto-clean filter
+      .order('created_at', { ascending: false })
+      .limit(50);
+      
+    if (error) {
+        console.error("Fetch Error:", error);
+    } else if (data) {
+        setSignals(data);
+    }
+  };
+
   useEffect(() => {
+    // Initial Load
     fetchSignals();
     
+    // --- FEATURE: 30-SECOND AUTO REFRESH ---
+    const refreshInterval = setInterval(() => {
+      fetchSignals();
+    }, 30000);
+
+    // --- REAL-TIME ENGINE ---
     const channel = supabase.channel('live_signals')
       .on('postgres_changes', { 
         event: '*', 
@@ -88,27 +105,22 @@ export default function DashboardClient({
       }, 
       (payload) => {
         if (payload.eventType === 'INSERT') {
+          // Add new signal to top of list
           setSignals((prev) => [payload.new, ...prev]);
         } else if (payload.eventType === 'UPDATE') {
+          // Update existing signal in place
           setSignals(prev => prev.map(s => s.id === payload.new.id ? payload.new : s));
         }
       }).subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { 
+      clearInterval(refreshInterval);
+      supabase.removeChannel(channel); 
+    };
   }, []);
-
-  const fetchSignals = async () => {
-    const { data } = await supabase
-      .from('signals') 
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    if (data) setSignals(data);
-  };
 
   const handleSync = () => {
     setIsRefreshing(true);
-    router.refresh();
     fetchSignals();
     setTimeout(() => setIsRefreshing(false), 1000);
   };
@@ -150,7 +162,6 @@ export default function DashboardClient({
                 <Key size={10} className="text-zinc-600" />
                 <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Access Level</p>
               </div>
-              {/* Corrected Access Level Display */}
               <p className="text-xs font-black text-blue-400 uppercase italic tracking-tighter">
                 {getAccessLevel()}
               </p>
@@ -230,9 +241,13 @@ export default function DashboardClient({
                         <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${signal.side === 'BUY' ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'text-red-500 border-red-500/20 bg-red-500/10'}`}>
                           {signal.side}
                         </span>
+                        {/* Status Badge */}
+                        <span className="text-[9px] font-bold text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                           {signal.status || 'PENDING'}
+                        </span>
                       </div>
                       <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-tight">
-                        {signal.strategy || 'KIMOO CRT'} • {new Date(signal.created_at).toLocaleTimeString()}
+                        {signal.strategy || 'KIMOO CRT PRO'} • {new Date(signal.created_at).toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
@@ -292,6 +307,7 @@ export default function DashboardClient({
                   <DetailRow icon={<Shield size={16} className="text-red-400"/>} label="Stop Loss" value={Number(selectedSignal.sl || 0).toFixed(4)} valueClass="font-mono text-red-400" />
                   <DetailRow icon={<Target size={16} className="text-green-400"/>} label="TP 1 (EQ)" value={Number(selectedSignal.tp || 0).toFixed(4)} valueClass="font-mono text-green-400" />
                   <DetailRow icon={<Target size={16} className="text-green-400"/>} label="TP 2 (Target)" value={Number(selectedSignal.tp_secondary || 0).toFixed(4)} valueClass="font-mono text-green-400" />
+                  <DetailRow icon={<TrendingUp size={16} className="text-zinc-400"/>} label="Status" value={selectedSignal.status || 'PENDING'} valueClass="uppercase font-black text-blue-500" />
                 </div>
 
                 <div className="mt-8 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
