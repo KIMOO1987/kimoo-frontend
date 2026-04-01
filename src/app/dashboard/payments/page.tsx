@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Check, Zap, Crown, Star, CreditCard, Bitcoin, Loader2, Copy, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth'; // New Addition
 
 /** * 1. UPDATED REDIRECTION MAPPING
  * Changed 'ultimate' to match your new naming convention.
@@ -21,7 +20,6 @@ const WALLETS = [
 ];
 
 export default function PaymentsPage() {
-  const { user } = useAuth(); // New Addition
   const [plans, setPlans] = useState<any[]>([]); 
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -68,7 +66,8 @@ export default function PaymentsPage() {
     if (!cryptoHash || !selectedPlan) return;
     setCryptoStatus('submitting');
     
-    // Updated to use user from useAuth()
+    const { data: { user } } = await supabase.auth.getUser();
+    
     if (user) {
       const { error } = await supabase
         .from('profiles')
