@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   TrendingUp, Zap, Star, Activity, BarChart3, Target, 
-  Clock, Wallet, Play, RotateCcw,
-  CheckCircle2, XCircle, MinusCircle, Percent, ArrowRightLeft
+  ShieldCheck, Clock, Wallet, MessageSquare, Play, RotateCcw,
+  CheckCircle2, XCircle, MinusCircle, Percent
 } from 'lucide-react';
 
 interface DashboardClientProps {
@@ -16,8 +16,8 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ isPro, expiryDate, userProfile }: DashboardClientProps) {
   const [accountSize, setAccountSize] = useState(userProfile?.account_size || 100000); 
-  const [riskValue, setRiskValue] = useState(1.0); // Custom Risk (e.g., 1R)
-  const [rewardValue, setRewardValue] = useState(2.0); // Custom Reward (e.g., 2R)
+  const [riskValue, setRiskValue] = useState(1.0); // Editable Risk (e.g. 1R)
+  const [rewardValue, setRewardValue] = useState(2.0); // Editable Reward (e.g. 2R)
   const [isSimulating, setIsSimulating] = useState(false);
   
   const [realStats, setRealStats] = useState({
@@ -33,11 +33,20 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
     highWRPair: "---",
   });
 
+  // Dynamic Logic for Role and Subscription
+  const getDisplayRole = () => {
+    const role = userProfile?.role?.toLowerCase();
+    if (role === 'admin' || role === 'moderator') return role.toUpperCase();
+    return isPro ? 'PREMIUM' : 'FREE';
+  };
+
+  const currentTier = userProfile?.plan_type 
+    ? userProfile.plan_type.toUpperCase() 
+    : (userProfile?.subscription_status?.toUpperCase() || "NILL");
+
   const daysLeft = expiryDate 
     ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
     : 0;
-  
-  const currentTier = (userProfile?.plan_type || userProfile?.subscription_status || "ALPHA").toUpperCase();
 
   useEffect(() => {
     fetchData(); 
@@ -54,7 +63,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
       const losses = signals.filter(s => s.status?.toUpperCase() === 'SL');
       const bes = signals.filter(s => s.status?.toUpperCase().includes('BE'));
       
-      const baseRiskUSD = accountSize * 0.01; 
+      const riskAmountUSD = accountSize * 0.01; 
       let totalRRCount = 0;
       const pairMap: Record<string, { count: number, profit: number, wins: number, closed: number }> = {};
 
@@ -72,9 +81,9 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
           pairMap[sym].closed += 1; 
         }
         else if (status.includes('TP1') && !status.includes('BE')) { 
-          const halfReward = rewardValue / 2;
-          totalRRCount += halfReward; 
-          pairMap[sym].profit += halfReward; 
+          const partialReward = rewardValue / 2;
+          totalRRCount += partialReward; 
+          pairMap[sym].profit += partialReward; 
           pairMap[sym].wins += 1; 
           pairMap[sym].closed += 1; 
         }
@@ -98,7 +107,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
         totalBE: bes.length,
         winRate: (wins.length + losses.length) > 0 ? ((wins.length / (wins.length + losses.length)) * 100).toFixed(1) + "%" : "0%",
         totalRR: totalRRCount.toFixed(2) + "R",
-        profitUSD: `$${(totalRRCount * baseRiskUSD).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
+        profitUSD: `$${(totalRRCount * riskAmountUSD).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
         mostProfitable: sortedByProfit[0]?.[0] || "---",
         mostTraded: sortedByTraded[0]?.[0] || "---",
         highWRPair: "---",
@@ -125,28 +134,30 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
         {/* PROFILE & DYNAMIC INPUTS */}
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 p-6 md:p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
           <div className="w-full">
-            <div className="flex flex-wrap items-center gap-4 mb-8">
+            <div className="flex flex-wrap items-center gap-4 mb-6">
               <h2 className="text-[7vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
-                {userProfile?.full_name || 'KALIM AHMED GILL'}
+                {userProfile?.full_name || 'TRADER'}
               </h2>
-              <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit">
-                {userProfile?.role?.toUpperCase() || 'KIMOO ADMIN'}
+              <span className={`text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit shadow-lg ${
+                isPro || userProfile?.role === 'admin' ? 'bg-indigo-600 shadow-indigo-500/20' : 'bg-zinc-700 shadow-black/10'
+              }`}>
+                {getDisplayRole()}
               </span>
             </div>
             
-            <div className="flex flex-wrap gap-y-8 gap-x-10 border-t border-white/5 pt-8 md:border-none md:pt-0">
-              {/* ACCOUNT SIZE */}
+            <div className="flex flex-wrap gap-y-6 gap-x-12 border-t border-white/5 pt-6 md:border-none md:pt-0">
+              {/* ACCOUNT SIZE INPUT */}
               <div className="flex items-center gap-3">
                 <Wallet size={18} className="text-emerald-500 shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Account Size</span>
-                  <div className="flex items-center border-b border-white/10 pb-1">
+                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Account</span>
+                  <div className="flex items-center border-b border-white/10 pb-0.5">
                     <span className="text-white font-black text-xl mr-1">$</span>
                     <input 
                       type="number" 
                       value={accountSize} 
                       onChange={(e) => setAccountSize(Number(e.target.value))} 
-                      className="bg-transparent text-white font-black text-xl w-28 outline-none focus:text-emerald-400" 
+                      className="bg-transparent text-white font-black text-xl w-28 md:w-32 outline-none focus:text-emerald-400" 
                     />
                   </div>
                 </div>
@@ -157,7 +168,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
                 <Percent size={18} className="text-red-500 shrink-0" />
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Risk per SL</span>
-                  <div className="flex items-center border-b border-white/10 pb-1">
+                  <div className="flex items-center border-b border-white/10 pb-0.5">
                     <input 
                       type="number" 
                       step="0.1"
@@ -175,7 +186,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
                 <TrendingUp size={18} className="text-blue-500 shrink-0" />
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Reward per TP</span>
-                  <div className="flex items-center border-b border-white/10 pb-1">
+                  <div className="flex items-center border-b border-white/10 pb-0.5">
                     <input 
                       type="number" 
                       step="0.1"
@@ -192,9 +203,13 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
                 <Clock size={18} className="text-indigo-500 shrink-0" />
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Subscription</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-white font-black text-xl italic uppercase tracking-tight">{currentTier}</span>
-                    <span className="text-zinc-600 font-bold text-[10px] uppercase">({daysLeft} DAYS)</span>
+                  <div className="flex flex-wrap items-baseline gap-2">
+                      <span className={`font-black text-xl italic uppercase tracking-tight ${currentTier === 'NILL' ? 'text-zinc-500' : 'text-white'}`}>
+                        {currentTier}
+                      </span>
+                      {currentTier !== 'NILL' && (
+                        <span className="text-zinc-600 font-bold text-[10px] uppercase">({daysLeft} DAYS)</span>
+                      )}
                   </div>
                 </div>
               </div>
@@ -209,7 +224,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
              </div>
              <div className="hidden sm:block h-4 w-[1px] bg-white/10" />
              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter font-mono whitespace-nowrap">
-               {userProfile?.email || 'KALEEM.AHMAD87@ICLOUD.COM'}
+               {userProfile?.email || 'NO EMAIL LOADED'}
              </p>
           </div>
         </div>
@@ -221,10 +236,25 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
           <StatCard label="Total Losses" value={realStats.totalLosses} icon={<XCircle size={18}/>} color="text-red-500" />
           <StatCard label="Total BE" value={realStats.totalBE} icon={<MinusCircle size={18}/>} color="text-zinc-400" />
           
-          <StatCard label="Win Rate" value={realStats.winRate} icon={<ArrowRightLeft size={18}/>} color="text-emerald-400" />
+          <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
           <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
           <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Star size={18}/>} color="text-emerald-500" />
           <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="Alpha Asset" />
+        </div>
+
+        {/* FOOTER FEATURES */}
+        <div className="w-full border-t border-white/5 pt-16 mb-20">
+          <h2 className="text-3xl md:text-6xl font-black text-white mb-12 tracking-tighter italic uppercase leading-tight">
+            Institutional <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-600">CRT Intelligence.</span>
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
+            <FeatureItem icon={<Activity size={24}/>} title="Real-Time Trade Intelligence" desc="Track every active position with precision—monitor live R:R evolution, dynamic exit flow, and instantly review your latest closed trades." />
+            <FeatureItem icon={<BarChart3 size={24}/>} title="Audit-Grade Analytics" desc="Dissect symbol performance across multiple timeframes with precision—identify strengths and high-probability opportunities." />
+            <FeatureItem icon={<Target size={24}/>} title="Radar Technology" desc="Instantly detect symbol clustering and timing inefficiencies—pinpoint where smart money is aligning." />
+            <FeatureItem icon={<TrendingUp size={24}/>} title="Exclusive Indicator Access" desc="Unlock a full suite of advanced indicators—reserved for Ultimate users seeking precision and edge." />
+          </div>
         </div>
       </div>
     </div>
@@ -240,6 +270,18 @@ function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
       </div>
       <p className={`text-xl md:text-3xl font-black italic tracking-tighter ${color}`}>{value}</p>
       {sub && <p className="text-[8px] font-bold text-zinc-800 mt-2 uppercase">{sub}</p>}
+    </div>
+  );
+}
+
+function FeatureItem({ icon, title, desc }: any) {
+  return (
+    <div className="flex gap-4 p-6 rounded-3xl bg-white/[0.01] border border-white/5 hover:border-indigo-500/20 transition-all">
+      <div className="text-indigo-500 shrink-0">{icon}</div>
+      <div>
+        <h4 className="text-white font-black uppercase italic text-lg tracking-tighter">{title}</h4>
+        <p className="text-zinc-500 text-xs md:text-sm leading-relaxed">{desc}</p>
+      </div>
     </div>
   );
 }
