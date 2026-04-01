@@ -92,7 +92,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
       {/* MOBILE MENU TOGGLE */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="lg:hidden fixed top-6 left-6 z-[100] p-3 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-500/20"
+        className="lg:hidden fixed bottom-8 left-6 z-[100] p-3 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-500/20"
       >
         {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
