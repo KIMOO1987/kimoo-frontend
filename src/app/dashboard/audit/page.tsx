@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/useAuth'; // New Addition
+import AccessGuard from '@/components/AccessGuard'; // New Addition
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BarChart3, 
@@ -53,11 +55,14 @@ function LogicItem({ label, status }: { label: string, status: 'PASS' | 'FAIL' |
 }
 
 export default function SymbolAudit() {
+  const { tier, loading: authLoading } = useAuth(); // New Addition
   const [symbol, setSymbol] = useState('XAUUSD');
   const [auditData, setAuditData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (tier < 3) return; // New Addition: Prevent fetch for tiers below Ultra
+
     const fetchAudit = async () => {
       if (!symbol) {
         setAuditData(null);
@@ -110,7 +115,21 @@ export default function SymbolAudit() {
 
     const timer = setTimeout(fetchAudit, 500);
     return () => clearTimeout(timer);
-  }, [symbol]);
+  }, [symbol, tier]); // New Addition: Dependency on tier
+
+  // New Addition: Auth Loading State
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
+        <Activity size={32} className="text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // New Addition: Tier Restriction (Requires Ultra/Tier 3)
+  if (tier < 3) {
+    return <AccessGuard tierName="Ultra" />;
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
