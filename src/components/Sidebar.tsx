@@ -49,7 +49,7 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false); // Internal state for mobile toggle
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -72,15 +72,15 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
 
   return (
     <>
-      {/* --- MOBILE FLOATING ACTION BUTTON (BOTTOM LEFT) --- */}
+      {/* 1. FLOATING TOGGLE BUTTON (Higher Z-Index) */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed bottom-8 left-6 z-[200] p-4 bg-indigo-600 rounded-full text-white shadow-2xl shadow-indigo-500/40 active:scale-90 transition-all border border-white/10"
+        className="lg:hidden fixed bottom-8 left-6 z-[200] p-4 bg-indigo-600 rounded-full text-white shadow-2xl shadow-indigo-500/40 active:scale-95 transition-all border border-white/20"
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* --- MOBILE OVERLAY DIMMER --- */}
+      {/* 2. BACKGROUND OVERLAY */}
       <AnimatePresence>
         {isOpen && (
           <motion.div 
@@ -88,20 +88,20 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[140] lg:hidden"
+            className="fixed inset-0 bg-black/90 backdrop-blur-md z-[180] lg:hidden"
           />
         )}
       </AnimatePresence>
 
-      {/* --- SIDEBAR PANEL --- */}
+      {/* 3. SIDEBAR PANEL */}
       <aside className={`
-        fixed inset-y-0 left-0 z-[150] w-72 bg-[#05070a] border-r border-white/5 flex flex-col p-6 
+        fixed inset-y-0 left-0 z-[190] w-72 bg-[#05070a] border-r border-white/5 flex flex-col p-6 
         transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen lg:sticky lg:top-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
         
         {/* Brand Logo */}
-        <div className="mb-10 px-2">
+        <div className="mb-10 px-2 shrink-0">
           <h1 className="text-xl font-black tracking-tighter text-white italic">
             KIMOO CRT<span className="text-blue-500 underline decoration-blue-500/30 underline-offset-4">(+Pro)</span>
           </h1>
@@ -110,11 +110,11 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
           </p>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-8 overflow-y-auto no-scrollbar">
+        {/* Navigation - Added 'relative z-10' and 'opacity-100' to ensure visibility */}
+        <nav className="flex-1 space-y-8 overflow-y-auto no-scrollbar relative z-10">
           {menuGroups.map((group) => (
-            <div key={group.label}>
-              <p className="text-[9px] font-black text-zinc-700 tracking-[0.2em] mb-4 px-2 uppercase">
+            <div key={group.label} className="opacity-100">
+              <p className="text-[9px] font-black text-zinc-500 tracking-[0.2em] mb-4 px-2 uppercase">
                 {group.label}
               </p>
               <div className="space-y-1">
@@ -128,13 +128,12 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
                       href={isLocked ? "#" : item.path}
                       onClick={() => setIsOpen(false)} 
                     >
-                      <motion.div
-                        whileHover={!isLocked ? { x: 4 } : {}}
-                        className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-all group ${
+                      <div
+                        className={`flex items-center justify-between px-3 py-3 rounded-xl transition-all group ${
                           isActive 
-                            ? 'bg-blue-600/10 text-blue-500 border border-blue-500/10' 
-                            : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
-                        } ${isLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                            ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' 
+                            : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                        } ${isLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <div className="flex items-center gap-3">
                           <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
@@ -142,10 +141,10 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
                             {item.name}
                           </span>
                         </div>
-                        {isLocked ? <Lock size={11} className="text-zinc-800" /> : isActive && (
-                          <motion.div layoutId="active-indicator" className="w-1 h-3 bg-blue-500 rounded-full" />
+                        {isLocked ? <Lock size={11} className="text-zinc-700" /> : isActive && (
+                          <div className="w-1 h-3 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
                         )}
-                      </motion.div>
+                      </div>
                     </Link>
                   );
                 })}
@@ -154,14 +153,14 @@ export default function Sidebar({ isPro }: { isPro: boolean }) {
           ))}
         </nav>
 
-        {/* Logout */}
-        <div className="mt-auto pt-6 border-t border-white/5">
+        {/* Logout Section */}
+        <div className="mt-auto pt-6 border-t border-white/5 shrink-0">
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 text-zinc-500 hover:text-red-500 transition-all hover:bg-red-500/5 rounded-xl w-full group"
+            className="flex items-center gap-3 px-3 py-3 text-zinc-500 hover:text-red-500 transition-all hover:bg-red-500/5 rounded-xl w-full group border border-transparent hover:border-red-500/10"
           >
             <LogOut size={16} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Terminate Session</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-inherit">Terminate Session</span>
           </button>
         </div>
       </aside>
