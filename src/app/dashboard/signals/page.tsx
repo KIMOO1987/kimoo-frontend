@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/useAuth'; // New Addition
+import AccessGuard from '@/components/AccessGuard'; // New Addition
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Activity, Star, Target, Shield, Clock, Zap, CheckCircle2, XCircle } from 'lucide-react';
 
@@ -133,11 +135,14 @@ const SignalCard = ({ signal }: { signal: any }) => {
 };
 
 export default function SignalsPage() {
+  const { tier, loading: authLoading } = useAuth(); // New Addition
   const [signals, setSignals] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (tier < 1) return; // New Addition: Prevent fetch for Tier 0
+
     const fetchSignals = async () => {
       const { data } = await supabase
         .from('signals')
@@ -156,17 +161,30 @@ export default function SignalsPage() {
         setSignals(prev => [payload.new, ...prev]);
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'signals' }, (payload) => {
-        // When status changes to TP1, TP2, or SL in DB, this updates the card instantly
         setSignals(prev => prev.map(s => s.id === payload.new.id ? payload.new : s));
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [tier]); // New Addition: Dependency on tier
 
   const filteredSignals = signals.filter(s => 
     s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // New Addition: Auth Loading State
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
+        <Activity size={32} className="text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // New Addition: Tier Restriction
+  if (tier < 1) {
+    return <AccessGuard tierName="Alpha" />;
+  }
 
   return (
     <div className="p-8 min-h-screen bg-[#05070a] space-y-8">
