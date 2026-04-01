@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   TrendingUp, Zap, Star, Activity, BarChart3, Target, 
-  ShieldCheck, Clock, Wallet, MessageSquare, Menu, X
+  ShieldCheck, Clock, Wallet, MessageSquare
 } from 'lucide-react';
 
 interface DashboardClientProps {
@@ -15,7 +15,6 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ isPro, expiryDate, userProfile }: DashboardClientProps) {
   const [accountSize, setAccountSize] = useState(userProfile?.account_size || 100000); 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const [realStats, setRealStats] = useState({
     total: 0,
@@ -89,14 +88,6 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   return (
     <div className="relative min-h-screen bg-[#05070a] overflow-x-hidden w-full flex text-zinc-400 font-sans">
       
-      {/* MOBILE MENU TOGGLE */}
-      <button 
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="lg:hidden fixed bottom-8 left-6 z-[100] p-3 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-500/20"
-      >
-        {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 p-4 md:p-12 lg:p-16 w-full max-w-[100vw]">
         <div className="max-w-[1700px] mx-auto mt-14 lg:mt-0">
