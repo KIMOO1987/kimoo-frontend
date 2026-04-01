@@ -236,10 +236,10 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
-            <FeatureItem icon={<Activity size={24}/>} title="Live Execution" desc="Track R:R growth in real-time as market hits levels." />
-            <FeatureItem icon={<BarChart3 size={24}/>} title="Audit Grade" desc="Audit symbol performance across timeframes." />
-            <FeatureItem icon={<Target size={24}/>} title="Radar Tech" desc="Identify symbol clustering and timing edge instantly." />
-            <FeatureItem icon={<MessageSquare size={24}/>} title="API Routing" desc="Route premium signals directly to your Private Discord." />
+            <FeatureItem icon={<Activity size={24}/>} title="Real-Time Trade Intelligence" desc="Track every active position with precision—monitor live R:R evolution, dynamic exit flow, and instantly review your latest closed trades. No delays. No refresh. Just pure execution clarity." />
+            <FeatureItem icon={<BarChart3 size={24}/>} title="Audit-Grade Analytics" desc="Dissect symbol performance across multiple timeframes with precision—identify strengths, weaknesses, and high-probability opportunities like a pro." />
+            <FeatureItem icon={<Target size={24}/>} title="Radar Technology" desc="Instantly detect symbol clustering and timing inefficiencies—pinpoint where smart money is aligning before the move unfolds." />
+            <FeatureItem icon={<TrendingUp size={24}/>} title="Exclusive Indicator Access" desc="Unlock a full suite of advanced indicators—reserved for Ultimate users seeking precision and edge." />
           </div>
         </div>
       </div>
