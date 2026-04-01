@@ -1,573 +1,222 @@
 "use client";
 
-
-
 import { useEffect, useState } from 'react';
-
 import { supabase } from '@/lib/supabaseClient';
-
 import { 
-
   TrendingUp, Zap, Star, Activity, BarChart3, Target, 
-
-  ShieldCheck, Clock, Wallet, MessageSquare, Play, RotateCcw,
-
-  CheckCircle2, XCircle, MinusCircle, Percent
-
+  ShieldCheck, Clock, Wallet, MessageSquare
 } from 'lucide-react';
 
-
-
 interface DashboardClientProps {
-
   isPro: boolean;
-
   expiryDate?: string | null;
-
   userProfile: any; 
-
 }
-
-
 
 export default function DashboardClient({ isPro, expiryDate, userProfile }: DashboardClientProps) {
-
+  // Pull initial account size directly from your database 'account_size' column
   const [accountSize, setAccountSize] = useState(userProfile?.account_size || 100000); 
-
-  const [riskValue, setRiskValue] = useState(1.0); // Editable Risk (e.g. 1R)
-
-  const [rewardValue, setRewardValue] = useState(2.0); // Editable Reward (e.g. 2R)
-
-  const [isSimulating, setIsSimulating] = useState(false);
-
   
-
   const [realStats, setRealStats] = useState({
-
     total: 0,
-
-    totalWins: 0,
-
-    totalLosses: 0,
-
-    totalBE: 0,
-
     winRate: "0%",
-
+    avgRR: "0.00R",
     totalRR: "0.00R",
-
     profitUSD: "$0.00",
-
     mostProfitable: "---",
-
     mostTraded: "---",
-
     highWRPair: "---",
-
+    avgDuration: "3.2h"
   });
 
-
-
-  // Dynamic Logic for Role and Subscription
-
-  const getDisplayRole = () => {
-
-    const role = userProfile?.role?.toLowerCase();
-
-    if (role === 'admin' || role === 'moderator') return role.toUpperCase();
-
-    return isPro ? 'PREMIUM' : 'FREE';
-
-  };
-
-
-
-  const currentTier = userProfile?.plan_type 
-
-    ? userProfile.plan_type.toUpperCase() 
-
-    : (userProfile?.subscription_status?.toUpperCase() || "NILL");
-
-
-
+  // Calculate remaining days. Handling your year 3000 date gracefully.
   const daysLeft = expiryDate 
-
     ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
-
     : 0;
+  
+  // Use 'plan_type' from your Supabase screenshot to show "Ultimate"
+  const currentTier = (userProfile?.plan_type || userProfile?.subscription_status || "ALPHA").toUpperCase();
 
-
-
+  // --- AUTO REFRESH (30 SECONDS) ---
   useEffect(() => {
-
     fetchData(); 
-
     const interval = setInterval(fetchData, 30000); 
-
     return () => clearInterval(interval);
-
-  }, [accountSize, riskValue, rewardValue]);
-
-
+  }, [accountSize]);
 
   async function fetchData() {
-
     try {
-
       const { data: signals } = await supabase.from('signals').select('*');
-
       if (!signals || signals.length === 0) return;
 
-
-
       const wins = signals.filter(s => s.status?.toUpperCase().includes('TP'));
-
       const losses = signals.filter(s => s.status?.toUpperCase() === 'SL');
+      const be = signals.filter(s => s.status?.toUpperCase().includes('BE'));
+      const closed = [...wins, ...losses, ...be];
 
-      const bes = signals.filter(s => s.status?.toUpperCase().includes('BE'));
-
-      
-
-      const riskAmountUSD = accountSize * 0.01; 
-
-      let totalRRCount = 0;
-
+      const riskAmount = accountSize * 0.01; 
+      let totalRR = 0;
       const pairMap: Record<string, { count: number, profit: number, wins: number, closed: number }> = {};
 
-
-
       signals.forEach(s => {
-
         const sym = s.symbol || "---";
-
         if (!pairMap[sym]) pairMap[sym] = { count: 0, profit: 0, wins: 0, closed: 0 };
-
         pairMap[sym].count += 1;
 
-
-
         const status = s.status?.toUpperCase() || "";
-
-        
-
-        if (status.includes('TP2')) { 
-
-          totalRRCount += rewardValue; 
-
-          pairMap[sym].profit += rewardValue; 
-
-          pairMap[sym].wins += 1; 
-
-          pairMap[sym].closed += 1; 
-
-        }
-
-        else if (status.includes('TP1') && !status.includes('BE')) { 
-
-          const partialReward = rewardValue / 2;
-
-          totalRRCount += partialReward; 
-
-          pairMap[sym].profit += partialReward; 
-
-          pairMap[sym].wins += 1; 
-
-          pairMap[sym].closed += 1; 
-
-        }
-
-        else if (status === 'SL') { 
-
-          totalRRCount -= riskValue; 
-
-          pairMap[sym].profit -= riskValue; 
-
-          pairMap[sym].closed += 1; 
-
-        }
-
-        else if (status.includes('BE')) { 
-
-          pairMap[sym].closed += 1; 
-
-        }
-
+        if (status.includes('TP2')) { totalRR += 2; pairMap[sym].profit += 2; pairMap[sym].wins += 1; pairMap[sym].closed += 1; }
+        else if (status.includes('TP1') && !status.includes('BE')) { totalRR += 1; pairMap[sym].profit += 1; pairMap[sym].wins += 1; pairMap[sym].closed += 1; }
+        else if (status === 'SL') { totalRR -= 1; pairMap[sym].profit -= 1; pairMap[sym].closed += 1; }
+        else if (status.includes('BE')) { pairMap[sym].closed += 1; }
       });
-
-
 
       const sortedByProfit = Object.entries(pairMap).sort((a, b) => b[1].profit - a[1].profit);
-
       const sortedByTraded = Object.entries(pairMap).sort((a, b) => b[1].count - a[1].count);
-
-
+      const sortedByWR = Object.entries(pairMap).filter(([_, d]) => d.closed > 0).sort((a, b) => (b[1].wins/b[1].closed) - (a[1].wins/a[1].closed));
 
       setRealStats({
-
         total: signals.length,
-
-        totalWins: wins.length,
-
-        totalLosses: losses.length,
-
-        totalBE: bes.length,
-
         winRate: (wins.length + losses.length) > 0 ? ((wins.length / (wins.length + losses.length)) * 100).toFixed(1) + "%" : "0%",
-
-        totalRR: totalRRCount.toFixed(2) + "R",
-
-        profitUSD: `$${(totalRRCount * riskAmountUSD).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-
+        totalRR: totalRR.toFixed(2) + "R",
+        avgRR: closed.length > 0 ? (totalRR / closed.length).toFixed(2) + "R" : "0.00R",
+        profitUSD: `$${(totalRR * riskAmount).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
         mostProfitable: sortedByProfit[0]?.[0] || "---",
-
         mostTraded: sortedByTraded[0]?.[0] || "---",
-
-        highWRPair: "---",
-
+        highWRPair: sortedByWR[0]?.[0] || "---",
+        avgDuration: "3.2h"
       });
-
     } catch (err) { console.error("Sync Error:", err); }
-
   }
 
-
-
   return (
-
-    <div className="p-6 md:p-12 lg:p-16 bg-[#05070a] min-h-screen text-white font-sans overflow-x-hidden">
-
-      <div className="max-w-[1700px] mx-auto">
-
+    <div className="p-4 md:p-8 max-w-[1800px] mx-auto bg-[#0b0e14] min-h-screen text-zinc-400 font-sans">
+      
+      {/* HEADER SECTION */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
         
-
-        {/* HEADER SECTION */}
-
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-
-          <div>
-
-            <h1 className="text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase">
-
-              Client<span className="text-blue-500">Dashboard</span>
-
+        <div className="flex flex-col">
+          {/* USER NAME AND ROLE */}
+          <div className="flex items-center gap-4 mb-5">
+            <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
+              {userProfile?.full_name || 'KALIM AHMED GILL'}
             </h1>
-
-            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-3 leading-none">
-
-              • KIMOO CRT Engine •
-
-            </p>
-
+            <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest shadow-lg shadow-indigo-500/20">
+              {userProfile?.role?.toUpperCase() || 'KIMOO ADMIN'}
+            </span>
           </div>
-
-        </div>
-
-
-
-        {/* PROFILE & DYNAMIC INPUTS */}
-
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 p-6 md:p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
-
-          <div className="w-full">
-
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-
-              <h2 className="text-[7vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
-
-                {userProfile?.full_name || 'TRADER'}
-
-              </h2>
-
-              <span className={`text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit shadow-lg ${
-
-                isPro || userProfile?.role === 'admin' ? 'bg-indigo-600 shadow-indigo-500/20' : 'bg-zinc-700 shadow-black/10'
-
-              }`}>
-
-                {getDisplayRole()}
-
-              </span>
-
+          
+          {/* ACCOUNT & SUBSCRIPTION ROW */}
+          <div className="flex flex-wrap items-center gap-12">
+            <div className="flex items-center gap-3">
+              <Wallet size={18} className="text-emerald-500" />
+              <span className="text-[11px] font-black text-zinc-600 uppercase tracking-widest">ACCOUNT:</span>
+              <div className="flex items-center border-b border-white/10 pb-0.5">
+                 <span className="text-white font-black text-xl mr-1">$</span>
+                 <input 
+                   type="number" 
+                   value={accountSize} 
+                   onChange={(e) => setAccountSize(Number(e.target.value))} 
+                   className="bg-transparent text-white font-black text-xl w-36 outline-none focus:text-emerald-400 transition-colors" 
+                 />
+              </div>
             </div>
-
             
-
-            <div className="flex flex-wrap gap-y-6 gap-x-12 border-t border-white/5 pt-6 md:border-none md:pt-0">
-
-              {/* ACCOUNT SIZE INPUT */}
-
-              <div className="flex items-center gap-3">
-
-                <Wallet size={18} className="text-emerald-500 shrink-0" />
-
-                <div className="flex flex-col">
-
-                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Account</span>
-
-                  <div className="flex items-center border-b border-white/10 pb-0.5">
-
-                    <span className="text-white font-black text-xl mr-1">$</span>
-
-                    <input 
-
-                      type="number" 
-
-                      value={accountSize} 
-
-                      onChange={(e) => setAccountSize(Number(e.target.value))} 
-
-                      className="bg-transparent text-white font-black text-xl w-28 md:w-32 outline-none focus:text-emerald-400" 
-
-                    />
-
-                  </div>
-
-                </div>
-
+            <div className="flex items-center gap-3">
+              <Clock size={18} className="text-indigo-500" />
+              <span className="text-[11px] font-black text-zinc-600 uppercase tracking-widest">SUBSCRIPTION:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-white font-black text-xl italic uppercase tracking-tight">
+                  {currentTier}
+                </span>
+                <span className="text-zinc-700 text-sm mx-1 font-bold">|</span>
+                <span className="text-white font-black text-xl italic uppercase tracking-tight">
+                  REMAINING DAYS: <span className="text-indigo-400 ml-1">{daysLeft.toLocaleString()}</span>
+                </span>
               </div>
-
-
-
-              {/* RISK INPUT */}
-
-              <div className="flex items-center gap-3">
-
-                <Percent size={18} className="text-red-500 shrink-0" />
-
-                <div className="flex flex-col">
-
-                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Risk per SL</span>
-
-                  <div className="flex items-center border-b border-white/10 pb-0.5">
-
-                    <input 
-
-                      type="number" 
-
-                      step="0.1"
-
-                      value={riskValue} 
-
-                      onChange={(e) => setRiskValue(Number(e.target.value))} 
-
-                      className="bg-transparent text-white font-black text-xl w-14 outline-none focus:text-red-400 text-center" 
-
-                    />
-
-                    <span className="text-zinc-500 font-black text-xl ml-1">R</span>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-
-
-              {/* REWARD INPUT */}
-
-              <div className="flex items-center gap-3">
-
-                <TrendingUp size={18} className="text-blue-500 shrink-0" />
-
-                <div className="flex flex-col">
-
-                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Reward per TP</span>
-
-                  <div className="flex items-center border-b border-white/10 pb-0.5">
-
-                    <input 
-
-                      type="number" 
-
-                      step="0.1"
-
-                      value={rewardValue} 
-
-                      onChange={(e) => setRewardValue(Number(e.target.value))} 
-
-                      className="bg-transparent text-white font-black text-xl w-14 outline-none focus:text-blue-400 text-center" 
-
-                    />
-
-                    <span className="text-zinc-500 font-black text-xl ml-1">R</span>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              
-
-              <div className="flex items-center gap-3">
-
-                <Clock size={18} className="text-indigo-500 shrink-0" />
-
-                <div className="flex flex-col">
-
-                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Subscription</span>
-
-                  <div className="flex flex-wrap items-baseline gap-2">
-
-                      <span className={`font-black text-xl italic uppercase tracking-tight ${currentTier === 'NILL' ? 'text-zinc-500' : 'text-white'}`}>
-
-                        {currentTier}
-
-                      </span>
-
-                      {currentTier !== 'NILL' && (
-
-                        <span className="text-zinc-600 font-bold text-[10px] uppercase">({daysLeft} DAYS)</span>
-
-                      )}
-
-                  </div>
-
-                </div>
-
-              </div>
-
             </div>
-
           </div>
-
-
-
-          {/* COMPACT ENGINE STATUS */}
-
-          <div className="w-full xl:w-auto bg-black/40 border border-white/10 px-5 py-3 rounded-2xl flex flex-wrap items-center justify-center gap-4">
-
-             <div className="flex items-center gap-2 shrink-0">
-
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-
-                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest whitespace-nowrap">ENGINE: ONLINE</span>
-
-             </div>
-
-             <div className="hidden sm:block h-4 w-[1px] bg-white/10" />
-
-             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter font-mono whitespace-nowrap">
-
-               {userProfile?.email || 'NO EMAIL LOADED'}
-
-             </p>
-
-          </div>
-
         </div>
 
-
-
-        {/* STATS GRID */}
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
-
-          <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
-
-          <StatCard label="Total Wins" value={realStats.totalWins} icon={<CheckCircle2 size={18}/>} color="text-emerald-400" />
-
-          <StatCard label="Total Losses" value={realStats.totalLosses} icon={<XCircle size={18}/>} color="text-red-500" />
-
-          <StatCard label="Total BE" value={realStats.totalBE} icon={<MinusCircle size={18}/>} color="text-zinc-400" />
-
-          
-
-          <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
-
-          <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
-
-          <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Star size={18}/>} color="text-emerald-500" />
-
-          <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="Alpha Asset" />
-
+        {/* STATUS PILL & EMAIL */}
+        <div className="bg-white/5 border border-white/10 px-8 py-4 rounded-3xl flex items-center gap-6 shadow-inner">
+           <div className="flex items-center gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
+              <span className="text-[11px] font-black text-emerald-500 uppercase tracking-[0.25em]">SIGNAL ENGINE: ONLINE</span>
+           </div>
+           <div className="h-6 w-[1px] bg-white/10" />
+           <p className="text-[11px] font-bold text-zinc-600 uppercase tracking-widest font-mono">
+             {userProfile?.email || 'KALEEM.AHMAD87@ICLOUD.COM'}
+           </p>
         </div>
-
-
-
-        {/* FOOTER FEATURES */}
-
-        <div className="w-full border-t border-white/5 pt-16 mb-20">
-
-          <h2 className="text-3xl md:text-6xl font-black text-white mb-12 tracking-tighter italic uppercase leading-tight">
-
-            Institutional <br/>
-
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-600">CRT Intelligence.</span>
-
-          </h2>
-
-          
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
-
-            <FeatureItem icon={<Activity size={24}/>} title="Real-Time Trade Intelligence" desc="Track every active position with precision—monitor live R:R evolution, dynamic exit flow, and instantly review your latest closed trades." />
-
-            <FeatureItem icon={<BarChart3 size={24}/>} title="Audit-Grade Analytics" desc="Dissect symbol performance across multiple timeframes with precision—identify strengths and high-probability opportunities." />
-
-            <FeatureItem icon={<Target size={24}/>} title="Radar Technology" desc="Instantly detect symbol clustering and timing inefficiencies—pinpoint where smart money is aligning." />
-
-            <FeatureItem icon={<TrendingUp size={24}/>} title="Exclusive Indicator Access" desc="Unlock a full suite of advanced indicators—reserved for Ultimate users seeking precision and edge." />
-
-          </div>
-
-        </div>
-
       </div>
 
+      {/* STATS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+        <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
+        <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
+        <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
+        <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Star size={18}/>} color="text-emerald-500" />
+        
+        <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="Alpha Asset" />
+        <StatCard label="Most Traded" value={realStats.mostTraded} sub="Volume Dominance" />
+        <StatCard label="High WR Symbol" value={realStats.highWRPair} sub="Accuracy Lead" />
+        <StatCard label="Live Sync" value="30s" color="text-emerald-500" sub="Server Active" />
+      </div>
+
+      {/* ROADMAP SECTION */}
+      <div className="w-full mb-24 border-t border-white/5 pt-16">
+        <div className="flex items-center gap-3 text-indigo-500 mb-6">
+            <div className="h-[2px] w-10 bg-indigo-500" />
+            <span className="text-[10px] font-black uppercase tracking-[0.5em]">KIMOO CRT PREMIUM ROADMAP</span>
+        </div>
+        <h2 className="text-5xl font-black text-white mb-16 tracking-tighter italic uppercase leading-none">
+          Scale your <br/>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-600 text-6xl">Trading Intelligence.</span>
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-24 gap-y-16">
+          <FeatureItem icon={<Activity size={24}/>} title="Live Execution Visibility" desc="Track R:R growth in real-time as market hits levels." />
+          <FeatureItem icon={<BarChart3 size={24}/>} title="Strategy-Grade Validation" desc="Audit symbol performance across timeframes." />
+          <FeatureItem icon={<Target size={24}/>} title="Radar + Diagnostics" desc="Identify symbol clustering and timing edge instantly." />
+          <FeatureItem icon={<MessageSquare size={24}/>} title="Discord API Workflow" desc="Route premium signals directly to your Private Discord." />
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <div className="pt-10 border-t border-white/5 flex justify-between items-center text-[10px] font-bold uppercase tracking-[0.5em] text-zinc-800">
+        <p>© 2026 KIMOO CRT ENGINE — V4.0.5</p>
+        <p className="flex items-center gap-2">
+          <ShieldCheck size={12} className="text-emerald-600" />
+          Institutional Grade Protection Active
+        </p>
+      </div>
     </div>
-
   );
-
 }
-
-
 
 function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
-
   return (
-
-    <div className="bg-white/[0.02] border border-white/5 p-5 md:p-8 rounded-[2rem] shadow-xl hover:bg-white/[0.04] transition-all">
-
-      <div className="flex justify-between items-center mb-4">
-
-        <p className="text-[9px] md:text-[10px] font-black text-zinc-600 uppercase tracking-widest">{label}</p>
-
-        <div className="text-zinc-700">{icon}</div>
-
+    <div className="bg-white/[0.02] border border-white/5 backdrop-blur-2xl p-7 rounded-[2rem] hover:bg-white/[0.04] transition-all group shadow-xl">
+      <div className="flex justify-between items-start mb-6">
+        <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{label}</p>
+        <div className="text-zinc-700 group-hover:text-indigo-500 transition-colors transform group-hover:scale-110">{icon}</div>
       </div>
-
-      <p className={`text-xl md:text-3xl font-black italic tracking-tighter ${color}`}>{value}</p>
-
-      {sub && <p className="text-[8px] font-bold text-zinc-800 mt-2 uppercase">{sub}</p>}
-
+      <p className={`text-3xl font-black italic tracking-tighter ${color}`}>{value}</p>
+      {sub && <p className="text-[9px] font-bold text-zinc-800 mt-2 uppercase tracking-tighter">{sub}</p>}
     </div>
-
   );
-
 }
 
-
-
 function FeatureItem({ icon, title, desc }: any) {
-
   return (
-
-    <div className="flex gap-4 p-6 rounded-3xl bg-white/[0.01] border border-white/5 hover:border-indigo-500/20 transition-all">
-
-      <div className="text-indigo-500 shrink-0">{icon}</div>
-
-      <div>
-
-        <h4 className="text-white font-black uppercase italic text-lg tracking-tighter">{title}</h4>
-
-        <p className="text-zinc-500 text-xs md:text-sm leading-relaxed">{desc}</p>
-
+    <div className="flex gap-6 group">
+      <div className="w-16 h-16 shrink-0 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-lg">
+        {icon}
       </div>
-
+      <div>
+        <h4 className="text-white font-black uppercase italic text-xl mb-2 group-hover:text-indigo-400 transition-colors tracking-tighter">{title}</h4>
+        <p className="text-zinc-500 text-sm leading-relaxed font-medium max-w-md">{desc}</p>
+      </div>
     </div>
-
   );
-
 }
