@@ -194,7 +194,9 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
             <FeatureItem icon={<Activity size={24}/>} title="Live Execution" desc="Track R:R growth in real-time as market hits levels." />
+            <FeatureItem icon={<BarChart3 size={24}/>} title="Audit Grade" desc="Audit symbol performance across timeframes." />
             <FeatureItem icon={<Target size={24}/>} title="Radar Tech" desc="Identify symbol clustering and timing edge instantly." />
+            <FeatureItem icon={<MessageSquare size={24}/>} title="API Routing" desc="Route premium signals directly to your Private Discord." />
           </div>
         </div>
       </div>
