@@ -2,14 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/useAuth'; // New Addition
+import AccessGuard from '@/components/AccessGuard'; // New Addition
 import { Compass, Shield, Zap, Activity, Radio } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function RadarPage() {
+  const { tier, loading: authLoading } = useAuth(); // New Addition
   const [liveSignals, setLiveSignals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (tier < 2) return; // New Addition: Prevent fetch for tiers below Pro
+
     fetchRadarData();
 
     const heartbeat = setInterval(() => {
@@ -31,7 +36,7 @@ export default function RadarPage() {
       supabase.removeChannel(channel); 
       clearInterval(heartbeat);
     };
-  }, []);
+  }, [tier]); // New Addition: Dependency on tier
 
   const fetchRadarData = async () => {
     setIsLoading(true);
@@ -53,6 +58,20 @@ export default function RadarPage() {
     if (minutesAgo < 240) return { val: 62, label: 'DECAY' };
     return { val: 30, label: 'EXPIRED' };
   };
+
+  // New Addition: Auth Loading State
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
+        <Activity size={32} className="text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // New Addition: Tier Restriction (Requires Pro/Tier 2)
+  if (tier < 2) {
+    return <AccessGuard tierName="Pro" />;
+  }
 
   return (
     <div className="p-4 md:p-8 lg:p-12 bg-[#05070a] min-h-screen text-white">
@@ -164,7 +183,7 @@ export default function RadarPage() {
           </div>
         </div>
 
-        {/* Right: Visual Radar Circle (Hidden on smaller mobiles or stacked) */}
+        {/* Right: Visual Radar Circle */}
         <div className="space-y-6">
           <div className="bg-[#0a0a0a] border border-white/5 p-10 flex flex-col items-center justify-center aspect-square relative rounded-2xl md:rounded-[2rem] overflow-hidden">
             <div className="absolute inset-4 border border-blue-500/5 rounded-full" />
