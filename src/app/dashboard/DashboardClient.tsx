@@ -14,7 +14,9 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ isPro, expiryDate, userProfile }: DashboardClientProps) {
-  const [accountSize, setAccountSize] = useState(10000); 
+  // Pull initial account size directly from your database 'account_size' column
+  const [accountSize, setAccountSize] = useState(userProfile?.account_size || 100000); 
+  
   const [realStats, setRealStats] = useState({
     total: 0,
     winRate: "0%",
@@ -27,12 +29,13 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
     avgDuration: "3.2h"
   });
 
-  // Calculate remaining days for the label
-  const daysLeft = expiryDate ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+  // Calculate remaining days. Handling your year 3000 date gracefully.
+  const daysLeft = expiryDate 
+    ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
+    : 0;
   
-  // Determine Tier display (Alpha, Pro, Ultimate)
-  // const currentTier = (userProfile?.plan_type || userProfile?.subscription_status || "ALPHA").toUpperCase();
-  const currentTier = userProfile?.plan_type || (isPro ? "PRO" : "ALPHA" : "ULTIMATE");
+  // Use 'plan_type' from your Supabase screenshot to show "Ultimate"
+  const currentTier = (userProfile?.plan_type || userProfile?.subscription_status || "ALPHA").toUpperCase();
 
   // --- AUTO REFRESH (30 SECONDS) ---
   useEffect(() => {
@@ -88,17 +91,17 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   return (
     <div className="p-4 md:p-8 max-w-[1800px] mx-auto bg-[#0b0e14] min-h-screen text-zinc-400 font-sans">
       
-      {/* HEADER SECTION - NO PROFILE PICTURE */}
+      {/* HEADER SECTION */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
         
         <div className="flex flex-col">
-          {/* USER NAME AND BADGE */}
+          {/* USER NAME AND ROLE */}
           <div className="flex items-center gap-4 mb-5">
             <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
-              {userProfile?.fullName || 'KALIM AHMED GILL'}
+              {userProfile?.full_name || 'KALIM AHMED GILL'}
             </h1>
             <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest shadow-lg shadow-indigo-500/20">
-              KIMOO ADMIN
+              {userProfile?.role?.toUpperCase() || 'KIMOO ADMIN'}
             </span>
           </div>
           
@@ -113,7 +116,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
                    type="number" 
                    value={accountSize} 
                    onChange={(e) => setAccountSize(Number(e.target.value))} 
-                   className="bg-transparent text-white font-black text-xl w-32 outline-none focus:text-emerald-400 transition-colors" 
+                   className="bg-transparent text-white font-black text-xl w-36 outline-none focus:text-emerald-400 transition-colors" 
                  />
               </div>
             </div>
@@ -127,7 +130,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
                 </span>
                 <span className="text-zinc-700 text-sm mx-1 font-bold">|</span>
                 <span className="text-white font-black text-xl italic uppercase tracking-tight">
-                  REMAINING DAYS: <span className="text-indigo-400 ml-1">{daysLeft}</span>
+                  REMAINING DAYS: <span className="text-indigo-400 ml-1">{daysLeft.toLocaleString()}</span>
                 </span>
               </div>
             </div>
@@ -147,7 +150,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
         </div>
       </div>
 
-      {/* STATS GRID - 4 COLS */}
+      {/* STATS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
         <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
         <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
@@ -172,16 +175,16 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-24 gap-y-16">
-          <FeatureItem icon={<Activity size={24}/>} title="Live Execution Visibility" desc="Track R:R growth in real-time as market hits levels. See active exit progress live on performance ticker." />
-          <FeatureItem icon={<BarChart3 size={24}/>} title="Strategy-Grade Validation" desc="Audit symbol performance across timeframes. Open Simulator to stress-test your strategy." />
-          <FeatureItem icon={<Target size={24}/>} title="Radar + Diagnostics" desc="Identify symbol clustering and timing edge instantly. Inspect institutional liquidity zones." />
-          <FeatureItem icon={<MessageSquare size={24}/>} title="Discord API Workflow" desc="Route filtered premium signals directly to your Private Discord. Turn dashboard into an operational desk." />
+          <FeatureItem icon={<Activity size={24}/>} title="Live Execution Visibility" desc="Track R:R growth in real-time as market hits levels." />
+          <FeatureItem icon={<BarChart3 size={24}/>} title="Strategy-Grade Validation" desc="Audit symbol performance across timeframes." />
+          <FeatureItem icon={<Target size={24}/>} title="Radar + Diagnostics" desc="Identify symbol clustering and timing edge instantly." />
+          <FeatureItem icon={<MessageSquare size={24}/>} title="Discord API Workflow" desc="Route premium signals directly to your Private Discord." />
         </div>
       </div>
 
       {/* FOOTER */}
       <div className="pt-10 border-t border-white/5 flex justify-between items-center text-[10px] font-bold uppercase tracking-[0.5em] text-zinc-800">
-        <p>© 2026 KIMOO CRT ENGINE — VERSION 4.0.3</p>
+        <p>© 2026 KIMOO CRT ENGINE — V4.0.5</p>
         <p className="flex items-center gap-2">
           <ShieldCheck size={12} className="text-emerald-600" />
           Institutional Grade Protection Active
@@ -191,7 +194,6 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   );
 }
 
-// UI COMPONENTS
 function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
   return (
     <div className="bg-white/[0.02] border border-white/5 backdrop-blur-2xl p-7 rounded-[2rem] hover:bg-white/[0.04] transition-all group shadow-xl">
