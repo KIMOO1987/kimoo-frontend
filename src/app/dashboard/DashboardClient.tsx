@@ -96,17 +96,9 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
               Client<span className="text-blue-500">Dashboard</span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-3 leading-none">
-              Real-Time Equity Simulation • KIMOO CRT Engine
+              • KIMOO CRT Engine •
             </p>
           </div>
-          <button 
-            onClick={runSimulation}
-            disabled={isSimulating}
-            className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 text-white flex items-center justify-center gap-3 px-10 py-4 rounded-2xl font-black italic tracking-widest transition-all shadow-xl shadow-blue-500/10 active:scale-95"
-          >
-            {isSimulating ? <RotateCcw className="animate-spin" size={16} /> : <Play size={16} />}
-            {isSimulating ? "COMPUTING..." : "GENERATE GROWTH GRAPH"}
-          </button>
         </div>
 
         {/* USER PROFILE & ACCOUNT SECTION */}
