@@ -16,7 +16,8 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ isPro, expiryDate, userProfile }: DashboardClientProps) {
   const [accountSize, setAccountSize] = useState(userProfile?.account_size || 100000); 
-  const [defaultRR, setDefaultRR] = useState(2.0); // Editable Risk to Reward Ratio
+  const [riskValue, setRiskValue] = useState(1.0); // Editable Risk (e.g. 1R)
+  const [rewardValue, setRewardValue] = useState(2.0); // Editable Reward (e.g. 2R)
   const [isSimulating, setIsSimulating] = useState(false);
   
   const [realStats, setRealStats] = useState({
@@ -42,7 +43,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
     fetchData(); 
     const interval = setInterval(fetchData, 30000); 
     return () => clearInterval(interval);
-  }, [accountSize, defaultRR]);
+  }, [accountSize, riskValue, rewardValue]);
 
   async function fetchData() {
     try {
@@ -53,7 +54,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
       const losses = signals.filter(s => s.status?.toUpperCase() === 'SL');
       const bes = signals.filter(s => s.status?.toUpperCase().includes('BE'));
       
-      const riskAmount = accountSize * 0.01; 
+      const riskAmountUSD = accountSize * 0.01; 
       let totalRRCount = 0;
       const pairMap: Record<string, { count: number, profit: number, wins: number, closed: number }> = {};
 
@@ -63,11 +64,29 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
         pairMap[sym].count += 1;
 
         const status = s.status?.toUpperCase() || "";
-        // Calculation uses the user-defined defaultRR for TPs
-        if (status.includes('TP2')) { totalRRCount += defaultRR; pairMap[sym].profit += defaultRR; pairMap[sym].wins += 1; pairMap[sym].closed += 1; }
-        else if (status.includes('TP1') && !status.includes('BE')) { totalRRCount += (defaultRR / 2); pairMap[sym].profit += (defaultRR / 2); pairMap[sym].wins += 1; pairMap[sym].closed += 1; }
-        else if (status === 'SL') { totalRRCount -= 1; pairMap[sym].profit -= 1; pairMap[sym].closed += 1; }
-        else if (status.includes('BE')) { pairMap[sym].closed += 1; }
+        
+        // Calculation logic using dynamic Risk and Reward values
+        if (status.includes('TP2')) { 
+          totalRRCount += rewardValue; 
+          pairMap[sym].profit += rewardValue; 
+          pairMap[sym].wins += 1; 
+          pairMap[sym].closed += 1; 
+        }
+        else if (status.includes('TP1') && !status.includes('BE')) { 
+          const partialReward = rewardValue / 2;
+          totalRRCount += partialReward; 
+          pairMap[sym].profit += partialReward; 
+          pairMap[sym].wins += 1; 
+          pairMap[sym].closed += 1; 
+        }
+        else if (status === 'SL') { 
+          totalRRCount -= riskValue; 
+          pairMap[sym].profit -= riskValue; 
+          pairMap[sym].closed += 1; 
+        }
+        else if (status.includes('BE')) { 
+          pairMap[sym].closed += 1; 
+        }
       });
 
       const sortedByProfit = Object.entries(pairMap).sort((a, b) => b[1].profit - a[1].profit);
@@ -80,7 +99,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
         totalBE: bes.length,
         winRate: (wins.length + losses.length) > 0 ? ((wins.length / (wins.length + losses.length)) * 100).toFixed(1) + "%" : "0%",
         totalRR: totalRRCount.toFixed(2) + "R",
-        profitUSD: `$${(totalRRCount * riskAmount).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
+        profitUSD: `$${(totalRRCount * riskAmountUSD).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
         mostProfitable: sortedByProfit[0]?.[0] || "---",
         mostTraded: sortedByTraded[0]?.[0] || "---",
         highWRPair: "---",
@@ -120,40 +139,64 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
               {/* ACCOUNT SIZE INPUT */}
               <div className="flex items-center gap-3">
                 <Wallet size={18} className="text-emerald-500 shrink-0" />
-                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">ACCOUNT:</span>
-                <div className="flex items-center border-b border-white/10 pb-0.5">
-                   <span className="text-white font-black text-xl mr-1">$</span>
-                   <input 
-                     type="number" 
-                     value={accountSize} 
-                     onChange={(e) => setAccountSize(Number(e.target.value))} 
-                     className="bg-transparent text-white font-black text-xl w-28 md:w-32 outline-none focus:text-emerald-400" 
-                   />
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Account</span>
+                  <div className="flex items-center border-b border-white/10 pb-0.5">
+                    <span className="text-white font-black text-xl mr-1">$</span>
+                    <input 
+                      type="number" 
+                      value={accountSize} 
+                      onChange={(e) => setAccountSize(Number(e.target.value))} 
+                      className="bg-transparent text-white font-black text-xl w-28 md:w-32 outline-none focus:text-emerald-400" 
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* R:R RATIO INPUT */}
+              {/* RISK INPUT */}
               <div className="flex items-center gap-3">
-                <Percent size={18} className="text-blue-500 shrink-0" />
-                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">RISK:REWARD:</span>
-                <div className="flex items-center border-b border-white/10 pb-0.5">
-                   <input 
-                     type="number" 
-                     step="0.1"
-                     value={defaultRR} 
-                     onChange={(e) => setDefaultRR(Number(e.target.value))} 
-                     className="bg-transparent text-white font-black text-xl w-16 outline-none focus:text-blue-400 text-center" 
-                   />
-                   <span className="text-zinc-500 font-black text-xl ml-1">R</span>
+                <Percent size={18} className="text-red-500 shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Risk per SL</span>
+                  <div className="flex items-center border-b border-white/10 pb-0.5">
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      value={riskValue} 
+                      onChange={(e) => setRiskValue(Number(e.target.value))} 
+                      className="bg-transparent text-white font-black text-xl w-14 outline-none focus:text-red-400 text-center" 
+                    />
+                    <span className="text-zinc-500 font-black text-xl ml-1">R</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* REWARD INPUT */}
+              <div className="flex items-center gap-3">
+                <TrendingUp size={18} className="text-blue-500 shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Reward per TP</span>
+                  <div className="flex items-center border-b border-white/10 pb-0.5">
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      value={rewardValue} 
+                      onChange={(e) => setRewardValue(Number(e.target.value))} 
+                      className="bg-transparent text-white font-black text-xl w-14 outline-none focus:text-blue-400 text-center" 
+                    />
+                    <span className="text-zinc-500 font-black text-xl ml-1">R</span>
+                  </div>
                 </div>
               </div>
               
               <div className="flex items-center gap-3">
                 <Clock size={18} className="text-indigo-500 shrink-0" />
-                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">PLAN:</span>
-                <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="text-white font-black text-xl italic uppercase tracking-tight">{currentTier}</span>
-                    <span className="text-zinc-600 font-bold text-[10px] uppercase">({daysLeft} DAYS)</span>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Subscription</span>
+                  <div className="flex flex-wrap items-baseline gap-2">
+                      <span className="text-white font-black text-xl italic uppercase tracking-tight">{currentTier}</span>
+                      <span className="text-zinc-600 font-bold text-[10px] uppercase">({daysLeft} DAYS)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -163,7 +206,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
           <div className="w-full xl:w-auto bg-black/40 border border-white/10 px-5 py-3 rounded-2xl flex flex-wrap items-center justify-center gap-4">
              <div className="flex items-center gap-2 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">ENGINE: ONLINE</span>
+                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest whitespace-nowrap">ENGINE: ONLINE</span>
              </div>
              <div className="hidden sm:block h-4 w-[1px] bg-white/10" />
              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter font-mono whitespace-nowrap">
