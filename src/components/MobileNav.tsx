@@ -15,31 +15,31 @@ const menuGroups = [
   { 
     label: 'TERMINAL', 
     items: [
-      { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', pro: false },
-      { name: 'Active Trades', icon: Clock, path: '/dashboard/active', pro: true },
-      { name: 'Trade History', icon: History, path: '/dashboard/history', pro: true },
+      { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', minTier: 0 },
+      { name: 'Active Trades', icon: Clock, path: '/dashboard/active', minTier: 1 },
+      { name: 'Trade History', icon: History, path: '/dashboard/history', minTier: 1 },
     ]
   },
   { 
     label: 'RADAR & ANALYSIS', 
     items: [
-      { name: 'All Signals', icon: Zap, path: '/dashboard/signals', pro: false },
-      { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', pro: false },
-      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', pro: false },
+      { name: 'All Signals', icon: Zap, path: '/dashboard/signals', minTier: 1 },
+      { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', minTier: 2 },
+      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', minTier: 3 },
     ]
   },
   { 
     label: 'STRATEGY LAB', 
     items: [
-      { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', pro: false },
-      { name: 'Performance', icon: LineChart, path: '/dashboard/performance', pro: true },
+      { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', minTier: 3 },
+      { name: 'Performance', icon: LineChart, path: '/dashboard/performance', minTier: 3 },
     ]
   },
   { 
     label: 'ACCOUNT & SETTINGS', 
     items: [
-      { name: 'Profile', icon: User, path: '/dashboard/profile', pro: false },
-      { name: 'Payments', icon: CreditCard, path: '/dashboard/payments', pro: false },
+      { name: 'Profile', icon: User, path: '/dashboard/profile', minTier: 0 },
+      { name: 'Payments', icon: CreditCard, path: '/dashboard/payments', minTier: 0 },
     ]
   }
 ];
