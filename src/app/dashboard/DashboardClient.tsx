@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   TrendingUp, Zap, Star, Activity, BarChart3, Target, 
-  ShieldCheck, Clock, Wallet, MessageSquare
+  ShieldCheck, Clock, Wallet, MessageSquare, Menu, X
 } from 'lucide-react';
 
 interface DashboardClientProps {
@@ -14,8 +14,8 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ isPro, expiryDate, userProfile }: DashboardClientProps) {
-  // Pull initial account size directly from your database 'account_size' column
   const [accountSize, setAccountSize] = useState(userProfile?.account_size || 100000); 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const [realStats, setRealStats] = useState({
     total: 0,
@@ -29,15 +29,13 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
     avgDuration: "3.2h"
   });
 
-  // Calculate remaining days. Handling your year 3000 date gracefully.
+  // Handle year 3000 date logic
   const daysLeft = expiryDate 
     ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
     : 0;
   
-  // Use 'plan_type' from your Supabase screenshot to show "Ultimate"
   const currentTier = (userProfile?.plan_type || userProfile?.subscription_status || "ALPHA").toUpperCase();
 
-  // --- AUTO REFRESH (30 SECONDS) ---
   useEffect(() => {
     fetchData(); 
     const interval = setInterval(fetchData, 30000); 
@@ -89,133 +87,130 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-[1800px] mx-auto bg-[#0b0e14] min-h-screen text-zinc-400 font-sans">
+    <div className="relative min-h-screen bg-[#05070a] overflow-x-hidden w-full flex text-zinc-400 font-sans">
       
-      {/* HEADER SECTION */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
-        
-        <div className="flex flex-col">
-          {/* USER NAME AND ROLE */}
-          <div className="flex items-center gap-4 mb-5">
-            <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
-              {userProfile?.full_name || 'KALIM AHMED GILL'}
-            </h1>
-            <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest shadow-lg shadow-indigo-500/20">
-              {userProfile?.role?.toUpperCase() || 'KIMOO ADMIN'}
-            </span>
-          </div>
+      {/* MOBILE MENU TOGGLE */}
+      <button 
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="lg:hidden fixed top-6 left-6 z-[100] p-3 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-500/20"
+      >
+        {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 p-4 md:p-12 lg:p-16 w-full max-w-[100vw]">
+        <div className="max-w-[1700px] mx-auto mt-14 lg:mt-0">
           
-          {/* ACCOUNT & SUBSCRIPTION ROW */}
-          <div className="flex flex-wrap items-center gap-12">
-            <div className="flex items-center gap-3">
-              <Wallet size={18} className="text-emerald-500" />
-              <span className="text-[11px] font-black text-zinc-600 uppercase tracking-widest">ACCOUNT:</span>
-              <div className="flex items-center border-b border-white/10 pb-0.5">
-                 <span className="text-white font-black text-xl mr-1">$</span>
-                 <input 
-                   type="number" 
-                   value={accountSize} 
-                   onChange={(e) => setAccountSize(Number(e.target.value))} 
-                   className="bg-transparent text-white font-black text-xl w-36 outline-none focus:text-emerald-400 transition-colors" 
-                 />
+          {/* HEADER SECTION */}
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 p-6 md:p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
+            
+            <div className="w-full">
+              {/* FLUID NAME: Resizes with screen width [7vw] */}
+              <div className="flex flex-wrap items-center gap-4 mb-6">
+                <h1 className="text-[7vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none break-words max-w-full">
+                  {userProfile?.full_name || 'KALIM AHMED GILL'}
+                </h1>
+                <span className="bg-indigo-600 text-white text-[9px] md:text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit shadow-lg shadow-indigo-500/20">
+                  {userProfile?.role?.toUpperCase() || 'KIMOO ADMIN'}
+                </span>
+              </div>
+              
+              <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12 border-t border-white/5 pt-6 md:border-none md:pt-0">
+                {/* ACCOUNT */}
+                <div className="flex items-center gap-3">
+                  <Wallet size={18} className="text-emerald-500 shrink-0" />
+                  <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">ACCOUNT:</span>
+                  <div className="flex items-center border-b border-white/10 pb-0.5">
+                     <span className="text-white font-black text-xl mr-1">$</span>
+                     <input 
+                       type="number" 
+                       value={accountSize} 
+                       onChange={(e) => setAccountSize(Number(e.target.value))} 
+                       className="bg-transparent text-white font-black text-xl w-32 outline-none focus:text-emerald-400" 
+                     />
+                  </div>
+                </div>
+                
+                {/* SUBSCRIPTION */}
+                <div className="flex items-center gap-3">
+                  <Clock size={18} className="text-indigo-500 shrink-0" />
+                  <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">PLAN:</span>
+                  <div className="flex flex-wrap items-baseline gap-2">
+                      <span className="text-white font-black text-xl italic uppercase tracking-tight">{currentTier}</span>
+                      <span className="text-zinc-600 font-bold text-[10px] uppercase">
+                        ({daysLeft.toLocaleString()} DAYS LEFT)
+                      </span>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* STATUS BOX */}
+            <div className="w-full xl:w-auto bg-black/40 border border-white/10 px-6 py-4 rounded-3xl flex flex-col sm:flex-row items-center gap-4">
+               <div className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">ENGINE: ONLINE</span>
+               </div>
+               <div className="hidden sm:block h-6 w-[1px] bg-white/10" />
+               <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-tight truncate max-w-[200px] font-mono">
+                 {userProfile?.email || 'KALEEM.AHMAD87@ICLOUD.COM'}
+               </p>
+            </div>
+          </div>
+
+          {/* STATS GRID */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
+            <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
+            <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
+            <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
+            <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Star size={18}/>} color="text-emerald-500" />
             
-            <div className="flex items-center gap-3">
-              <Clock size={18} className="text-indigo-500" />
-              <span className="text-[11px] font-black text-zinc-600 uppercase tracking-widest">SUBSCRIPTION:</span>
-              <div className="flex items-center gap-2">
-                <span className="text-white font-black text-xl italic uppercase tracking-tight">
-                  {currentTier}
-                </span>
-                <span className="text-zinc-700 text-sm mx-1 font-bold">|</span>
-                <span className="text-white font-black text-xl italic uppercase tracking-tight">
-                  REMAINING DAYS: <span className="text-indigo-400 ml-1">{daysLeft.toLocaleString()}</span>
-                </span>
-              </div>
+            <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="Alpha Asset" />
+            <StatCard label="Most Traded" value={realStats.mostTraded} sub="Volume Dominance" />
+            <StatCard label="High WR Symbol" value={realStats.highWRPair} sub="Accuracy Lead" />
+            <StatCard label="Live Sync" value="30s" color="text-emerald-500" sub="Server Active" />
+          </div>
+
+          {/* ROADMAP SECTION */}
+          <div className="w-full border-t border-white/5 pt-16 mb-20">
+            <h2 className="text-3xl md:text-6xl font-black text-white mb-12 tracking-tighter italic uppercase leading-tight">
+              Institutional <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-600">CRT Intelligence.</span>
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
+              <FeatureItem icon={<Activity size={24}/>} title="Live Execution" desc="Track R:R growth in real-time as market hits levels." />
+              <FeatureItem icon={<BarChart3 size={24}/>} title="Audit Grade" desc="Audit symbol performance across timeframes." />
+              <FeatureItem icon={<Target size={24}/>} title="Radar Tech" desc="Identify symbol clustering and timing edge instantly." />
+              <FeatureItem icon={<MessageSquare size={24}/>} title="API Routing" desc="Route premium signals directly to your Private Discord." />
             </div>
           </div>
         </div>
-
-        {/* STATUS PILL & EMAIL */}
-        <div className="bg-white/5 border border-white/10 px-8 py-4 rounded-3xl flex items-center gap-6 shadow-inner">
-           <div className="flex items-center gap-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
-              <span className="text-[11px] font-black text-emerald-500 uppercase tracking-[0.25em]">SIGNAL ENGINE: ONLINE</span>
-           </div>
-           <div className="h-6 w-[1px] bg-white/10" />
-           <p className="text-[11px] font-bold text-zinc-600 uppercase tracking-widest font-mono">
-             {userProfile?.email || 'KALEEM.AHMAD87@ICLOUD.COM'}
-           </p>
-        </div>
-      </div>
-
-      {/* STATS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-        <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
-        <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
-        <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
-        <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Star size={18}/>} color="text-emerald-500" />
-        
-        <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="Alpha Asset" />
-        <StatCard label="Most Traded" value={realStats.mostTraded} sub="Volume Dominance" />
-        <StatCard label="High WR Symbol" value={realStats.highWRPair} sub="Accuracy Lead" />
-        <StatCard label="Live Sync" value="30s" color="text-emerald-500" sub="Server Active" />
-      </div>
-
-      {/* ROADMAP SECTION */}
-      <div className="w-full mb-24 border-t border-white/5 pt-16">
-        <div className="flex items-center gap-3 text-indigo-500 mb-6">
-            <div className="h-[2px] w-10 bg-indigo-500" />
-            <span className="text-[10px] font-black uppercase tracking-[0.5em]">KIMOO CRT PREMIUM ROADMAP</span>
-        </div>
-        <h2 className="text-5xl font-black text-white mb-16 tracking-tighter italic uppercase leading-none">
-          Scale your <br/>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-600 text-6xl">Trading Intelligence.</span>
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-24 gap-y-16">
-          <FeatureItem icon={<Activity size={24}/>} title="Live Execution Visibility" desc="Track R:R growth in real-time as market hits levels." />
-          <FeatureItem icon={<BarChart3 size={24}/>} title="Strategy-Grade Validation" desc="Audit symbol performance across timeframes." />
-          <FeatureItem icon={<Target size={24}/>} title="Radar + Diagnostics" desc="Identify symbol clustering and timing edge instantly." />
-          <FeatureItem icon={<MessageSquare size={24}/>} title="Discord API Workflow" desc="Route premium signals directly to your Private Discord." />
-        </div>
-      </div>
-
-      {/* FOOTER */}
-      <div className="pt-10 border-t border-white/5 flex justify-between items-center text-[10px] font-bold uppercase tracking-[0.5em] text-zinc-800">
-        <p>© 2026 KIMOO CRT ENGINE — V4.0.5</p>
-        <p className="flex items-center gap-2">
-          <ShieldCheck size={12} className="text-emerald-600" />
-          Institutional Grade Protection Active
-        </p>
-      </div>
+      </main>
     </div>
   );
 }
 
 function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
   return (
-    <div className="bg-white/[0.02] border border-white/5 backdrop-blur-2xl p-7 rounded-[2rem] hover:bg-white/[0.04] transition-all group shadow-xl">
-      <div className="flex justify-between items-start mb-6">
-        <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{label}</p>
-        <div className="text-zinc-700 group-hover:text-indigo-500 transition-colors transform group-hover:scale-110">{icon}</div>
+    <div className="bg-white/[0.02] border border-white/5 p-5 md:p-8 rounded-[2rem] shadow-xl">
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-[9px] md:text-[10px] font-black text-zinc-600 uppercase tracking-widest">{label}</p>
+        <div className="text-zinc-700">{icon}</div>
       </div>
-      <p className={`text-3xl font-black italic tracking-tighter ${color}`}>{value}</p>
-      {sub && <p className="text-[9px] font-bold text-zinc-800 mt-2 uppercase tracking-tighter">{sub}</p>}
+      <p className={`text-xl md:text-3xl font-black italic tracking-tighter ${color}`}>{value}</p>
+      {sub && <p className="text-[8px] font-bold text-zinc-800 mt-2 uppercase">{sub}</p>}
     </div>
   );
 }
 
 function FeatureItem({ icon, title, desc }: any) {
   return (
-    <div className="flex gap-6 group">
-      <div className="w-16 h-16 shrink-0 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-lg">
-        {icon}
-      </div>
+    <div className="flex gap-4 p-6 rounded-3xl bg-white/[0.01] border border-white/5">
+      <div className="text-indigo-500 shrink-0">{icon}</div>
       <div>
-        <h4 className="text-white font-black uppercase italic text-xl mb-2 group-hover:text-indigo-400 transition-colors tracking-tighter">{title}</h4>
-        <p className="text-zinc-500 text-sm leading-relaxed font-medium max-w-md">{desc}</p>
+        <h4 className="text-white font-black uppercase italic text-lg tracking-tighter">{title}</h4>
+        <p className="text-zinc-500 text-xs md:text-sm leading-relaxed">{desc}</p>
       </div>
     </div>
   );
