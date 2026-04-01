@@ -11,7 +11,8 @@ import {
   RefreshCcw, 
   Save,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -22,6 +23,7 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
+    age: '',
     country: '',
     address: ''
   });
@@ -33,9 +35,10 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+      // Added 'age' to the select query
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, email, country, address')
+        .select('full_name, email, age, country, address')
         .eq('id', user.id)
         .single();
       
@@ -43,6 +46,7 @@ export default function ProfilePage() {
         setFormData({
           full_name: data.full_name || '',
           email: data.email || '',
+          age: data.age?.toString() || '', // Ensure age is a string for the input field
           country: data.country || '',
           address: data.address || ''
         });
@@ -58,10 +62,12 @@ export default function ProfilePage() {
     
     if (!user) return;
 
+    // Added 'age' to the update object
     const { error } = await supabase
       .from('profiles')
       .update({
         full_name: formData.full_name,
+        age: parseInt(formData.age) || null, // Convert string back to number for DB
         country: formData.country,
         address: formData.address,
       })
@@ -99,19 +105,38 @@ export default function ProfilePage() {
             </h3>
             
             <div className="space-y-6">
-              {/* Full Name */}
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1 flex items-center gap-2">
-                   Full Name
-                </label>
-                <div className="relative">
-                  <input 
-                    className="crt-input w-full pl-10" 
-                    placeholder="John Doe" 
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  />
-                  <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Full Name */}
+                <div className="space-y-2">
+                  <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1 flex items-center gap-2">
+                     Full Name
+                  </label>
+                  <div className="relative">
+                    <input 
+                      className="crt-input w-full pl-10" 
+                      placeholder="John Doe" 
+                      value={formData.full_name}
+                      onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                    />
+                    <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
+                  </div>
+                </div>
+
+                {/* Age */}
+                <div className="space-y-2">
+                  <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1 flex items-center gap-2">
+                     Age
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type="number"
+                      className="crt-input w-full pl-10" 
+                      placeholder="25" 
+                      value={formData.age}
+                      onChange={(e) => setFormData({...formData, age: e.target.value})}
+                    />
+                    <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
+                  </div>
                 </div>
               </div>
 
