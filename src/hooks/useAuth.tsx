@@ -14,33 +14,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null);
-  const [tier, setTier] = useState<number>(3); // Default to max for testing
-  const [role, setRole] = useState<string>('admin'); // Default to admin for testing
+  const [tier, setTier] = useState<number>(0); // Initialize to 0
+  const [role, setRole] = useState<string>('user'); // Initialize to 'user'
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('tier, role')
         .eq('id', userId)
         .single();
 
-      // DEBUG: We still fetch the real data just to see it in the console,
-      // but we force the state to be Admin/Tier 3.
+      if (error) throw error;
+
       if (profile) {
-        console.log("REAL DB DATA:", profile);
+        setTier(profile.tier ?? 0);
+        setRole(profile.role ?? 'user');
       }
-      
-      // MASTER BYPASS: Force high-level access for testing
-      setRole('admin');
-      setTier(3);
-      
     } catch (error) {
-      console.error("Profile fetch error (Silenced for testing):", error);
-      // Even on error, we keep the bypass active
-      setRole('admin');
-      setTier(3);
+      console.error("Profile fetch error:", error);
+      // Fallback to basic access on error
+      setTier(0);
+      setRole('user');
     }
   }, []);
 
@@ -54,6 +50,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session?.user && mounted) {
           setUser(session.user);
           await fetchProfile(session.user.id);
+        } else {
+          setUser(null);
+          setTier(0);
         }
       } catch (error) {
         console.error("Initial session check error:", error);
@@ -70,7 +69,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await fetchProfile(session.user.id);
       } else {
         setUser(null);
-        // On logout, we reset to 0
         setTier(0);
         setRole('user');
       }
