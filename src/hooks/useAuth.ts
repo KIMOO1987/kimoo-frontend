@@ -1,14 +1,30 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient'; 
+"use client";
 
-export const useAuth = () => {
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+
+interface AuthContextType {
+  user: any;
+  tier: number;
+  role: string;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  tier: 0,
+  role: 'user',
+  loading: true,
+});
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null);
-  const [tier, setTier] = useState<number>(0); 
-  const [role, setRole] = useState<string>('user'); // Added role for Admin/Mod bypass
+  const [tier, setTier] = useState<number>(0);
+  const [role, setRole] = useState<string>('user');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string) => {
+    try {
       const { data: profile } = await supabase
         .from('profiles')
         .select('tier, role')
@@ -19,26 +35,28 @@ export const useAuth = () => {
         setTier(Number(profile.tier) || 0);
         setRole(profile.role || 'user');
       }
-    };
+    } catch (error) {
+      console.error("Profile fetch error:", error);
+    }
+  };
 
+  useEffect(() => {
     const initializeAuth = async () => {
       setLoading(true);
       
-      // 1. Check initial session
+      // 1. Get initial session
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
+      if (session?.user) {
         setUser(session.user);
         await fetchProfile(session.user.id);
       }
-      
       setLoading(false);
 
-      // 2. Listen for Auth Changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session) {
-          setUser(session.user);
-          await fetchProfile(session.user.id);
+      // 2. Listen for changes (Login/Logout)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+        if (currentSession?.user) {
+          setUser(currentSession.user);
+          await fetchProfile(currentSession.user.id);
         } else {
           setUser(null);
           setTier(0);
@@ -53,6 +71,12 @@ export const useAuth = () => {
     initializeAuth();
   }, []);
 
-  // Return role so your pages can use the Admin bypass
-  return { user, tier, role, loading };
+  return (
+    <AuthContext.Provider value={{ user, tier, role, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
+
+// This is the hook you use in your pages
+export const useAuth = () => useContext(AuthContext);
