@@ -10,9 +10,13 @@ import {
 } from 'lucide-react';
 
 export default function ActiveSignalsPage() {
-  const { tier, loading: authLoading } = useAuth();
+  const { tier, role, loading: authLoading } = useAuth();
   const [activeSignals, setActiveSignals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Staff Bypass Logic: Admin and Moderator ignore Tier 0 restrictions
+  const isStaff = role === 'admin' || role === 'moderator';
+  const hasAccess = isStaff || tier >= 1;
 
   // View Setup Handler
   const handleViewSetup = (symbol: string) => {
@@ -26,16 +30,17 @@ export default function ActiveSignalsPage() {
   const getDisplayStatus = (status: string) => {
     switch (status) {
       case 'PENDING': return 'In Progress';
-      case 'TP1': return 'TP1 / --';
-      case 'SL': return 'SL';
+      case 'TP1': return 'TP1 Hit';
+      case 'SL': return 'Stopped Out';
       case 'TP2': return 'TP1 / TP2';
-      default: return 'In Progress';
+      default: return 'Active';
     }
   };
 
   // Data Fetching
   useEffect(() => {
-    if (tier < 1) return; // Block data fetch for Free users
+    // Stop if auth is still checking or if user is truly unauthorized
+    if (authLoading || !hasAccess) return;
 
     const fetchActive = async () => {
       setLoading(true);
@@ -59,22 +64,22 @@ export default function ActiveSignalsPage() {
       }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [tier]);
+  }, [tier, authLoading, hasAccess]);
 
   // 1. LOADING STATE
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
+      <div className="min-h-[60vh] flex items-center justify-center bg-transparent">
         <Activity size={32} className="text-blue-500 animate-spin" />
       </div>
     );
   }
 
-  // 2. LOCKED STATE (Tier 0)
-  if (tier < 1) {
+  // 2. LOCKED STATE (Only for non-staff with Tier 0)
+  if (!hasAccess) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[80vh] text-center">
-        <div className="bg-white/[0.02] border border-white/5 p-12 rounded-[3rem] backdrop-blur-xl max-w-md border-blue-500/20">
+        <div className="bg-white/[0.02] border border-blue-500/20 p-12 rounded-[3rem] backdrop-blur-xl max-w-md">
           <div className="bg-blue-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
             <Lock size={40} className="text-blue-500" />
           </div>
@@ -95,7 +100,7 @@ export default function ActiveSignalsPage() {
     );
   }
 
-  // 3. MAIN PAGE CONTENT (Tier 1+)
+  // 3. MAIN PAGE CONTENT
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
