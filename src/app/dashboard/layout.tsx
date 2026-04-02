@@ -53,26 +53,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const userTier = isStaff ? 3 : (profile?.tier ?? 0);
 
   return (
-    <AuthProvider>
-      <KimooProvider>
-        <div className="flex bg-[#050505] min-h-screen relative overflow-hidden">
-          {/* Pass Staff-Verified Tier and Role */}
-          <Sidebar tier={userTier} role={userRole} />
-          
-          <div className="flex-1 flex flex-col min-w-0">
-            <MobileNav tier={userTier} role={userRole} />
+      <AuthProvider> {/* <--- ADD THIS WRAPPER */}
+        <KimooProvider>
+          <div className="flex bg-[#050505] min-h-screen relative overflow-hidden">
+            <Sidebar tier={userTier} role={userRole} />
+            
+            <div className="flex-1 flex flex-col min-w-0">
+              <MobileNav tier={userTier} role={userRole} />
   
-            <main className="flex-1 overflow-y-auto w-full custom-scrollbar">
-              <div className="h-full w-full">
-                {/* By the time children load, the session is already 
-                  verified by this layout.
-                */}
-                {children}
-              </div>
-            </main>
+              <main className="flex-1 overflow-y-auto w-full custom-scrollbar">
+                <div className="h-full w-full">
+                  {children}
+                </div>
+              </main>
+            </div>
           </div>
-        </div>
-      </KimooProvider>
-    </AuthProvider>
-  );
-}
+        </KimooProvider>
+      </AuthProvider>
+    );
+  }
