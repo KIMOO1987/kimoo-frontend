@@ -36,7 +36,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   const getTierDisplay = () => {
     if (userProfile?.role === 'admin') return 'SYSTEM ADMIN';
     switch (tier) {
-      case 3: return 'LIFETIME PRO';
+      case 3: return 'ULTIMATE PRO';
       case 2: return 'PREMIUM';
       case 1: return 'BASIC ALPHA';
       default: return 'FREE TRADER';
