@@ -229,7 +229,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                         {/* Only show the numeric days for any active tier */}
                         {tier > 0 && (
                           <span className="text-zinc-600 font-bold text-[10px] uppercase">
-                            ({daysLeft} DAYS)
+                            ({daysLeft} REMAINING DAYS)
                           </span>
                         )}
                   </div>
