@@ -1,19 +1,5 @@
 "use client";
 
-// --- NUCLEAR DEBUG START ---
-if (typeof window !== 'undefined') {
-  const originalPush = window.history.pushState;
-  window.history.pushState = function(...args) {
-    if (String(args[2]).includes('/login')) {
-      console.error("!!! REDIRECT DETECTED !!!");
-      console.log("Target URL:", args[2]);
-      console.trace("Check the trace below to find the file/line causing this:");
-    }
-    return originalPush.apply(window, args);
-  };
-}
-// --- NUCLEAR DEBUG END ---
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,8 +15,8 @@ export default function ActiveSignalsPage() {
   const [loading, setLoading] = useState(true);
 
   // Staff Bypass Logic
-  const isStaff = role === 'admin' || role === 'moderator';
-  const hasAccess = isStaff || tier >= 1;
+  const isStaff = role?.toLowerCase() === 'admin' || role?.toLowerCase() === 'moderator';
+  const hasAccess = isStaff || (tier && tier >= 1);
 
   // View Setup Handler
   const handleViewSetup = (symbol: string) => {
