@@ -215,22 +215,23 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                 </div>
               </div>
             
-              {/* 2. UPDATED: PLAN VALIDITY SECTION */}
-              <div className="flex items-center gap-3">
-                <Clock size={18} className="text-indigo-500 shrink-0" />
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Plan Validity</span>
-                  <div className="flex flex-wrap items-baseline gap-2">
-                      <span className={`font-black text-xl italic uppercase tracking-tight ${tier === 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                        {tier === 0 ? 'INACTIVE' : 'ACTIVE'}
-                      </span>
-                      {/* Only show days if it's not a "Forever" date (like your year 3000 date) */}
-                      {tier > 0 && daysLeft < 10000 && (
-                        <span className="text-zinc-600 font-bold text-[10px] uppercase">
-                          ({daysLeft} DAYS REMAINING)
+              {/* 2. PLAN VALIDITY SECTION */}
+                <div className="flex items-center gap-3">
+                  <Clock size={18} className="text-indigo-500 shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1 italic">Plan Validity</span>
+                    <div className="flex flex-wrap items-baseline gap-2">
+                        {/* Status Text */}
+                        <span className={`font-black text-xl italic uppercase tracking-tight ${tier > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                          {tier > 0 ? 'ACTIVE' : 'EXPIRED'}
                         </span>
-                      )}
-                      {tier === 3}
+              
+                        {/* Only show the numeric days for any active tier */}
+                        {tier > 0 && (
+                          <span className="text-zinc-600 font-bold text-[10px] uppercase">
+                            ({daysLeft} DAYS)
+                          </span>
+                        )}
                   </div>
                 </div>
               </div>
