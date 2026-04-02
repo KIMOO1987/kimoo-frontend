@@ -83,7 +83,7 @@ export default function PerformancePage() {
   }
 
   return (
-    <AccessGuard requiredTier={1} tierName="Active Member">
+    <AccessGuard requiredTier={3} tierName="Ultimate Member">
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
