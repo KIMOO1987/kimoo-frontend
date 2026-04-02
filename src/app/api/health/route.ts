@@ -1,6 +1,11 @@
-// src/app/api/health/route.ts
+// src/app/api/public-health/route.ts
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'; // Ensures it doesn't get cached as a static HTML file
+
 export async function GET() {
-  return NextResponse.json({ status: 'ok', timestamp: new Date().toISOString() });
+  return NextResponse.json({ 
+    status: 'online', 
+    message: 'KIMOO CRT Engine Active' 
+  });
 }
