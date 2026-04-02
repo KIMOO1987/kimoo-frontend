@@ -14,7 +14,8 @@ import {
   Clock,
   AlertTriangle,
   Activity,
-  ChevronLeft
+  ChevronLeft,
+  X
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 20;
@@ -25,6 +26,10 @@ export default function SignalHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Date Filter State
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -41,12 +46,19 @@ export default function SignalHistoryPage() {
     fetchHistory();
   }, []);
 
-  // Filter and Pagination Logic
+  // Combined Filter Logic: Search + Date Range
   const filteredHistory = useMemo(() => {
-    return history.filter(s => 
-      s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [history, searchTerm]);
+    return history.filter(s => {
+      const symbolMatch = s.symbol.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Extract YYYY-MM-DD from created_at timestamp
+      const signalDate = new Date(s.created_at).toISOString().split('T')[0];
+      const dateMatch = (!dateFrom || signalDate >= dateFrom) && 
+                        (!dateTo || signalDate <= dateTo);
+      
+      return symbolMatch && dateMatch;
+    });
+  }, [history, searchTerm, dateFrom, dateTo]);
 
   const totalPages = Math.ceil(filteredHistory.length / ITEMS_PER_PAGE);
   const paginatedHistory = filteredHistory.slice(
@@ -54,10 +66,10 @@ export default function SignalHistoryPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Reset to page 1 on search
+  // Reset to page 1 when any filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, dateFrom, dateTo]);
 
   if (authLoading) {
     return (
@@ -70,8 +82,9 @@ export default function SignalHistoryPage() {
   return (
     <AccessGuard requiredTier={1} tierName="Active Member">
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 flex flex-col min-h-screen">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6 md:mb-12">
+        
+        {/* Header Section */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6">
           <div>
             <h2 className="text-3xl md:text-4xl font-black tracking-tighter italic text-white uppercase">
               Signal <span className="text-blue-500">Archive</span>
@@ -81,20 +94,53 @@ export default function SignalHistoryPage() {
             </p>
           </div>
 
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search History..."
-              className="w-full pl-12 pr-4 py-3 bg-[#0a0a0a] border border-white/5 rounded-2xl text-[11px] font-mono text-white focus:border-blue-500/50 outline-none transition-all"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
+            {/* Date Filters */}
+            <div className="flex gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-black text-zinc-600 uppercase ml-2 tracking-widest">From</label>
+                <input 
+                  type="date" 
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="bg-[#0a0a0a] border border-white/5 rounded-xl px-3 py-2 text-[10px] font-mono text-white outline-none focus:border-blue-500/40 transition-all"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-black text-zinc-600 uppercase ml-2 tracking-widest">To</label>
+                <input 
+                  type="date" 
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="bg-[#0a0a0a] border border-white/5 rounded-xl px-3 py-2 text-[10px] font-mono text-white outline-none focus:border-blue-500/40 transition-all"
+                />
+              </div>
+              {(dateFrom || dateTo) && (
+                <button 
+                  onClick={() => { setDateFrom(''); setDateTo(''); }}
+                  className="self-end mb-1 p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Search Input */}
+            <div className="relative flex-grow md:w-64 self-end">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
+              <input 
+                type="text" 
+                placeholder="Instrument..."
+                className="w-full pl-10 pr-4 py-3 bg-[#0a0a0a] border border-white/5 rounded-2xl text-[11px] font-mono text-white focus:border-blue-500/50 outline-none transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
         {/* Table Content */}
-        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl md:rounded-[2.5rem] overflow-hidden flex-grow">
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl md:rounded-[2.5rem] overflow-hidden flex-grow shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -168,7 +214,7 @@ export default function SignalHistoryPage() {
                         <td colSpan={7} className="py-32 text-center">
                           <div className="flex flex-col items-center opacity-20">
                             <HistoryIcon size={48} className="mb-4" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.5em]">No Completed Logs</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.5em]">No Data Found</p>
                           </div>
                         </td>
                       </tr>
@@ -191,12 +237,12 @@ export default function SignalHistoryPage() {
               <ChevronLeft size={20} />
             </button>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto max-w-[200px] md:max-w-none no-scrollbar">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all border ${
+                  className={`min-w-[40px] h-10 rounded-xl text-[10px] font-black transition-all border ${
                     currentPage === pageNum 
                     ? 'bg-blue-500 border-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
                     : 'bg-[#0a0a0a] border-white/5 text-zinc-500 hover:border-white/20'

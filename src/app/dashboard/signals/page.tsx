@@ -15,12 +15,12 @@ import {
   CheckCircle2, 
   XCircle, 
   ChevronLeft, 
-  ChevronRight 
+  ChevronRight,
+  X 
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 12;
 
-// SignalCard remains the same as your provided code
 const SignalCard = ({ signal }: { signal: any }) => {
   const isBuy = signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH';
 
@@ -147,6 +147,10 @@ export default function SignalsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Date Filter State
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     const fetchSignals = async () => {
@@ -173,12 +177,18 @@ export default function SignalsPage() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Filter logic
+  // Filter logic: Search + Date Range
   const filteredSignals = useMemo(() => {
-    return signals.filter(s => 
-      s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [signals, searchTerm]);
+    return signals.filter(s => {
+      const symbolMatch = s.symbol.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const signalDate = new Date(s.created_at).toISOString().split('T')[0];
+      const dateMatch = (!dateFrom || signalDate >= dateFrom) && 
+                        (!dateTo || signalDate <= dateTo);
+      
+      return symbolMatch && dateMatch;
+    });
+  }, [signals, searchTerm, dateFrom, dateTo]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredSignals.length / ITEMS_PER_PAGE);
@@ -187,10 +197,10 @@ export default function SignalsPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Reset to page 1 when searching
+  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, dateFrom, dateTo]);
 
   if (authLoading) {
     return (
@@ -202,10 +212,10 @@ export default function SignalsPage() {
 
   return (
     <AccessGuard requiredTier={1} tierName="Active Member">
-      <div className="p-8 min-h-screen bg-[#05070a] flex flex-col">
+      <div className="p-4 md:p-8 min-h-screen bg-[#05070a] flex flex-col">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
-          <div className="text-center md:text-left">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-12">
+          <div className="text-left">
             <h1 className="text-4xl font-black tracking-tighter italic text-white uppercase">
               Alpha <span className="text-blue-500">Terminal</span>
             </h1>
@@ -214,14 +224,47 @@ export default function SignalsPage() {
             </p>
           </div>
 
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
-            <input 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search Terminal (e.g. BTCUSD)..." 
-              className="w-full bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] pl-12 pr-4 py-4 text-[11px] font-mono text-white focus:border-blue-500/40 outline-none transition-all shadow-2xl shadow-black" 
-            />
+          <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
+            {/* Date Filters */}
+            <div className="flex gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-black text-zinc-600 uppercase ml-2 tracking-widest">From</label>
+                <input 
+                  type="date" 
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="bg-[#0a0a0a] border border-white/5 rounded-xl px-3 py-2 text-[10px] font-mono text-white outline-none focus:border-blue-500/40 transition-all"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-black text-zinc-600 uppercase ml-2 tracking-widest">To</label>
+                <input 
+                  type="date" 
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="bg-[#0a0a0a] border border-white/5 rounded-xl px-3 py-2 text-[10px] font-mono text-white outline-none focus:border-blue-500/40 transition-all"
+                />
+              </div>
+              {(dateFrom || dateTo) && (
+                <button 
+                  onClick={() => { setDateFrom(''); setDateTo(''); }}
+                  className="self-end mb-1 p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Search Input */}
+            <div className="relative flex-grow md:w-64 self-end">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
+              <input 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search symbol..." 
+                className="w-full bg-[#0a0a0a] border border-white/5 rounded-[1.2rem] pl-10 pr-4 py-3 text-[11px] font-mono text-white focus:border-blue-500/40 outline-none transition-all" 
+              />
+            </div>
           </div>
         </div>
 
@@ -239,14 +282,14 @@ export default function SignalsPage() {
           <div className="py-32 flex flex-col items-center justify-center space-y-4 border border-dashed border-white/5 rounded-[3rem]">
             <Activity size={40} className="text-zinc-800 animate-pulse" />
             <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.5em]">
-              Waiting for Market Delivery...
+              No Signal Data Found
             </p>
           </div>
         )}
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="mt-16 flex justify-center items-center gap-4">
+          <div className="mt-16 mb-4 flex justify-center items-center gap-4">
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
@@ -255,12 +298,12 @@ export default function SignalsPage() {
               <ChevronLeft size={20} />
             </button>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto max-w-[200px] md:max-w-none no-scrollbar">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all border ${
+                  className={`min-w-[40px] h-10 rounded-xl text-[10px] font-black transition-all border ${
                     currentPage === pageNum 
                     ? 'bg-blue-500 border-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
                     : 'bg-[#0a0a0a] border-white/5 text-zinc-500 hover:border-white/20'

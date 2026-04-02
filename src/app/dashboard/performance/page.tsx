@@ -16,7 +16,8 @@ import {
   XCircle, 
   AlertTriangle,
   Clock,
-  ChevronLeft
+  ChevronLeft,
+  X
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 20;
@@ -27,6 +28,10 @@ export default function PerformancePage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Date Filter State
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   // Performance Stats State
   const [stats, setStats] = useState({
@@ -46,7 +51,6 @@ export default function PerformancePage() {
 
       if (data) {
         setHistory(data);
-        calculateStats(data);
       }
       setLoading(false);
     };
@@ -54,14 +58,35 @@ export default function PerformancePage() {
     fetchPerformanceData();
   }, []);
 
-  const calculateStats = (data: any[]) => {
+  // Filter and Stats Recalculation Logic
+  const filteredHistory = useMemo(() => {
+    const filtered = history.filter(s => {
+      const symbolMatch = s.symbol.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const signalDate = new Date(s.created_at).toISOString().split('T')[0];
+      const dateMatch = (!dateFrom || signalDate >= dateFrom) && 
+                        (!dateTo || signalDate <= dateTo);
+      
+      return symbolMatch && dateMatch;
+    });
+
+    // Recalculate stats based on the currently filtered view
+    calculateStats(filtered);
+    return filtered;
+  }, [history, searchTerm, dateFrom, dateTo]);
+
+  function calculateStats(data: any[]) {
     const total = data.length;
-    if (total === 0) return;
+    if (total === 0) {
+      setStats({ winRate: "0", totalTrades: 0, profitFactor: "0.00", avgRR: "0.0" });
+      return;
+    }
 
     const wins = data.filter(s => s.status === 'TP2').length;
     const partials = data.filter(s => s.status === 'TP1 + SL (BE)').length;
     const losses = data.filter(s => s.status === 'SL').length;
 
+    // Calculation: TP2 = 3R, Partial = 0.5R, SL = -1R
     const grossProfit = (wins * 3) + (partials * 0.5);
     const grossLoss = losses * 1;
 
@@ -71,14 +96,7 @@ export default function PerformancePage() {
       profitFactor: (grossProfit / (grossLoss || 1)).toFixed(2),
       avgRR: "3.0" 
     });
-  };
-
-  // Filter and Pagination Logic
-  const filteredHistory = useMemo(() => {
-    return history.filter(s => 
-      s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [history, searchTerm]);
+  }
 
   const totalPages = Math.ceil(filteredHistory.length / ITEMS_PER_PAGE);
   const paginatedHistory = filteredHistory.slice(
@@ -86,10 +104,9 @@ export default function PerformancePage() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Reset to page 1 on search
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, dateFrom, dateTo]);
 
   if (authLoading || loading) {
     return (
@@ -102,8 +119,9 @@ export default function PerformancePage() {
   return (
     <AccessGuard requiredTier={1} tierName="Active Member">
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 flex flex-col min-h-screen">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+        
+        {/* Header with Date Filters */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6">
           <div>
             <h2 className="text-3xl md:text-4xl font-black tracking-tighter italic text-white uppercase">
               CRT <span className="text-blue-500">Performance</span>
@@ -113,20 +131,52 @@ export default function PerformancePage() {
             </p>
           </div>
 
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
-            <input 
-              type="text" 
-              placeholder="Filter by Instrument..."
-              className="w-full pl-12 pr-4 py-3 bg-[#0a0a0a] border border-white/5 rounded-2xl text-[11px] font-mono text-white focus:border-blue-500/50 outline-none transition-all"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
+             {/* Date Pickers */}
+             <div className="flex gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-black text-zinc-600 uppercase ml-2 tracking-widest">From</label>
+                <input 
+                  type="date" 
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="bg-[#0a0a0a] border border-white/5 rounded-xl px-3 py-2 text-[10px] font-mono text-white outline-none focus:border-blue-500/40 transition-all"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-black text-zinc-600 uppercase ml-2 tracking-widest">To</label>
+                <input 
+                  type="date" 
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="bg-[#0a0a0a] border border-white/5 rounded-xl px-3 py-2 text-[10px] font-mono text-white outline-none focus:border-blue-500/40 transition-all"
+                />
+              </div>
+              {(dateFrom || dateTo) && (
+                <button 
+                  onClick={() => { setDateFrom(''); setDateTo(''); }}
+                  className="self-end mb-1 p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <div className="relative w-full md:w-64 self-end">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
+              <input 
+                type="text" 
+                placeholder="Filter Symbol..."
+                className="w-full pl-10 pr-4 py-3 bg-[#0a0a0a] border border-white/5 rounded-2xl text-[11px] font-mono text-white focus:border-blue-500/50 outline-none transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard label="Win Rate" value={`${stats.winRate}%`} icon={<Target size={18}/>} color="text-purple-500" />
           <StatCard label="Profit Factor" value={stats.profitFactor} icon={<TrendingUp size={18}/>} color="text-green-500" />
           <StatCard label="Total Trades" value={stats.totalTrades} icon={<Zap size={18}/>} color="text-blue-500" />
@@ -134,7 +184,7 @@ export default function PerformancePage() {
         </div>
 
         {/* Detailed Log Table */}
-        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl md:rounded-[2.5rem] overflow-hidden flex-grow">
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl md:rounded-[2.5rem] overflow-hidden flex-grow shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -148,38 +198,49 @@ export default function PerformancePage() {
               </thead>
               <tbody className="divide-y divide-white/[0.02]">
                 <AnimatePresence mode="popLayout">
-                  {paginatedHistory.map((signal) => (
-                    <motion.tr 
-                      layout
-                      initial={{ opacity: 0 }} 
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      key={signal.id} 
-                      className="group hover:bg-white/[0.01] transition-colors"
-                    >
-                      <td className="px-8 py-5">
-                        <span className="text-sm font-black text-white uppercase italic">{signal.symbol}</span>
-                      </td>
-                      <td className="py-5">
-                        <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${
-                          signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH' 
-                          ? 'text-green-500 border-green-500/10' 
-                          : 'text-red-500 border-red-500/10'
-                        }`}>
-                          {signal.side}
-                        </span>
-                      </td>
-                      <td className="py-5">
-                        <ResultBadge status={signal.status} />
-                      </td>
-                      <td className="py-5 hidden md:table-cell text-[11px] font-mono text-zinc-500">
-                        {new Date(signal.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                        <ChevronRight size={14} className="inline text-zinc-700 group-hover:text-blue-500 transition-colors" />
-                      </td>
-                    </motion.tr>
-                  ))}
+                  {paginatedHistory.length > 0 ? (
+                    paginatedHistory.map((signal) => (
+                      <motion.tr 
+                        layout
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        key={signal.id} 
+                        className="group hover:bg-blue-500/[0.02] transition-colors"
+                      >
+                        <td className="px-8 py-5">
+                          <span className="text-sm font-black text-white uppercase italic tracking-tighter">{signal.symbol}</span>
+                        </td>
+                        <td className="py-5">
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${
+                            signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH' 
+                            ? 'text-green-500 border-green-500/10 bg-green-500/5' 
+                            : 'text-red-500 border-red-500/10 bg-red-500/5'
+                          }`}>
+                            {signal.side}
+                          </span>
+                        </td>
+                        <td className="py-5">
+                          <ResultBadge status={signal.status} />
+                        </td>
+                        <td className="py-5 hidden md:table-cell text-[11px] font-mono text-zinc-500">
+                          {new Date(signal.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-8 py-5 text-right">
+                          <ChevronRight size={14} className="inline text-zinc-700 group-hover:text-blue-500 transition-colors" />
+                        </td>
+                      </motion.tr>
+                    ))
+                  ) : (
+                    <tr>
+                       <td colSpan={5} className="py-24 text-center">
+                          <div className="flex flex-col items-center opacity-20">
+                            <Activity size={40} className="mb-4" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.5em]">No History Found</p>
+                          </div>
+                        </td>
+                    </tr>
+                  )}
                 </AnimatePresence>
               </tbody>
             </table>
@@ -197,12 +258,12 @@ export default function PerformancePage() {
               <ChevronLeft size={20} />
             </button>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto max-w-[200px] md:max-w-none no-scrollbar">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all border ${
+                  className={`min-w-[40px] h-10 rounded-xl text-[10px] font-black transition-all border ${
                     currentPage === pageNum 
                     ? 'bg-blue-500 border-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
                     : 'bg-[#0a0a0a] border-white/5 text-zinc-500 hover:border-white/20'
@@ -230,11 +291,14 @@ export default function PerformancePage() {
 // Sub-components
 function StatCard({ label, value, icon, color }: any) {
   return (
-    <div className="bg-[#0a0a0a] border border-white/5 p-6 rounded-3xl">
+    <motion.div 
+      whileHover={{ y: -5 }}
+      className="bg-[#0a0a0a] border border-white/5 p-6 rounded-[2rem] shadow-xl"
+    >
       <div className={`${color} mb-3 opacity-80`}>{icon}</div>
       <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{label}</p>
       <p className="text-2xl font-black text-white italic tracking-tighter">{value}</p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -248,7 +312,7 @@ function ResultBadge({ status }: { status: string }) {
   const style = styles[status] || { color: 'text-zinc-500', icon: <Clock size={12} />, label: status };
 
   return (
-    <div className={`flex items-center gap-1.5 ${style.color} text-[9px] font-black uppercase`}>
+    <div className={`flex items-center gap-1.5 ${style.color} text-[9px] font-black uppercase tracking-wider`}>
       {style.icon} {style.label}
     </div>
   );
