@@ -1,13 +1,26 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
-import AccessGuard from '@/components/AccessGuard'; // Added AccessGuard
+import AccessGuard from '@/components/AccessGuard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Activity, Target, Shield, Clock, Zap, CheckCircle2, XCircle } from 'lucide-react';
+import { 
+  Search, 
+  Activity, 
+  Target, 
+  Shield, 
+  Clock, 
+  Zap, 
+  CheckCircle2, 
+  XCircle, 
+  ChevronLeft, 
+  ChevronRight 
+} from 'lucide-react';
 
-// The High-Fidelity Signal Card Component
+const ITEMS_PER_PAGE = 12;
+
+// SignalCard remains the same as your provided code
 const SignalCard = ({ signal }: { signal: any }) => {
   const isBuy = signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH';
 
@@ -133,6 +146,7 @@ export default function SignalsPage() {
   const [signals, setSignals] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchSignals = async () => {
@@ -159,9 +173,24 @@ export default function SignalsPage() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const filteredSignals = signals.filter(s => 
-    s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter logic
+  const filteredSignals = useMemo(() => {
+    return signals.filter(s => 
+      s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [signals, searchTerm]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredSignals.length / ITEMS_PER_PAGE);
+  const paginatedSignals = filteredSignals.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
+
+  // Reset to page 1 when searching
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   if (authLoading) {
     return (
@@ -172,8 +201,9 @@ export default function SignalsPage() {
   }
 
   return (
-    <AccessGuard requiredTier={1} tierName="Alpha Member">
-      <div className="p-8 min-h-screen bg-[#05070a] space-y-8">
+    <AccessGuard requiredTier={1} tierName="Active Member">
+      <div className="p-8 min-h-screen bg-[#05070a] flex flex-col">
+        {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
           <div className="text-center md:text-left">
             <h1 className="text-4xl font-black tracking-tighter italic text-white uppercase">
@@ -195,20 +225,59 @@ export default function SignalsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Signals Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 flex-grow">
           <AnimatePresence mode="popLayout">
-            {filteredSignals.map((signal) => (
+            {paginatedSignals.map((signal) => (
               <SignalCard key={signal.id} signal={signal} />
             ))}
           </AnimatePresence>
         </div>
 
+        {/* Empty State */}
         {filteredSignals.length === 0 && !loading && (
           <div className="py-32 flex flex-col items-center justify-center space-y-4 border border-dashed border-white/5 rounded-[3rem]">
             <Activity size={40} className="text-zinc-800 animate-pulse" />
             <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.5em]">
               Waiting for Market Delivery...
             </p>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="mt-16 flex justify-center items-center gap-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-3 rounded-full bg-[#0a0a0a] border border-white/5 text-zinc-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            
+            <div className="flex items-center gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all border ${
+                    currentPage === pageNum 
+                    ? 'bg-blue-500 border-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
+                    : 'bg-[#0a0a0a] border-white/5 text-zinc-500 hover:border-white/20'
+                  }`}
+                >
+                  {pageNum.toString().padStart(2, '0')}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-3 rounded-full bg-[#0a0a0a] border border-white/5 text-zinc-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
         )}
       </div>
