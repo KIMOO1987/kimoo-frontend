@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               cookieStore.set(name, value, options)
             );
           } catch {
-            // This is expected when called from a Server Component
+            // Expected in Server Components
           }
         },
       },
@@ -32,43 +32,44 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // 1. Get user session
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  // 2. Immediate redirect if no user
+  // 2. Redirect to login if no session exists
   if (!user || authError) {
     redirect('/login');
   }
 
-  // 3. Fetch profile data
-  // We use .select('*') to ensure we get everything, including your 'tier' column
+  // 3. Fetch profile data (tier, role)
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('tier, role, subscription_status')
     .eq('id', user.id)
     .single();
 
-  // DEBUG LOG: If you still see "Nill", check your terminal for this message
   if (profileError) {
     console.error("Layout Fetch Error:", profileError.message);
   }
 
-  // 4. Robust Fallback Logic
-  // This ensures that even if the DB is slow, the UI gets a number
-  const userTier = profile?.tier ?? 0;
+  // 4. ROLE & TIER SYNC
+  // Define Staff Roles: both Admin and Moderator get "Tier 3" privileges automatically
+  const isStaff = profile?.role === 'admin' || profile?.role === 'moderator';
+  const userTier = isStaff ? 3 : (profile?.tier ?? 0);
+  const userRole = profile?.role || 'user';
 
   return (
     <KimooProvider>
-      <div className="flex bg-[#050505] min-h-screen relative">
-        {/* Pass the verified Tier to navigation components */}
-        <Sidebar tier={userTier} />
+      <div className="flex bg-[#050505] min-h-screen relative overflow-hidden">
+        {/* Pass the verified Tier and Role down */}
+        <Sidebar tier={userTier} role={userRole} />
         
-        {/* Ensure MobileNav is also updated to accept 'tier' */}
-        <MobileNav tier={userTier} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <MobileNav tier={userTier} role={userRole} />
 
-        <main className="flex-1 overflow-y-auto w-full">
-          {/* We wrap children in a container to ensure layout stability */}
-          <div className="h-full w-full">
-            {children}
-          </div>
-        </main>
+          <main className="flex-1 overflow-y-auto w-full custom-scrollbar">
+            <div className="h-full w-full">
+              {/* Children (History, Active, etc.) will now inherit this session */}
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </KimooProvider>
   );
