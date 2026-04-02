@@ -15,7 +15,7 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ tier, expiryDate, userProfile }: DashboardClientProps) {
-  const [accountSize, setAccountSize] = useState(userProfile?.account_size || 100000); 
+  const [accountSize, setAccountSize] = useState(userProfile?.account_size || 10000); 
   const [riskValue, setRiskValue] = useState(1.0); 
   const [rewardValue, setRewardValue] = useState(2.0); 
   
@@ -36,9 +36,9 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   const getTierDisplay = () => {
     if (userProfile?.role === 'admin') return 'SYSTEM ADMIN';
     switch (tier) {
-      case 3: return 'ULTIMATE PRO';
-      case 2: return 'PREMIUM';
-      case 1: return 'BASIC ALPHA';
+      case 3: return 'ULTIMATE';
+      case 2: return 'PRO';
+      case 1: return 'ALPHA';
       default: return 'FREE TRADER';
     }
   };
@@ -135,13 +135,15 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
           <div className="w-full">
             <div className="flex flex-wrap items-center gap-4 mb-6">
               <h2 className="text-[7vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
-                {userProfile?.full_name || 'TRADER'}
+                  {userProfile?.full_name || 'TRADER'}
               </h2>
               {/* UPDATED BADGE LOGIC */}
               <span className={`text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit shadow-lg ${
-                tier >= 2 || userProfile?.role === 'admin' ? 'bg-blue-600 shadow-blue-500/20' : 'bg-zinc-700 shadow-black/10'
+                  tier >= 2 || userProfile?.role === 'admin' 
+                  ? 'bg-blue-600 shadow-blue-500/20' 
+                  : 'bg-zinc-700 shadow-black/10'
               }`}>
-                {getTierDisplay()}
+                  {getTierDisplay()}
               </span>
             </div>
             
