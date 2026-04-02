@@ -19,12 +19,17 @@ export default function RoleGuard({ children }: { children: React.ReactNode }) {
 
     // MASTER BYPASS: If you are admin, you get in. 
     // Otherwise, you need at least Tier 1.
-    if (role?.toLowerCase() === 'admin' || Number(tier) >= 1) {
-      setStatus('granted');
-    } else {
-      setStatus('denied');
-    }
-  }, [user, role, tier, loading]);
+    console.log("GUARD CHECK:", { role, tier });
+    
+      const isStaff = role?.toLowerCase() === 'admin' || role?.toLowerCase() === 'moderator';
+      const hasTier = Number(tier) >= 1;
+    
+      if (isStaff || hasTier) {
+        setStatus('granted');
+      } else {
+        setStatus('denied');
+      }
+    }, [user, role, tier, loading]);
   
   console.log("DEBUG AUTH:", { user: !!user, role, tier, status });
   if (status === 'loading') {
