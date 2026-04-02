@@ -10,67 +10,75 @@ import {
 } from 'lucide-react';
 
 export default function ActiveSignalsPage() {
-  const { user, tier: hookTier, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [activeSignals, setActiveSignals] = useState<any[]>([]);
   const [isVerifying, setIsVerifying] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   const [loadingSignals, setLoadingSignals] = useState(false);
 
-  // 1. STRENGTHENED ACCESS VERIFICATION
+  // 1. DIRECT DATABASE ACCESS CHECK
   useEffect(() => {
-    const verifyAccess = async () => {
+    const checkDBAccess = async () => {
+      // Wait for the auth hook to provide the user object
       if (authLoading) return;
+      
       if (!user) {
         setIsVerifying(false);
         return;
       }
 
       try {
-        // Direct fetch to ensure we have the latest Role and Tier
-        const { data: profile } = await supabase
+        // Fetch fresh data directly from the profiles table
+        const { data: profile, error } = await supabase
           .from('profiles')
-          .select('tier, role')
+          .select('role, tier')
           .eq('id', user.id)
           .single();
 
-        const isAdmin = profile?.role?.toLowerCase() === 'admin' || profile?.role?.toLowerCase() === 'moderator';
-        const isPaid = (Number(profile?.tier) || Number(hookTier) || 0) >= 1;
-
-        if (isAdmin || isPaid) {
-          setHasAccess(true);
+        if (!error && profile) {
+          const isAdmin = profile.role?.toLowerCase() === 'admin' || profile.role?.toLowerCase() === 'moderator';
+          const isPaid = Number(profile.tier) >= 1;
+          
+          // If you are Admin OR Tier 1+, grant access
+          if (isAdmin || isPaid) {
+            setHasAccess(true);
+          }
         }
       } catch (err) {
-        console.error("Access verification failed", err);
+        console.error("Access Check Error:", err);
       } finally {
         setIsVerifying(false);
       }
     };
 
-    verifyAccess();
-  }, [user, authLoading, hookTier]);
+    checkDBAccess();
+  }, [user, authLoading]);
 
-  // 2. DATA FETCHING (Only runs if hasAccess is true)
+  // 2. SIGNAL DATA FETCHING & REALTIME
   useEffect(() => {
     if (!hasAccess) return;
 
     const fetchActive = async () => {
       setLoadingSignals(true);
+      // Only show signals from the last 24 hours
       const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('signals')
         .select('*')
         .gt('created_at', timeLimit)
-        .not('status', 'in', '("SL","TP2")') 
+        .not('status', 'in', '("SL","TP2")') // Hide completed/stopped trades
         .order('created_at', { ascending: false });
 
+      if (error) console.error("Signal Fetch Error:", error.message);
       if (data) setActiveSignals(data);
       setLoadingSignals(false);
     };
 
     fetchActive();
 
-    const channel = supabase.channel('active_realtime')
+    // Listen for live updates (New signals or Status changes)
+    const channel = supabase.channel('active_signals_stream')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'signals' }, () => {
         fetchActive();
       }).subscribe();
@@ -78,20 +86,31 @@ export default function ActiveSignalsPage() {
     return () => { supabase.removeChannel(channel); };
   }, [hasAccess]);
 
-  // 3. UI STATES
+  // 3. UI HANDLERS
+  const handleViewSetup = (symbol: string) => {
+    const myLayoutId = "TWlqcP20"; 
+    const cleanSymbol = symbol.includes(':') ? symbol.split(':')[1] : symbol;
+    const tvUrl = `https://www.tradingview.com/chart/${myLayoutId}/?symbol=${cleanSymbol.toUpperCase()}`;
+    window.open(tvUrl, '_blank');
+  };
+
+  // 4. LOADING STATE
   if (authLoading || isVerifying) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4">
-        <Activity size={32} className="text-blue-500 animate-spin" />
-        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Authenticating Signal Stream...</p>
+      <div className="min-h-[80vh] flex flex-col items-center justify-center bg-transparent gap-4">
+        <Activity size={40} className="text-blue-500 animate-spin" />
+        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] animate-pulse">
+          Synchronizing Alpha Clearance...
+        </p>
       </div>
     );
   }
 
+  // 5. LOCKED STATE (Only shows if user is NOT Admin and Tier is 0)
   if (!hasAccess) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[80vh] text-center">
-        <div className="bg-white/[0.02] border border-blue-500/20 p-12 rounded-[3rem] backdrop-blur-xl max-w-md">
+        <div className="bg-white/[0.02] border border-blue-500/20 p-12 rounded-[3rem] backdrop-blur-xl max-w-md shadow-2xl shadow-blue-500/5">
           <div className="bg-blue-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
             <Lock size={40} className="text-blue-500" />
           </div>
@@ -99,11 +118,11 @@ export default function ActiveSignalsPage() {
             Alpha <span className="text-blue-500">Locked</span>
           </h2>
           <p className="text-zinc-500 text-[10px] mb-8 leading-relaxed uppercase font-bold tracking-[0.2em]">
-            Institutional trade monitoring is reserved for Alpha members.
+            Institutional active trade monitoring is reserved for Alpha members.
           </p>
           <button 
             onClick={() => window.location.href = '/dashboard/payments'}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl uppercase italic tracking-widest transition-all shadow-lg shadow-blue-500/20"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl uppercase italic tracking-widest transition-all shadow-lg shadow-blue-500/20 active:scale-95"
           >
             Upgrade Account
           </button>
@@ -112,6 +131,7 @@ export default function ActiveSignalsPage() {
     );
   }
 
+  // 6. MAIN DASHBOARD CONTENT
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -125,7 +145,9 @@ export default function ActiveSignalsPage() {
         </div>
         <div className="flex items-center gap-3 bg-blue-500/5 border border-blue-500/10 px-5 py-2.5 rounded-2xl">
           <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-          <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Live Flow Active</span>
+          <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">
+            Institutional Flow Active
+          </span>
         </div>
       </div>
 
@@ -136,8 +158,8 @@ export default function ActiveSignalsPage() {
               <motion.div
                 key={signal.id}
                 layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-8 hover:border-blue-500/30 transition-all group relative overflow-hidden flex flex-col justify-between min-h-[450px]"
               >
@@ -163,12 +185,12 @@ export default function ActiveSignalsPage() {
 
                   <div className="space-y-4 mb-8">
                     <TradeDataRow icon={<Activity size={12} className="text-blue-500"/>} label="Status" value={getDisplayStatus(signal.status)} valueClass="text-blue-400 animate-pulse" />
-                    <TradeDataRow icon={<Zap size={12}/>} label="Entry" value={Number(signal.entry_price || 0).toFixed(5)} />
-                    <TradeDataRow icon={<Target size={12} className="text-green-500"/>} label="Target" value={Number(signal.tp || 0).toFixed(5)} valueClass="text-green-500" />
+                    <TradeDataRow icon={<Zap size={12}/>} label="Entry Region" value={Number(signal.entry_price || 0).toFixed(5)} />
+                    <TradeDataRow icon={<Target size={12} className="text-green-500"/>} label="Price Target" value={Number(signal.tp || 0).toFixed(5)} valueClass="text-green-500" />
                     <TradeDataRow icon={<Shield size={12} className="text-red-500"/>} label="Invalidation" value={Number(signal.sl || 0).toFixed(5)} valueClass="text-red-500" />
                     
                     <div className="flex justify-between items-center py-3 border-t border-white/5 mt-4">
-                      <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Age</span>
+                      <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Signal Age</span>
                       <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase flex items-center gap-2">
                         <Clock size={12} /> {getTimeAgo(signal.created_at)}
                       </span>
@@ -180,15 +202,15 @@ export default function ActiveSignalsPage() {
                   onClick={() => handleViewSetup(signal.symbol)}
                   className="w-full bg-white text-black py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl shadow-black/20"
                 >
-                  <Layout size={16} /> Open Setup <ArrowUpRight size={16} />
+                  <Layout size={16} /> Open Live Setup <ArrowUpRight size={16} />
                 </button>
               </motion.div>
             ))
           ) : !loadingSignals && (
-            <div className="col-span-full py-32 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[3rem] bg-white/[0.01]">
+            <motion.div className="col-span-full py-32 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[3rem] bg-white/[0.01]">
               <Activity size={48} className="text-zinc-800 mb-6 animate-pulse" />
               <p className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.5em]">Awaiting Order Block Displacement...</p>
-            </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
@@ -212,7 +234,8 @@ function getTimeAgo(timestamp: string) {
   const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
   if (diff < 1) return 'JUST NOW';
   if (diff < 60) return `${diff}M AGO`;
-  return `${Math.floor(diff / 60)}H ${diff % 60}M AGO`;
+  const hrs = Math.floor(diff / 60);
+  return `${hrs}H ${diff % 60}M AGO`;
 }
 
 function getDisplayStatus(status: string) {
@@ -223,11 +246,4 @@ function getDisplayStatus(status: string) {
     case 'TP2': return 'TP1 / TP2';
     default: return 'Active';
   }
-}
-
-function handleViewSetup(symbol: string) {
-  const myLayoutId = "TWlqcP20"; 
-  const cleanSymbol = symbol.includes(':') ? symbol.split(':')[1] : symbol;
-  const tvUrl = `https://www.tradingview.com/chart/${myLayoutId}/?symbol=${cleanSymbol.toUpperCase()}`;
-  window.open(tvUrl, '_blank');
 }
