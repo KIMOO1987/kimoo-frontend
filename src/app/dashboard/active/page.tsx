@@ -10,63 +10,84 @@ import {
 } from 'lucide-react';
 
 export default function ActiveSignalsPage() {
-  const { tier, role, loading: authLoading } = useAuth();
+  const { user, tier: hookTier, loading: authLoading } = useAuth();
   const [activeSignals, setActiveSignals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [loadingSignals, setLoadingSignals] = useState(false);
 
-  // --- REFINED STAFF LOGIC ---
-  // We check for 'admin' or 'moderator'. Using optional chaining to prevent crashes.
-  const isStaff = role?.toLowerCase() === 'admin' || role?.toLowerCase() === 'moderator';
-  
-  // Access is granted if you are Staff OR if your tier is 1 or higher.
-  const hasAccess = isStaff || (Number(tier) >= 1);
-
-  // Data Fetching
+  // 1. STRENGTHENED ACCESS VERIFICATION
   useEffect(() => {
-    // Stop if auth is still checking or if the user truly doesn't have access
-    if (authLoading || !hasAccess) return;
+    const verifyAccess = async () => {
+      if (authLoading) return;
+      if (!user) {
+        setIsVerifying(false);
+        return;
+      }
+
+      try {
+        // Direct fetch to ensure we have the latest Role and Tier
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('tier, role')
+          .eq('id', user.id)
+          .single();
+
+        const isAdmin = profile?.role?.toLowerCase() === 'admin' || profile?.role?.toLowerCase() === 'moderator';
+        const isPaid = (Number(profile?.tier) || Number(hookTier) || 0) >= 1;
+
+        if (isAdmin || isPaid) {
+          setHasAccess(true);
+        }
+      } catch (err) {
+        console.error("Access verification failed", err);
+      } finally {
+        setIsVerifying(false);
+      }
+    };
+
+    verifyAccess();
+  }, [user, authLoading, hookTier]);
+
+  // 2. DATA FETCHING (Only runs if hasAccess is true)
+  useEffect(() => {
+    if (!hasAccess) return;
 
     const fetchActive = async () => {
-      setLoading(true);
+      setLoadingSignals(true);
       const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('signals')
         .select('*')
         .gt('created_at', timeLimit)
         .not('status', 'in', '("SL","TP2")') 
         .order('created_at', { ascending: false });
 
-      if (error) console.error("Database Error:", error.message);
       if (data) setActiveSignals(data);
-      setLoading(false);
+      setLoadingSignals(false);
     };
 
     fetchActive();
 
-    const channel = supabase.channel('active_signals_realtime')
+    const channel = supabase.channel('active_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'signals' }, () => {
         fetchActive();
       }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [authLoading, hasAccess, tier]);
+  }, [hasAccess]);
 
-  // 1. LOADING STATE
-  // We stay on this screen until useAuth has finished fetching the user AND their role.
-  if (authLoading) {
+  // 3. UI STATES
+  if (authLoading || isVerifying) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center bg-transparent gap-4">
-        <Activity size={40} className="text-blue-500 animate-spin" />
-        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">
-          Verifying Institutional Access...
-        </p>
+      <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4">
+        <Activity size={32} className="text-blue-500 animate-spin" />
+        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Authenticating Signal Stream...</p>
       </div>
     );
   }
 
-  // 2. LOCKED STATE
-  // This ONLY renders if authLoading is FALSE and hasAccess is FALSE.
   if (!hasAccess) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[80vh] text-center">
@@ -78,7 +99,7 @@ export default function ActiveSignalsPage() {
             Alpha <span className="text-blue-500">Locked</span>
           </h2>
           <p className="text-zinc-500 text-[10px] mb-8 leading-relaxed uppercase font-bold tracking-[0.2em]">
-            Institutional active trade monitoring is reserved for Alpha members.
+            Institutional trade monitoring is reserved for Alpha members.
           </p>
           <button 
             onClick={() => window.location.href = '/dashboard/payments'}
@@ -91,7 +112,6 @@ export default function ActiveSignalsPage() {
     );
   }
 
-  // 3. MAIN PAGE CONTENT (Renders when hasAccess is true)
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -105,9 +125,7 @@ export default function ActiveSignalsPage() {
         </div>
         <div className="flex items-center gap-3 bg-blue-500/5 border border-blue-500/10 px-5 py-2.5 rounded-2xl">
           <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-          <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">
-            Institutional Flow Active
-          </span>
+          <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Live Flow Active</span>
         </div>
       </div>
 
@@ -118,8 +136,8 @@ export default function ActiveSignalsPage() {
               <motion.div
                 key={signal.id}
                 layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-8 hover:border-blue-500/30 transition-all group relative overflow-hidden flex flex-col justify-between min-h-[450px]"
               >
@@ -150,7 +168,7 @@ export default function ActiveSignalsPage() {
                     <TradeDataRow icon={<Shield size={12} className="text-red-500"/>} label="Invalidation" value={Number(signal.sl || 0).toFixed(5)} valueClass="text-red-500" />
                     
                     <div className="flex justify-between items-center py-3 border-t border-white/5 mt-4">
-                      <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Signal Age</span>
+                      <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Age</span>
                       <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase flex items-center gap-2">
                         <Clock size={12} /> {getTimeAgo(signal.created_at)}
                       </span>
@@ -162,15 +180,15 @@ export default function ActiveSignalsPage() {
                   onClick={() => handleViewSetup(signal.symbol)}
                   className="w-full bg-white text-black py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl shadow-black/20"
                 >
-                  <Layout size={16} /> Open Live Setup <ArrowUpRight size={16} />
+                  <Layout size={16} /> Open Setup <ArrowUpRight size={16} />
                 </button>
               </motion.div>
             ))
-          ) : !loading && (
-            <motion.div className="col-span-full py-32 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[3rem] bg-white/[0.01]">
+          ) : !loadingSignals && (
+            <div className="col-span-full py-32 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[3rem] bg-white/[0.01]">
               <Activity size={48} className="text-zinc-800 mb-6 animate-pulse" />
-              <p className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.5em]">Awaiting Displacement...</p>
-            </motion.div>
+              <p className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.5em]">Awaiting Order Block Displacement...</p>
+            </div>
           )}
         </AnimatePresence>
       </div>
@@ -194,8 +212,17 @@ function getTimeAgo(timestamp: string) {
   const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
   if (diff < 1) return 'JUST NOW';
   if (diff < 60) return `${diff}M AGO`;
-  const hrs = Math.floor(diff / 60);
-  return `${hrs}H ${diff % 60}M AGO`;
+  return `${Math.floor(diff / 60)}H ${diff % 60}M AGO`;
+}
+
+function getDisplayStatus(status: string) {
+  switch (status) {
+    case 'PENDING': return 'In Progress';
+    case 'TP1': return 'TP1 Hit';
+    case 'SL': return 'Stopped Out';
+    case 'TP2': return 'TP1 / TP2';
+    default: return 'Active';
+  }
 }
 
 function handleViewSetup(symbol: string) {
