@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
-import AccessGuard from '@/components/AccessGuard'; // Added AccessGuard
-import { motion } from 'framer-motion';
+import AccessGuard from '@/components/AccessGuard';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, 
   Target, 
@@ -15,14 +15,18 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertTriangle,
-  Clock
+  Clock,
+  ChevronLeft
 } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 20;
 
 export default function PerformancePage() {
   const { loading: authLoading } = useAuth(); 
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Performance Stats State
   const [stats, setStats] = useState({
@@ -58,7 +62,6 @@ export default function PerformancePage() {
     const partials = data.filter(s => s.status === 'TP1 + SL (BE)').length;
     const losses = data.filter(s => s.status === 'SL').length;
 
-    // Standard RR calc (3:1 for TP2, 0.5:1 for Partial)
     const grossProfit = (wins * 3) + (partials * 0.5);
     const grossLoss = losses * 1;
 
@@ -70,9 +73,23 @@ export default function PerformancePage() {
     });
   };
 
-  const filteredHistory = history.filter(s => 
-    s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter and Pagination Logic
+  const filteredHistory = useMemo(() => {
+    return history.filter(s => 
+      s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [history, searchTerm]);
+
+  const totalPages = Math.ceil(filteredHistory.length / ITEMS_PER_PAGE);
+  const paginatedHistory = filteredHistory.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
+
+  // Reset to page 1 on search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   if (authLoading || loading) {
     return (
@@ -83,8 +100,8 @@ export default function PerformancePage() {
   }
 
   return (
-    <AccessGuard requiredTier={3} tierName="Ultimate Member">
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
+    <AccessGuard requiredTier={1} tierName="Active Member">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 flex flex-col min-h-screen">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
           <div>
@@ -117,7 +134,7 @@ export default function PerformancePage() {
         </div>
 
         {/* Detailed Log Table */}
-        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl md:rounded-[2.5rem] overflow-hidden">
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl md:rounded-[2.5rem] overflow-hidden flex-grow">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -130,37 +147,81 @@ export default function PerformancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.02]">
-                {filteredHistory.map((signal) => (
-                  <motion.tr 
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    key={signal.id} 
-                    className="group hover:bg-white/[0.01] transition-colors"
-                  >
-                    <td className="px-8 py-5">
-                      <span className="text-sm font-black text-white uppercase italic">{signal.symbol}</span>
-                    </td>
-                    <td className="py-5">
-                      <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${
-                        signal.side === 'BUY' ? 'text-green-500 border-green-500/10' : 'text-red-500 border-red-500/10'
-                      }`}>
-                        {signal.side}
-                      </span>
-                    </td>
-                    <td className="py-5">
-                      <ResultBadge status={signal.status} />
-                    </td>
-                    <td className="py-5 hidden md:table-cell text-[11px] font-mono text-zinc-500">
-                      {new Date(signal.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <ChevronRight size={14} className="inline text-zinc-700 group-hover:text-blue-500 transition-colors" />
-                    </td>
-                  </motion.tr>
-                ))}
+                <AnimatePresence mode="popLayout">
+                  {paginatedHistory.map((signal) => (
+                    <motion.tr 
+                      layout
+                      initial={{ opacity: 0 }} 
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      key={signal.id} 
+                      className="group hover:bg-white/[0.01] transition-colors"
+                    >
+                      <td className="px-8 py-5">
+                        <span className="text-sm font-black text-white uppercase italic">{signal.symbol}</span>
+                      </td>
+                      <td className="py-5">
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${
+                          signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH' 
+                          ? 'text-green-500 border-green-500/10' 
+                          : 'text-red-500 border-red-500/10'
+                        }`}>
+                          {signal.side}
+                        </span>
+                      </td>
+                      <td className="py-5">
+                        <ResultBadge status={signal.status} />
+                      </td>
+                      <td className="py-5 hidden md:table-cell text-[11px] font-mono text-zinc-500">
+                        {new Date(signal.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <ChevronRight size={14} className="inline text-zinc-700 group-hover:text-blue-500 transition-colors" />
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
               </tbody>
             </table>
           </div>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="mt-8 mb-4 flex justify-center items-center gap-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-3 rounded-full bg-[#0a0a0a] border border-white/5 text-zinc-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            
+            <div className="flex items-center gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all border ${
+                    currentPage === pageNum 
+                    ? 'bg-blue-500 border-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
+                    : 'bg-[#0a0a0a] border-white/5 text-zinc-500 hover:border-white/20'
+                  }`}
+                >
+                  {pageNum.toString().padStart(2, '0')}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-3 rounded-full bg-[#0a0a0a] border border-white/5 text-zinc-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        )}
       </div>
     </AccessGuard>
   );
