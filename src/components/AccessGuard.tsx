@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from '@/hooks/useAuth';
-import { Lock, ShieldAlert, Activity } from 'lucide-react';
+import { Lock, Activity } from 'lucide-react';
 import Link from 'next/link';
 
 interface AccessGuardProps {
@@ -13,19 +13,22 @@ interface AccessGuardProps {
 export default function AccessGuard({ children, requiredTier, tierName }: AccessGuardProps) {
   const { tier, loading } = useAuth();
 
-  // 1. Show a loader while checking the database
+  // 1. Strict Loading State
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
+      <div className="min-h-[60vh] flex items-center justify-center bg-transparent">
         <Activity size={32} className="text-blue-500 animate-spin" />
       </div>
     );
   }
 
-  // 2. If the user's tier is too low, show the "Blocked" UI
-  if (tier < requiredTier) {
+  // 2. HARD LOCKDOWN: If tier is 0, null, undefined, or less than required
+  // This prevents "fall-through" access
+  const hasAccess = tier !== null && tier !== undefined && tier >= requiredTier;
+
+  if (!hasAccess) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 text-center">
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
         <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 border border-blue-500/20">
           <Lock className="text-blue-500" size={32} />
         </div>
@@ -45,6 +48,6 @@ export default function AccessGuard({ children, requiredTier, tierName }: Access
     );
   }
 
-  // 3. If they have the right tier, show the actual page (the children)
+  // 3. Authorized Access
   return <>{children}</>;
 }
