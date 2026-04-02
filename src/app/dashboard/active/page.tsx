@@ -37,12 +37,16 @@ export default function ActiveSignalsPage() {
 
         if (!error && profile) {
           const isAdmin = profile.role?.toLowerCase() === 'admin' || profile.role?.toLowerCase() === 'moderator';
-          const isPaid = Number(profile.tier) >= 1;
+          const isAlpha = profile.role?.toLowerCase() === 'alpha';
+          const isPro = profile.role?.toLowerCase() === 'pro';
+          const isUltimate = profile.role?.toLowerCase() === 'ultimate';
+          const hasPaidTier = Number(profile.tier) >= 1;;
           
           // If you are Admin OR Tier 1+, grant access
-          if (isAdmin || isPaid) {
+          if (isAdmin || isAlpha || isPro || isUltimate) {
             setHasAccess(true);
-          }
+          } else {
+            setHasAccess(false);
         }
       } catch (err) {
         console.error("Access Check Error:", err);
