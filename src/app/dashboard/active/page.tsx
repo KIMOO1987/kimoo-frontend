@@ -1,5 +1,19 @@
 "use client";
 
+// --- NUCLEAR DEBUG START ---
+if (typeof window !== 'undefined') {
+  const originalPush = window.history.pushState;
+  window.history.pushState = function(...args) {
+    if (String(args[2]).includes('/login')) {
+      console.error("!!! REDIRECT DETECTED !!!");
+      console.log("Target URL:", args[2]);
+      console.trace("Check the trace below to find the file/line causing this:");
+    }
+    return originalPush.apply(window, args);
+  };
+}
+// --- NUCLEAR DEBUG END ---
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,7 +28,7 @@ export default function ActiveSignalsPage() {
   const [activeSignals, setActiveSignals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Staff Bypass Logic: Admin and Moderator ignore Tier 0 restrictions
+  // Staff Bypass Logic
   const isStaff = role === 'admin' || role === 'moderator';
   const hasAccess = isStaff || tier >= 1;
 
@@ -39,7 +53,6 @@ export default function ActiveSignalsPage() {
 
   // Data Fetching
   useEffect(() => {
-    // Stop if auth is still checking or if user is truly unauthorized
     if (authLoading || !hasAccess) return;
 
     const fetchActive = async () => {
@@ -75,7 +88,7 @@ export default function ActiveSignalsPage() {
     );
   }
 
-  // 2. LOCKED STATE (Only for non-staff with Tier 0)
+  // 2. LOCKED STATE
   if (!hasAccess) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[80vh] text-center">
