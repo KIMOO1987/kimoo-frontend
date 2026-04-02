@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
-import AccessGuard from '@/components/AccessGuard'; // Added AccessGuard
-import { motion } from 'framer-motion';
+import AccessGuard from '@/components/AccessGuard';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   History as HistoryIcon, 
   Search, 
@@ -13,14 +13,18 @@ import {
   XCircle, 
   Clock,
   AlertTriangle,
-  Activity 
+  Activity,
+  ChevronLeft
 } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 20;
 
 export default function SignalHistoryPage() {
   const { loading: authLoading } = useAuth(); 
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -37,11 +41,24 @@ export default function SignalHistoryPage() {
     fetchHistory();
   }, []);
 
-  const filteredHistory = history.filter(s => 
-    s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter and Pagination Logic
+  const filteredHistory = useMemo(() => {
+    return history.filter(s => 
+      s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [history, searchTerm]);
+
+  const totalPages = Math.ceil(filteredHistory.length / ITEMS_PER_PAGE);
+  const paginatedHistory = filteredHistory.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
 
-  // Auth Loading State
+  // Reset to page 1 on search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
@@ -51,8 +68,9 @@ export default function SignalHistoryPage() {
   }
 
   return (
-    <AccessGuard requiredTier={1} tierName="Alpha Member">
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
+    <AccessGuard requiredTier={1} tierName="Active Member">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 flex flex-col min-h-screen">
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6 md:mb-12">
           <div>
             <h2 className="text-3xl md:text-4xl font-black tracking-tighter italic text-white uppercase">
@@ -75,7 +93,8 @@ export default function SignalHistoryPage() {
           </div>
         </div>
 
-        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl md:rounded-[2.5rem] overflow-hidden">
+        {/* Table Content */}
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl md:rounded-[2.5rem] overflow-hidden flex-grow">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -90,70 +109,113 @@ export default function SignalHistoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.02]">
-                {filteredHistory.length > 0 ? (
-                  filteredHistory.map((signal) => (
-                    <motion.tr 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      key={signal.id} 
-                      className="group hover:bg-blue-500/[0.02] transition-colors"
-                    >
-                      <td className="hidden md:table-cell px-8 py-5 text-[11px] font-mono text-zinc-500">
-                        {new Date(signal.created_at).toLocaleDateString()}
-                        <span className="block opacity-40 text-[9px]">
-                          {new Date(signal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </td>
+                <AnimatePresence mode="popLayout">
+                  {paginatedHistory.length > 0 ? (
+                    paginatedHistory.map((signal) => (
+                      <motion.tr 
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        key={signal.id} 
+                        className="group hover:bg-blue-500/[0.02] transition-colors"
+                      >
+                        <td className="hidden md:table-cell px-8 py-5 text-[11px] font-mono text-zinc-500">
+                          {new Date(signal.created_at).toLocaleDateString()}
+                          <span className="block opacity-40 text-[9px]">
+                            {new Date(signal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </td>
 
-                      <td className="px-4 md:px-0 py-5">
-                        <span className="text-sm font-black text-white uppercase tracking-tighter italic">
-                          {signal.symbol}
-                        </span>
-                      </td>
+                        <td className="px-4 md:px-0 py-5">
+                          <span className="text-sm font-black text-white uppercase tracking-tighter italic">
+                            {signal.symbol}
+                          </span>
+                        </td>
 
-                      <td className="py-5">
-                        <span className={`text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded border ${
-                          signal.side === 'BUY' 
-                            ? 'text-green-500 border-green-500/10 bg-green-500/5' 
-                            : 'text-red-500 border-red-500/10 bg-red-500/5'
-                        }`}>
-                          {signal.side}
-                        </span>
-                      </td>
+                        <td className="py-5">
+                          <span className={`text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded border ${
+                            signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH' 
+                              ? 'text-green-500 border-green-500/10 bg-green-500/5' 
+                              : 'text-red-500 border-red-500/10 bg-red-500/5'
+                          }`}>
+                            {signal.side}
+                          </span>
+                        </td>
 
-                      <td className="py-5 text-xs md:text-sm font-mono font-bold text-zinc-300">
-                        {signal.entry_price}
-                      </td>
+                        <td className="py-5 text-xs md:text-sm font-mono font-bold text-zinc-300">
+                          {signal.entry_price}
+                        </td>
 
-                      <td className="hidden md:table-cell py-5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                        {signal.strategy || 'CRT Alpha'}
-                      </td>
+                        <td className="hidden md:table-cell py-5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                          {signal.strategy || 'CRT Alpha'}
+                        </td>
 
-                      <td className="py-5">
-                        <ResultBadge status={signal.status} />
-                      </td>
+                        <td className="py-5">
+                          <ResultBadge status={signal.status} />
+                        </td>
 
-                      <td className="hidden md:table-cell px-8 py-5 text-right">
-                        <button className="p-2 rounded-xl hover:bg-white/5 text-zinc-600 hover:text-white transition-all">
-                          <ChevronRight size={18} />
-                        </button>
-                      </td>
-                    </motion.tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="py-32 text-center">
-                      <div className="flex flex-col items-center opacity-20">
-                        <HistoryIcon size={48} className="mb-4" />
-                        <p className="text-[10px] font-black uppercase tracking-[0.5em]">No Completed Logs</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
+                        <td className="hidden md:table-cell px-8 py-5 text-right">
+                          <button className="p-2 rounded-xl hover:bg-white/5 text-zinc-600 hover:text-white transition-all">
+                            <ChevronRight size={18} />
+                          </button>
+                        </td>
+                      </motion.tr>
+                    ))
+                  ) : (
+                    !loading && (
+                      <tr>
+                        <td colSpan={7} className="py-32 text-center">
+                          <div className="flex flex-col items-center opacity-20">
+                            <HistoryIcon size={48} className="mb-4" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.5em]">No Completed Logs</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </AnimatePresence>
               </tbody>
             </table>
           </div>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="mt-8 mb-4 flex justify-center items-center gap-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-3 rounded-full bg-[#0a0a0a] border border-white/5 text-zinc-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            
+            <div className="flex items-center gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all border ${
+                    currentPage === pageNum 
+                    ? 'bg-blue-500 border-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
+                    : 'bg-[#0a0a0a] border-white/5 text-zinc-500 hover:border-white/20'
+                  }`}
+                >
+                  {pageNum.toString().padStart(2, '0')}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-3 rounded-full bg-[#0a0a0a] border border-white/5 text-zinc-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        )}
       </div>
     </AccessGuard>
   );
@@ -162,19 +224,19 @@ export default function SignalHistoryPage() {
 function ResultBadge({ status }: { status: string }) {
   if (status === 'TP2') return (
     <div className="flex items-center gap-1.5 text-green-500 text-[9px] md:text-[10px] font-black uppercase">
-      <CheckCircle2 size={12} /> <span className="hidden xs:inline">Hit</span> TP2
+      <CheckCircle2 size={12} /> Hit TP2
     </div>
   );
 
   if (status === 'TP1 + SL (BE)') return (
     <div className="flex items-center gap-1.5 text-yellow-500 text-[9px] md:text-[10px] font-black uppercase">
-      <AlertTriangle size={12} /> <span className="hidden xs:inline">Partial</span> TP1
+      <AlertTriangle size={12} /> Partial TP1
     </div>
   );
 
   if (status === 'SL') return (
     <div className="flex items-center gap-1.5 text-red-500 text-[9px] md:text-[10px] font-black uppercase">
-      <XCircle size={12} /> <span className="hidden xs:inline">Hit</span> SL
+      <XCircle size={12} /> Hit SL
     </div>
   );
 
