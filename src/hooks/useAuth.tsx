@@ -37,31 +37,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      setLoading(true);
+      setLoading(true); // START LOADING
       
-      // 1. Get initial session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-      }
-      setLoading(false);
-
-      // 2. Listen for changes (Login/Logout)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-        if (currentSession?.user) {
-          setUser(currentSession.user);
-          await fetchProfile(currentSession.user.id);
+      try {
+        // 1. Get the current session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          setUser(session.user);
+          // Wait for the profile to finish fetching BEFORE we stop loading
+          await fetchProfile(session.user.id);
         } else {
           setUser(null);
-          setTier(0);
-          setRole('user');
         }
-        setLoading(false);
-      });
+      } catch (err) {
+        console.error("Auth init error:", err);
+        setUser(null);
+      } finally {
+        // 2. ONLY STOP LOADING ONCE EVERYTHING IS DONE
+        setLoading(false); 
+      }
 
-      return () => subscription.unsubscribe();
-    };
+      // 2. Listen for changes (Login/Logout)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (session?.user) {
+            setUser(session.user);
+            await fetchProfile(session.user.id);
+          } else {
+            setUser(null);
+            setTier(0);
+            setRole('user');
+          }
+          setLoading(false);
+        });
+      
+        return () => subscription.unsubscribe();
+      };
 
     initializeAuth();
   }, []);
