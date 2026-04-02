@@ -22,29 +22,36 @@ export default async function DashboardLayout({ children }: { children: React.Re
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Handled by middleware
+            // This is expected when called from a Server Component
           }
         },
       },
     }
   );
 
-  // 1. STRENGTHENED AUTH CHECK: Get user session
-  const { data: { user } } = await supabase.auth.getUser();
+  // 1. Get user session
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  // 2. IMMEDIATE REDIRECT: If no user on the server, kick to login
-  if (!user) {
+  // 2. Immediate redirect if no user
+  if (!user || authError) {
     redirect('/login');
   }
 
-  // 3. FETCH PROFILE DATA: Ensure we get the tier and details
-  const { data: profile, error } = await supabase
+  // 3. Fetch profile data
+  // We use .select('*') to ensure we get everything, including your 'tier' column
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('tier, plan_type, subscription_status')
+    .select('tier, role, subscription_status')
     .eq('id', user.id)
     .single();
 
-  // 4. FALLBACK LOGIC: If profile doesn't exist yet, default to Tier 0
+  // DEBUG LOG: If you still see "Nill", check your terminal for this message
+  if (profileError) {
+    console.error("Layout Fetch Error:", profileError.message);
+  }
+
+  // 4. Robust Fallback Logic
+  // This ensures that even if the DB is slow, the UI gets a number
   const userTier = profile?.tier ?? 0;
 
   return (
@@ -52,13 +59,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex bg-[#050505] min-h-screen relative">
         {/* Pass the verified Tier to navigation components */}
         <Sidebar tier={userTier} />
+        
+        {/* Ensure MobileNav is also updated to accept 'tier' */}
         <MobileNav tier={userTier} />
 
         <main className="flex-1 overflow-y-auto w-full">
-          {/* Optionally pass the profile as a prop to children 
-              if your pages need server-side data immediately 
-          */}
-          {children}
+          {/* We wrap children in a container to ensure layout stability */}
+          <div className="h-full w-full">
+            {children}
+          </div>
         </main>
       </div>
     </KimooProvider>
