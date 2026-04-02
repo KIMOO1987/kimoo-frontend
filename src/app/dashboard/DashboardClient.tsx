@@ -230,9 +230,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                           ({daysLeft} DAYS REMAINING)
                         </span>
                       )}
-                      {tier === 3 && (
-                         <span className="text-zinc-600 font-bold text-[10px] uppercase">(LIFETIME ACCESS)</span>
-                      )}
+                      {tier === 3}
                   </div>
                 </div>
               </div>
