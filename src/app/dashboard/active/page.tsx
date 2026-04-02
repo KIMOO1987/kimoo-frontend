@@ -14,36 +14,22 @@ export default function ActiveSignalsPage() {
   const [activeSignals, setActiveSignals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Staff Bypass Logic
+  // --- REFINED STAFF LOGIC ---
+  // We check for 'admin' or 'moderator'. Using optional chaining to prevent crashes.
   const isStaff = role?.toLowerCase() === 'admin' || role?.toLowerCase() === 'moderator';
-  const hasAccess = isStaff || (tier && tier >= 1);
-
-  // View Setup Handler
-  const handleViewSetup = (symbol: string) => {
-    const myLayoutId = "TWlqcP20"; 
-    const cleanSymbol = symbol.includes(':') ? symbol.split(':')[1] : symbol;
-    const tvUrl = `https://www.tradingview.com/chart/${myLayoutId}/?symbol=${cleanSymbol.toUpperCase()}`;
-    window.open(tvUrl, '_blank');
-  };
-
-  // Status Formatter
-  const getDisplayStatus = (status: string) => {
-    switch (status) {
-      case 'PENDING': return 'In Progress';
-      case 'TP1': return 'TP1 Hit';
-      case 'SL': return 'Stopped Out';
-      case 'TP2': return 'TP1 / TP2';
-      default: return 'Active';
-    }
-  };
+  
+  // Access is granted if you are Staff OR if your tier is 1 or higher.
+  const hasAccess = isStaff || (Number(tier) >= 1);
 
   // Data Fetching
   useEffect(() => {
+    // Stop if auth is still checking or if the user truly doesn't have access
     if (authLoading || !hasAccess) return;
 
     const fetchActive = async () => {
       setLoading(true);
       const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      
       const { data, error } = await supabase
         .from('signals')
         .select('*')
@@ -57,24 +43,30 @@ export default function ActiveSignalsPage() {
     };
 
     fetchActive();
+
     const channel = supabase.channel('active_signals_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'signals' }, () => {
         fetchActive();
       }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [tier, authLoading, hasAccess]);
+  }, [authLoading, hasAccess, tier]);
 
   // 1. LOADING STATE
+  // We stay on this screen until useAuth has finished fetching the user AND their role.
   if (authLoading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-transparent">
-        <Activity size={32} className="text-blue-500 animate-spin" />
+      <div className="min-h-[80vh] flex flex-col items-center justify-center bg-transparent gap-4">
+        <Activity size={40} className="text-blue-500 animate-spin" />
+        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">
+          Verifying Institutional Access...
+        </p>
       </div>
     );
   }
 
   // 2. LOCKED STATE
+  // This ONLY renders if authLoading is FALSE and hasAccess is FALSE.
   if (!hasAccess) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[80vh] text-center">
@@ -99,7 +91,7 @@ export default function ActiveSignalsPage() {
     );
   }
 
-  // 3. MAIN PAGE CONTENT
+  // 3. MAIN PAGE CONTENT (Renders when hasAccess is true)
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -113,7 +105,9 @@ export default function ActiveSignalsPage() {
         </div>
         <div className="flex items-center gap-3 bg-blue-500/5 border border-blue-500/10 px-5 py-2.5 rounded-2xl">
           <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-          <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Institutional Flow Active</span>
+          <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">
+            Institutional Flow Active
+          </span>
         </div>
       </div>
 
@@ -151,8 +145,8 @@ export default function ActiveSignalsPage() {
 
                   <div className="space-y-4 mb-8">
                     <TradeDataRow icon={<Activity size={12} className="text-blue-500"/>} label="Status" value={getDisplayStatus(signal.status)} valueClass="text-blue-400 animate-pulse" />
-                    <TradeDataRow icon={<Zap size={12}/>} label="Entry Region" value={Number(signal.entry_price || 0).toFixed(5)} />
-                    <TradeDataRow icon={<Target size={12} className="text-green-500"/>} label="Price Target" value={Number(signal.tp || 0).toFixed(5)} valueClass="text-green-500" />
+                    <TradeDataRow icon={<Zap size={12}/>} label="Entry" value={Number(signal.entry_price || 0).toFixed(5)} />
+                    <TradeDataRow icon={<Target size={12} className="text-green-500"/>} label="Target" value={Number(signal.tp || 0).toFixed(5)} valueClass="text-green-500" />
                     <TradeDataRow icon={<Shield size={12} className="text-red-500"/>} label="Invalidation" value={Number(signal.sl || 0).toFixed(5)} valueClass="text-red-500" />
                     
                     <div className="flex justify-between items-center py-3 border-t border-white/5 mt-4">
@@ -175,7 +169,7 @@ export default function ActiveSignalsPage() {
           ) : !loading && (
             <motion.div className="col-span-full py-32 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[3rem] bg-white/[0.01]">
               <Activity size={48} className="text-zinc-800 mb-6 animate-pulse" />
-              <p className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.5em]">Awaiting Order Block Displacement...</p>
+              <p className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.5em]">Awaiting Displacement...</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -184,7 +178,7 @@ export default function ActiveSignalsPage() {
   );
 }
 
-// Helpers
+// --- HELPERS ---
 function TradeDataRow({ icon, label, value, valueClass = "text-white" }: any) {
   return (
     <div className="flex justify-between items-center py-2.5 border-b border-white/5">
@@ -202,4 +196,11 @@ function getTimeAgo(timestamp: string) {
   if (diff < 60) return `${diff}M AGO`;
   const hrs = Math.floor(diff / 60);
   return `${hrs}H ${diff % 60}M AGO`;
+}
+
+function handleViewSetup(symbol: string) {
+  const myLayoutId = "TWlqcP20"; 
+  const cleanSymbol = symbol.includes(':') ? symbol.split(':')[1] : symbol;
+  const tvUrl = `https://www.tradingview.com/chart/${myLayoutId}/?symbol=${cleanSymbol.toUpperCase()}`;
+  window.open(tvUrl, '_blank');
 }
