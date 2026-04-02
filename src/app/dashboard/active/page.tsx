@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
-import RoleGuard from '@/components/RoleGuard';
+import AccessGuard from '@/components/AccessGuard'; // Switched to AccessGuard
 import { 
   Clock, Activity, Zap, ArrowUpRight, TrendingUp, 
   TrendingDown, Layout, Target, Shield 
@@ -52,7 +52,7 @@ export default function ActiveSignalsPage() {
   };
 
   return (
-    <RoleGuard>
+    <AccessGuard requiredTier={1} tierName="Alpha">
       <div className="p-8 max-w-7xl mx-auto space-y-8">
         
         {/* Header Section */}
@@ -138,7 +138,7 @@ export default function ActiveSignalsPage() {
           </AnimatePresence>
         </div>
       </div>
-    </RoleGuard>
+    </AccessGuard>
   );
 }
 

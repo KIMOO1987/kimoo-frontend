@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
+import AccessGuard from '@/components/AccessGuard'; // Added AccessGuard
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Activity, Target, Shield, Clock, Zap, CheckCircle2, XCircle } from 'lucide-react';
 
@@ -134,7 +135,6 @@ export default function SignalsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // UNLOCKED: Removed tier restriction check
     const fetchSignals = async () => {
       const { data } = await supabase
         .from('signals')
@@ -157,7 +157,7 @@ export default function SignalsPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []); // UNLOCKED: Removed tier dependency
+  }, []);
 
   const filteredSignals = signals.filter(s => 
     s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
@@ -171,47 +171,47 @@ export default function SignalsPage() {
     );
   }
 
-  // UNLOCKED: AccessGuard restriction removed
-
   return (
-    <div className="p-8 min-h-screen bg-[#05070a] space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
-        <div className="text-center md:text-left">
-          <h1 className="text-4xl font-black tracking-tighter italic text-white uppercase">
-            Alpha <span className="text-blue-500">Terminal</span>
-          </h1>
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.4em] mt-2 leading-none">
-            CRT Protocol • Real-Time Institutional Signals
-          </p>
+    <AccessGuard requiredTier={1} tierName="Active Member">
+      <div className="p-8 min-h-screen bg-[#05070a] space-y-8">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-black tracking-tighter italic text-white uppercase">
+              Alpha <span className="text-blue-500">Terminal</span>
+            </h1>
+            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.4em] mt-2 leading-none">
+              CRT Protocol • Real-Time Institutional Signals
+            </p>
+          </div>
+
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
+            <input 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search Terminal (e.g. BTCUSD)..." 
+              className="w-full bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] pl-12 pr-4 py-4 text-[11px] font-mono text-white focus:border-blue-500/40 outline-none transition-all shadow-2xl shadow-black" 
+            />
+          </div>
         </div>
 
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
-          <input 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search Terminal (e.g. BTCUSD)..." 
-            className="w-full bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] pl-12 pr-4 py-4 text-[11px] font-mono text-white focus:border-blue-500/40 outline-none transition-all shadow-2xl shadow-black" 
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <AnimatePresence mode="popLayout">
+            {filteredSignals.map((signal) => (
+              <SignalCard key={signal.id} signal={signal} />
+            ))}
+          </AnimatePresence>
         </div>
+
+        {filteredSignals.length === 0 && !loading && (
+          <div className="py-32 flex flex-col items-center justify-center space-y-4 border border-dashed border-white/5 rounded-[3rem]">
+            <Activity size={40} className="text-zinc-800 animate-pulse" />
+            <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.5em]">
+              Waiting for Market Delivery...
+            </p>
+          </div>
+        )}
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <AnimatePresence mode="popLayout">
-          {filteredSignals.map((signal) => (
-            <SignalCard key={signal.id} signal={signal} />
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {filteredSignals.length === 0 && !loading && (
-        <div className="py-32 flex flex-col items-center justify-center space-y-4 border border-dashed border-white/5 rounded-[3rem]">
-          <Activity size={40} className="text-zinc-800 animate-pulse" />
-          <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.5em]">
-            Waiting for Market Delivery...
-          </p>
-        </div>
-      )}
-    </div>
+    </AccessGuard>
   );
 }
