@@ -51,7 +51,7 @@ export default function SignalHistoryPage() {
   }
 
   return (
-    <AccessGuard requiredTier={1} tierName="Active Member">
+    <AccessGuard requiredTier={1} tierName="Alpha Member">
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6 md:mb-12">
           <div>
