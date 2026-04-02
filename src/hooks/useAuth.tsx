@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 interface AuthContextType {
@@ -18,64 +18,70 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<string>('user');
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  // Memoize fetchProfile so it can be used inside useEffect safely
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('tier, role')
         .eq('id', userId)
         .single();
 
       if (profile) {
-        setTier(Number(profile.tier) || 0);
-        setRole(profile.role || 'user');
+        const userRole = profile.role || 'user';
+        setRole(userRole);
+        
+        // If admin, force max tier, otherwise use DB value
+        if (userRole === 'admin') {
+          setTier(3);
+        } else {
+          setTier(Number(profile.tier) || 0);
+        }
       }
     } catch (error) {
       console.error("Profile fetch error:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      setLoading(true); // START LOADING
-      
+    let mounted = true;
+
+    const checkUser = async () => {
       try {
-        // 1. Get the current session
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Use getSession for quick client-side retrieval
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (session?.user) {
+        if (session?.user && mounted) {
           setUser(session.user);
-          // Wait for the profile to finish fetching BEFORE we stop loading
           await fetchProfile(session.user.id);
-        } else {
-          setUser(null);
         }
-      } catch (err) {
-        console.error("Auth init error:", err);
-        setUser(null);
+      } catch (error) {
+        console.error("Initial session check error:", error);
       } finally {
-        // 2. ONLY STOP LOADING ONCE EVERYTHING IS DONE
-        setLoading(false); 
+        if (mounted) setLoading(false);
       }
+    };
 
-      // 2. Listen for changes (Login/Logout)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          if (session?.user) {
-            setUser(session.user);
-            await fetchProfile(session.user.id);
-          } else {
-            setUser(null);
-            setTier(0);
-            setRole('user');
-          }
-          setLoading(false);
-        });
-      
-        return () => subscription.unsubscribe();
-      };
+    checkUser();
 
-    initializeAuth();
-  }, []);
+    // Listen for Auth changes (Sign-in, Sign-out, Token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        await fetchProfile(session.user.id);
+      } else {
+        setUser(null);
+        setTier(0);
+        setRole('user');
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchProfile]);
 
   return (
     <AuthContext.Provider value={{ user, tier, role, loading }}>
@@ -84,7 +90,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// This is the hook you use in your pages
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
