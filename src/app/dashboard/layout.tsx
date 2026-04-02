@@ -53,22 +53,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const userTier = isStaff ? 3 : (profile?.tier ?? 0);
 
   return (
-      <AuthProvider> {/* <--- ADD THIS WRAPPER */}
-        <KimooProvider>
-          <div className="flex bg-[#050505] min-h-screen relative overflow-hidden">
-            <Sidebar tier={userTier} role={userRole} />
-            
-            <div className="flex-1 flex flex-col min-w-0">
-              <MobileNav tier={userTier} role={userRole} />
+      <Providers> {/* This is now safe to use in a Server Component */}
+        <div className="flex bg-[#050505] min-h-screen relative overflow-hidden">
+          <Sidebar tier={userTier} role={userRole} />
+          
+          <div className="flex-1 flex flex-col min-w-0">
+            <MobileNav tier={userTier} role={userRole} />
   
-              <main className="flex-1 overflow-y-auto w-full custom-scrollbar">
-                <div className="h-full w-full">
-                  {children}
-                </div>
-              </main>
-            </div>
+            <main className="flex-1 overflow-y-auto w-full custom-scrollbar">
+              <div className="h-full w-full">
+                {children}
+              </div>
+            </main>
           </div>
-        </KimooProvider>
-      </AuthProvider>
+        </div>
+      </Providers>
     );
   }
