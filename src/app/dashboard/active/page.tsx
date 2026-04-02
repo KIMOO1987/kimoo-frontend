@@ -36,7 +36,7 @@ export default function ActiveSignalsPage() {
           .single();
 
         if (!error && profile) {
-          const isStaff = = ['admin', 'moderator'].includes(profile.role?.toLowerCase());
+          const isStaff = ['admin', 'moderator'].includes(profile.role?.toLowerCase());
           const isAlpha = profile.role?.toLowerCase() === 'alpha';
           const isPro = profile.role?.toLowerCase() === 'pro';
           const isUltimate = profile.role?.toLowerCase() === 'ultimate';
