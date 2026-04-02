@@ -12,10 +12,11 @@ export default function RoleGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    if (!user) {
-      setStatus('denied');
-      return;
-    }
+    const checkAccess = () => {
+      if (!user) {
+        setStatus('denied');
+        return;
+      }
 
     // MASTER BYPASS: If you are admin, you get in. 
     // Otherwise, you need at least Tier 1.
@@ -29,7 +30,10 @@ export default function RoleGuard({ children }: { children: React.ReactNode }) {
       } else {
         setStatus('denied');
       }
-    }, [user, role, tier, loading]);
+    };
+    const timer = setTimeout(checkAccess, user ? 0 : 500);
+    return () => clearTimeout(timer);
+  }, [user, role, tier, loading]);
   
   console.log("DEBUG AUTH:", { user: !!user, role, tier, status });
   if (status === 'loading') {
