@@ -89,6 +89,7 @@ export default function ActiveSignalsPage() {
 
     return () => { supabase.removeChannel(channel); };
   }, [hasAccess]);
+};
 
   // 3. UI HANDLERS
   const handleViewSetup = (symbol: string) => {
