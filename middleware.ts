@@ -26,7 +26,9 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // This refreshes the session so useAuth can see it
   await supabase.auth.getUser()
+
   return response
 }
 
