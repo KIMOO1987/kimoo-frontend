@@ -1,37 +1,50 @@
 "use client";
-import { Lock, ChevronRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
-export default function AccessGuard({ tierName }: { tierName: string }) {
-  const router = useRouter();
+import { useAuth } from '@/hooks/useAuth';
+import { Lock, ShieldAlert, Activity } from 'lucide-react';
+import Link from 'next/link';
 
-  return (
-    <div className="flex items-center justify-center min-h-[70vh] p-6">
-      <div className="relative group max-w-md w-full">
-        {/* Glow Effect */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[3rem] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-        
-        <div className="relative bg-[#0a0a0a] border border-white/5 p-12 rounded-[3rem] text-center">
-          <div className="bg-blue-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-8">
-            <Lock size={36} className="text-blue-500" />
-          </div>
-          
-          <h2 className="text-3xl font-black italic text-white uppercase tracking-tighter mb-4">
-             {tierName} <span className="text-blue-500">Required</span>
-          </h2>
-          
-          <p className="text-zinc-500 text-sm font-bold uppercase tracking-widest mb-10 leading-relaxed">
-            Please buy a subscription to <br /> access this page.
-          </p>
+interface AccessGuardProps {
+  children: React.ReactNode;
+  requiredTier: number;
+  tierName: string;
+}
 
-          <button 
-            onClick={() => router.push('/dashboard/payments')}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95"
-          >
-            UPGRADE NOW <ChevronRight size={18} />
-          </button>
-        </div>
+export default function AccessGuard({ children, requiredTier, tierName }: AccessGuardProps) {
+  const { tier, loading } = useAuth();
+
+  // 1. Show a loader while checking the database
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
+        <Activity size={32} className="text-blue-500 animate-spin" />
       </div>
-    </div>
-  );
+    );
+  }
+
+  // 2. If the user's tier is too low, show the "Blocked" UI
+  if (tier < requiredTier) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 border border-blue-500/20">
+          <Lock className="text-blue-500" size={32} />
+        </div>
+        <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white">
+          {tierName} <span className="text-blue-500">Access Required</span>
+        </h2>
+        <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-4 max-w-md leading-relaxed">
+          The CRT Institutional protocol for this module is locked for your current subscription level.
+        </p>
+        <Link 
+          href="/pricing" 
+          className="mt-8 px-8 py-4 bg-blue-500 text-black font-black uppercase text-[10px] tracking-[0.2em] rounded-full hover:bg-blue-400 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+        >
+          Upgrade to {tierName}
+        </Link>
+      </div>
+    );
+  }
+
+  // 3. If they have the right tier, show the actual page (the children)
+  return <>{children}</>;
 }
