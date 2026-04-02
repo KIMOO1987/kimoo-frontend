@@ -25,7 +25,8 @@ export default function RoleGuard({ children }: { children: React.ReactNode }) {
       setStatus('denied');
     }
   }, [user, role, tier, loading]);
-
+  
+  console.log("DEBUG AUTH:", { user: !!user, role, tier, status });
   if (status === 'loading') {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
