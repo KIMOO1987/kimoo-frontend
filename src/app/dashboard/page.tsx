@@ -33,11 +33,10 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // 2. FETCH USER PROFILE DATA (Removing MT4/MT5 Broker Logic)
-  // We now fetch personal details like name, country, and address instead of broker accounts.
+  // 2. FETCH USER PROFILE DATA (Updated to include tier and role)
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('is_pro, expiry_date, full_name, country, address, email')
+    .select('tier, role, expiry_date, full_name, country, email, account_size')
     .eq('id', user.id)
     .single();
 
@@ -51,38 +50,30 @@ export default async function DashboardPage() {
       .upsert({ 
         id: user.id, 
         email: user.email, 
-        is_pro: false,
-        expiry_date: null,
-        full_name: '',
-        country: '',
-        address: ''
+        tier: 0,
+        role: 'user',
+        full_name: 'TRADER',
+        account_size: 100000
       })
-      .select('is_pro, expiry_date, full_name, country, address, email')
+      .select('tier, role, expiry_date, full_name, country, email, account_size')
       .single();
     
     activeProfile = newProfile;
   }
 
-  // DEBUG LOGS (Updated for Signal Service model)
+  // DEBUG LOGS - Check your VSCode terminal for these!
   console.log("--- KIMOO SIGNAL CONSOLE SYNC ---");
   console.log("User:", user.email);
-  console.log("Identity:", activeProfile?.full_name || "Not set");
-  console.log("Region:", activeProfile?.country || "Not set");
-  console.log("Pro Status:", !!activeProfile?.is_pro);
+  console.log("Tier Level:", activeProfile?.tier); // Should be 3 for you
+  console.log("Role:", activeProfile?.role);       // Should be admin for you
   console.log("-----------------------");
 
-  // 4. Pass everything to the DashboardClient
-  // Passing the personal profile data instead of initialAccounts
+  // 4. Pass the CORRECT props to DashboardClient
   return (
     <DashboardClient 
-      isPro={!!activeProfile?.is_pro} 
+      tier={activeProfile?.tier ?? 0} // Passing the numeric tier (0, 1, 2, or 3)
       expiryDate={activeProfile?.expiry_date}
-      userProfile={{
-        fullName: activeProfile?.full_name,
-        country: activeProfile?.country,
-        address: activeProfile?.address,
-        email: activeProfile?.email
-      }}
+      userProfile={activeProfile} // Passing the full object so DashboardClient has access to full_name, email, etc.
     />
   );
 }
