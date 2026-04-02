@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   // 2. FETCH USER PROFILE DATA (Updated to include tier and role)
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('tier, role, expiry_date, full_name, country, email, account_size')
+    .select('tier, role, plan_type, expiry_date, full_name, country, email, account_size')
     .eq('id', user.id)
     .single();
 
