@@ -6,25 +6,23 @@ import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard';
 import { Activity } from 'lucide-react';
 
-interface RoleGuardProps {
-  children: React.ReactNode;
-  requiredTier?: number; // Optional: specify if a page needs Tier 1, 2, or 3
-}
-
-export default function RoleGuard({ children, requiredTier = 1 }: RoleGuardProps) {
+export default function RoleGuard({ children, requiredTier = 1 }: { children: React.ReactNode; requiredTier?: number }) {
   const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<'loading' | 'granted' | 'denied'>('loading');
 
   useEffect(() => {
-    const syncRole = async () => {
+    const fetchFreshProfile = async () => {
+      // 1. Wait for Auth to initialize
       if (authLoading) return;
+
+      // 2. If no user, strictly deny
       if (!user) {
         setStatus('denied');
         return;
       }
 
       try {
-        // Direct Database Sync
+        // 3. FORCE FETCH from Database (bypass local cache)
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('role, tier')
@@ -32,18 +30,19 @@ export default function RoleGuard({ children, requiredTier = 1 }: RoleGuardProps
           .single();
 
         if (error || !profile) {
+          console.error("Guard Error:", error);
           setStatus('denied');
           return;
         }
 
+        // 4. Permission Logic
         const role = profile.role?.toLowerCase();
         const tier = Number(profile.tier);
 
-        // Access Logic: Admins get everything, others need the required tier
-        const isStaff = ['admin', 'moderator'].includes(role);
-        const isPaid = ['alpha', 'pro', 'ultimate'].includes(role) || tier >= requiredTier;
+        const isStaff = role === 'admin' || role === 'moderator';
+        const hasTier = tier >= requiredTier || ['alpha', 'pro', 'ultimate'].includes(role);
 
-        if (isStaff || isPaid) {
+        if (isStaff || hasTier) {
           setStatus('granted');
         } else {
           setStatus('denied');
@@ -53,7 +52,7 @@ export default function RoleGuard({ children, requiredTier = 1 }: RoleGuardProps
       }
     };
 
-    syncRole();
+    fetchFreshProfile();
   }, [user, authLoading, requiredTier]);
 
   if (status === 'loading') {
@@ -66,8 +65,7 @@ export default function RoleGuard({ children, requiredTier = 1 }: RoleGuardProps
   }
 
   if (status === 'denied') {
-    // Maps the required tier to a name for your AccessGuard component
-    const tierName = requiredTier === 3 ? "Ultimate" : requiredTier === 2 ? "Pro" : "Alpha";
+    const tierName = requiredTier >= 3 ? "Ultimate" : requiredTier === 2 ? "Pro" : "Alpha";
     return <AccessGuard tierName={tierName} />;
   }
 
