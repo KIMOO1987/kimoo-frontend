@@ -19,7 +19,6 @@ export default function ActiveSignalsPage() {
   // 1. DIRECT DATABASE ACCESS CHECK
   useEffect(() => {
     const checkDBAccess = async () => {
-      // Wait for the auth hook to provide the user object
       if (authLoading) return;
       
       if (!user) {
@@ -28,7 +27,6 @@ export default function ActiveSignalsPage() {
       }
 
       try {
-        // Fetch fresh data directly from the profiles table
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('role, tier')
@@ -36,17 +34,16 @@ export default function ActiveSignalsPage() {
           .single();
 
         if (!error && profile) {
-          const isStaff = ['admin', 'moderator'].includes(profile.role?.toLowerCase());
-          const isAlpha = profile.role?.toLowerCase() === 'alpha';
-          const isPro = profile.role?.toLowerCase() === 'pro';
-          const isUltimate = profile.role?.toLowerCase() === 'ultimate';
+          const userRole = profile.role?.toLowerCase();
+          const isStaff = ['admin', 'moderator'].includes(userRole);
+          const isPaidRole = ['alpha', 'pro', 'ultimate'].includes(userRole);
           const hasPaidTier = Number(profile.tier) >= 1;
           
-          // If you are Admin OR Tier 1+, grant access
-          if (isStaff || isAlpha || isPro || isUltimate) {
+          if (isStaff || isPaidRole || hasPaidTier) {
             setHasAccess(true);
           } else {
             setHasAccess(false);
+          }
         }
       } catch (err) {
         console.error("Access Check Error:", err);
@@ -64,14 +61,13 @@ export default function ActiveSignalsPage() {
 
     const fetchActive = async () => {
       setLoadingSignals(true);
-      // Only show signals from the last 24 hours
       const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
       const { data, error } = await supabase
         .from('signals')
         .select('*')
         .gt('created_at', timeLimit)
-        .not('status', 'in', '("SL","TP2")') // Hide completed/stopped trades
+        .not('status', 'in', '("SL","TP2")') 
         .order('created_at', { ascending: false });
 
       if (error) console.error("Signal Fetch Error:", error.message);
@@ -81,7 +77,6 @@ export default function ActiveSignalsPage() {
 
     fetchActive();
 
-    // Listen for live updates (New signals or Status changes)
     const channel = supabase.channel('active_signals_stream')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'signals' }, () => {
         fetchActive();
@@ -89,7 +84,6 @@ export default function ActiveSignalsPage() {
 
     return () => { supabase.removeChannel(channel); };
   }, [hasAccess]);
-};
 
   // 3. UI HANDLERS
   const handleViewSetup = (symbol: string) => {
@@ -111,7 +105,7 @@ export default function ActiveSignalsPage() {
     );
   }
 
-  // 5. LOCKED STATE (Only shows if user is NOT Admin and Tier is 0)
+  // 5. LOCKED STATE
   if (!hasAccess) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[80vh] text-center">
@@ -136,7 +130,6 @@ export default function ActiveSignalsPage() {
     );
   }
 
-  // 6. MAIN DASHBOARD CONTENT
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -223,7 +216,6 @@ export default function ActiveSignalsPage() {
   );
 }
 
-// --- HELPERS ---
 function TradeDataRow({ icon, label, value, valueClass = "text-white" }: any) {
   return (
     <div className="flex justify-between items-center py-2.5 border-b border-white/5">
