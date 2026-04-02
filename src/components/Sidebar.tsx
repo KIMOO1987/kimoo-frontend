@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutGrid, Clock, History, Zap, Compass, BarChart3, 
   CheckSquare, LineChart, User, CreditCard, 
-  LogOut, Lock, X, Menu 
+  LogOut, Lock, X, Menu, ShieldCheck 
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation'; // Removed useRouter as we'll use window.location
+import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { useEffect, useState } from 'react';
 
@@ -44,39 +44,23 @@ const menuGroups = [
   }
 ];
 
-export default function Sidebar({ tier }: { tier: number }) {
+export default function Sidebar({ tier, role }: { tier: number; role?: string }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-  }, [isOpen]);
+  // Staff check: Admin and Moderator get full access
+  const isStaff = role === 'admin' || role === 'moderator';
 
-  // --- UPDATED LOGOUT LOGIC ---
   const handleLogout = async () => {
     try {
-      // 1. Sign out from Supabase
       await supabase.auth.signOut();
-      
-      // 2. Clear all local storage and session data
-      // This prevents the "Subscription Nill" issue for the next login
       window.localStorage.clear();
       window.sessionStorage.clear();
-      
-      // 3. Perform a HARD REDIRECT
-      // This forces the server to clear cookies and the middleware to reset
       window.location.href = '/login';
     } catch (error) {
-      console.error("Logout Error:", error);
       window.location.href = '/login';
     }
   };
@@ -85,72 +69,44 @@ export default function Sidebar({ tier }: { tier: number }) {
 
   return (
     <>
-      {/* MOBILE OVERLAY */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9997] lg:hidden"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* SIDEBAR PANEL */}
       <aside className={`
         fixed inset-y-0 left-0 w-72 bg-[#05070a] border-r border-white/5 flex flex-col
         transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen lg:sticky lg:top-0
-        z-[9998] 
-        ${isOpen ? "translate-x-0" : "-translate-x-full"}
+        z-[9998] ${isOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
-        
         <div className="flex flex-col h-full w-full p-6">
-          {/* Logo */}
           <div className="mb-10 px-2 shrink-0">
             <h1 className="text-xl font-black tracking-tighter text-white italic">
               KIMOO CRT<span className="text-blue-500 underline decoration-blue-500/30 underline-offset-4">(+Pro)</span>
             </h1>
-            <p className="text-[7px] uppercase tracking-[0.5em] text-zinc-600 font-bold mt-1 leading-none">
-              Candle Range Theory
-            </p>
+            {isStaff && (
+              <div className="flex items-center gap-1.5 mt-2 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md w-fit">
+                <ShieldCheck size={10} className="text-blue-400" />
+                <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">{role} Access</span>
+              </div>
+            )}
           </div>
 
-          {/* Nav Links */}
           <nav className="flex-1 overflow-y-auto pr-2 no-scrollbar">
             {menuGroups.map((group) => (
               <div key={group.label} className="mb-8">
-                <p className="text-[9px] font-black text-zinc-500 tracking-[0.2em] mb-4 px-2 uppercase">
-                  {group.label}
-                </p>
+                <p className="text-[9px] font-black text-zinc-500 tracking-[0.2em] mb-4 px-2 uppercase">{group.label}</p>
                 <div className="space-y-1">
                   {group.items.map((item) => {
                     const isActive = pathname === item.path;
-                    const isLocked = tier < item.minTier;
+                    // Staff never locked, others locked by tier
+                    const isLocked = !isStaff && tier < item.minTier;
 
                     return (
-                      <Link 
-                        key={item.name} 
-                        href={isLocked ? "#" : item.path}
-                        onClick={() => !isLocked && setIsOpen(false)}
-                        className="block w-full"
-                      >
+                      <Link key={item.name} href={isLocked ? "#" : item.path} onClick={() => !isLocked && setIsOpen(false)}>
                         <div className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-                          isActive 
-                            ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' 
-                            : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+                          isActive ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'text-zinc-400 hover:text-white hover:bg-white/5'
                         } ${isLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
                           <div className="flex items-center gap-3">
                             <item.icon size={18} />
                             <span className="text-[12px] font-bold tracking-tight">{item.name}</span>
                           </div>
-                          
-                          {isLocked ? (
-                            <Lock size={12} className="text-zinc-600" />
-                          ) : (
-                            isActive && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-                          )}
+                          {isLocked ? <Lock size={12} className="text-zinc-600" /> : isActive && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />}
                         </div>
                       </Link>
                     );
@@ -160,12 +116,8 @@ export default function Sidebar({ tier }: { tier: number }) {
             ))}
           </nav>
 
-          {/* Bottom Bar / Logout */}
           <div className="mt-auto pt-6 border-t border-white/5 shrink-0">
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-red-500 transition-all rounded-xl w-full group"
-            >
+            <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-red-500 transition-all rounded-xl w-full group">
               <LogOut size={18} className="group-hover:scale-110 transition-transform" />
               <span className="text-[10px] font-black uppercase tracking-widest">Terminate Session</span>
             </button>
