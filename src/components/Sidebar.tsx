@@ -25,7 +25,7 @@ const menuGroups = [
     items: [
       { name: 'All Signals', icon: Zap, path: '/dashboard/signals', minTier: 1 },
       { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', minTier: 2 },
-      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', minTier: 3 },
+      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', minTier: 2 },
     ]
   },
   { 

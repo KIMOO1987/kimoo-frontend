@@ -12,7 +12,36 @@ import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 const menuGroups = [
-  /* ... same menuGroups array as Sidebar ... */
+  { 
+    label: 'TERMINAL', 
+    items: [
+      { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', minTier: 0 },
+      { name: 'Active Trades', icon: Clock, path: '/dashboard/active', minTier: 1 },
+      { name: 'Trade History', icon: History, path: '/dashboard/history', minTier: 1 },
+    ]
+  },
+  { 
+    label: 'RADAR & ANALYSIS',
+    items: [
+      { name: 'All Signals', icon: Zap, path: '/dashboard/signals', minTier: 1 },
+      { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', minTier: 2 },
+      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', minTier: 2 },
+    ]
+  },
+  { 
+    label: 'STRATEGY LAB', 
+    items: [
+      { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', minTier: 3 },
+      { name: 'Performance', icon: LineChart, path: '/dashboard/performance', minTier: 3 },
+    ]
+  },
+  { 
+    label: 'ACCOUNT & SETTINGS',
+    items: [
+      { name: 'Profile', icon: User, path: '/dashboard/profile', minTier: 0 },
+      { name: 'Payments', icon: CreditCard, path: '/dashboard/payments', minTier: 0 },
+    ]
+  }
 ];
 
 export default function MobileNav({ tier, role }: { tier: number; role?: string }) {
