@@ -172,7 +172,7 @@ export default function SignalsPage() {
   }
 
   return (
-    <AccessGuard requiredTier={1} tierName="Active Member">
+    <AccessGuard requiredTier={1} tierName="Alpha Member">
       <div className="p-8 min-h-screen bg-[#05070a] space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
           <div className="text-center md:text-left">
