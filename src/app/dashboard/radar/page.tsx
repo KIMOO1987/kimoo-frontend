@@ -66,7 +66,7 @@ export default function RadarPage() {
   }
 
   return (
-    <AccessGuard requiredTier={1} tierName="Active Member">
+    <AccessGuard requiredTier={1} tierName="Pro Member">
       <div className="p-4 md:p-8 lg:p-12 bg-[#05070a] min-h-screen text-white">
         {/* Header */}
         <div className="flex justify-between items-start mb-8 md:mb-12">
