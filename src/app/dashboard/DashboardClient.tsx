@@ -207,7 +207,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                   <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Plan Validity</span>
                   <div className="flex flex-wrap items-baseline gap-2">
                       <span className={`font-black text-xl italic uppercase tracking-tight ${tier === 0 ? 'text-zinc-500' : 'text-white'}`}>
-                        {tier === 0 ? 'FREE' : 'ACTIVE'}
+                        {/* Use plan_type if available, otherwise show ACTIVE */}
+                        {userProfile?.plan_type ? userProfile.plan_type.toUpperCase() : (tier === 0 ? 'FREE' : 'ACTIVE')}
                       </span>
                       {tier > 0 && (
                         <span className="text-zinc-600 font-bold text-[10px] uppercase">({daysLeft} DAYS LEFT)</span>
