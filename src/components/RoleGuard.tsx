@@ -1,59 +1,30 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard';
 import { Activity } from 'lucide-react';
 
-export default function RoleGuard({ children, requiredTier = 1 }: { children: React.ReactNode; requiredTier?: number }) {
-  const { user, loading: authLoading } = useAuth();
+export default function RoleGuard({ children }: { children: React.ReactNode }) {
+  const { user, role, tier, loading } = useAuth();
   const [status, setStatus] = useState<'loading' | 'granted' | 'denied'>('loading');
 
   useEffect(() => {
-    const fetchFreshProfile = async () => {
-      // 1. Wait for Auth to initialize
-      if (authLoading) return;
+    if (loading) return;
 
-      // 2. If no user, strictly deny
-      if (!user) {
-        setStatus('denied');
-        return;
-      }
+    if (!user) {
+      setStatus('denied');
+      return;
+    }
 
-      try {
-        // 3. FORCE FETCH from Database (bypass local cache)
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role, tier')
-          .eq('id', user.id)
-          .single();
-
-        if (error || !profile) {
-          console.error("Guard Error:", error);
-          setStatus('denied');
-          return;
-        }
-
-        // 4. Permission Logic
-        const role = profile.role?.toLowerCase();
-        const tier = Number(profile.tier);
-
-        const isStaff = role === 'admin' || role === 'moderator';
-        const hasTier = tier >= requiredTier || ['alpha', 'pro', 'ultimate'].includes(role);
-
-        if (isStaff || hasTier) {
-          setStatus('granted');
-        } else {
-          setStatus('denied');
-        }
-      } catch (err) {
-        setStatus('denied');
-      }
-    };
-
-    fetchFreshProfile();
-  }, [user, authLoading, requiredTier]);
+    // MASTER BYPASS: If you are admin, you get in. 
+    // Otherwise, you need at least Tier 1.
+    if (role?.toLowerCase() === 'admin' || Number(tier) >= 1) {
+      setStatus('granted');
+    } else {
+      setStatus('denied');
+    }
+  }, [user, role, tier, loading]);
 
   if (status === 'loading') {
     return (
@@ -65,8 +36,7 @@ export default function RoleGuard({ children, requiredTier = 1 }: { children: Re
   }
 
   if (status === 'denied') {
-    const tierName = requiredTier >= 3 ? "Ultimate" : requiredTier === 2 ? "Pro" : "Alpha";
-    return <AccessGuard tierName={tierName} />;
+    return <AccessGuard tierName="Alpha" />;
   }
 
   return <>{children}</>;
