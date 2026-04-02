@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth'; // New Addition
-import AccessGuard from '@/components/AccessGuard'; // New Addition
+import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
 import { 
   History as HistoryIcon, 
@@ -13,18 +12,17 @@ import {
   XCircle, 
   Clock,
   AlertTriangle,
-  Activity // Added for loading state
+  Activity 
 } from 'lucide-react';
 
 export default function SignalHistoryPage() {
-  const { tier, loading: authLoading } = useAuth(); // New Addition
+  const { loading: authLoading } = useAuth(); 
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (tier < 1) return; // New Addition: Prevent fetch for Tier 0
-
+    // UNLOCKED: Removed tier restriction check
     const fetchHistory = async () => {
       const { data } = await supabase
         .from('signals')
@@ -37,13 +35,13 @@ export default function SignalHistoryPage() {
     };
 
     fetchHistory();
-  }, [tier]); // New Addition: Dependency on tier
+  }, []); // UNLOCKED: Removed tier dependency
 
   const filteredHistory = history.filter(s => 
     s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // New Addition: Auth Loading State
+  // Auth Loading State
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
@@ -52,10 +50,7 @@ export default function SignalHistoryPage() {
     );
   }
 
-  // New Addition: Tier Restriction (Tier 0 / Free)
-  if (tier < 1) {
-    return <AccessGuard tierName="Alpha" />;
-  }
+  // UNLOCKED: AccessGuard restriction removed
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">

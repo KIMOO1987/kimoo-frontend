@@ -14,32 +14,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null);
-  const [tier, setTier] = useState<number>(0);
-  const [role, setRole] = useState<string>('user');
+  const [tier, setTier] = useState<number>(3); // Default to max for testing
+  const [role, setRole] = useState<string>('admin'); // Default to admin for testing
   const [loading, setLoading] = useState(true);
 
-  // Memoize fetchProfile so it can be used inside useEffect safely
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      const { data: profile, error } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('tier, role')
         .eq('id', userId)
         .single();
 
+      // DEBUG: We still fetch the real data just to see it in the console,
+      // but we force the state to be Admin/Tier 3.
       if (profile) {
-        const userRole = profile.role || 'user';
-        setRole(userRole);
-        
-        // If admin, force max tier, otherwise use DB value
-        if (userRole === 'admin') {
-          setTier(3);
-        } else {
-          setTier(Number(profile.tier) || 0);
-        }
+        console.log("REAL DB DATA:", profile);
       }
+      
+      // MASTER BYPASS: Force high-level access for testing
+      setRole('admin');
+      setTier(3);
+      
     } catch (error) {
-      console.error("Profile fetch error:", error);
+      console.error("Profile fetch error (Silenced for testing):", error);
+      // Even on error, we keep the bypass active
+      setRole('admin');
+      setTier(3);
     }
   }, []);
 
@@ -48,7 +49,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const checkUser = async () => {
       try {
-        // Use getSession for quick client-side retrieval
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user && mounted) {
@@ -64,17 +64,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     checkUser();
 
-    // Listen for Auth changes (Sign-in, Sign-out, Token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user);
         await fetchProfile(session.user.id);
       } else {
         setUser(null);
+        // On logout, we reset to 0
         setTier(0);
         setRole('user');
       }
-      setLoading(false);
+      if (mounted) setLoading(false);
     });
 
     return () => {

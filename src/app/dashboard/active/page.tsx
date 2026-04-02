@@ -17,6 +17,7 @@ export default function ActiveSignalsPage() {
   useEffect(() => {
     const fetchActive = async () => {
       setLoadingSignals(true);
+      // Fetches signals from the last 24 hours
       const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
       const { data, error } = await supabase
@@ -33,6 +34,7 @@ export default function ActiveSignalsPage() {
 
     fetchActive();
 
+    // Realtime subscription to keep the dashboard live
     const channel = supabase.channel('active_signals_stream')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'signals' }, () => {
         fetchActive();

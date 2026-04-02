@@ -2,16 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth'; // New Addition
-import AccessGuard from '@/components/AccessGuard'; // New Addition
+import { useAuth } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Activity, Star, Target, Shield, Clock, Zap, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, Activity, Target, Shield, Clock, Zap, CheckCircle2, XCircle } from 'lucide-react';
 
 // The High-Fidelity Signal Card Component
 const SignalCard = ({ signal }: { signal: any }) => {
   const isBuy = signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH';
 
-  // NEW: Helper to get the real-time status labels
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING':
@@ -57,7 +55,6 @@ const SignalCard = ({ signal }: { signal: any }) => {
       exit={{ opacity: 0, scale: 0.95 }}
       className="bg-[#0a0a0a] border border-white/5 rounded-[2rem] p-6 shadow-2xl hover:border-blue-500/20 transition-all group"
     >
-      {/* Header: Status and Symbol */}
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center gap-3">
           <div className={`h-3 w-3 rounded-full ${isBuy ? 'bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.6)]'}`}></div>
@@ -70,14 +67,11 @@ const SignalCard = ({ signal }: { signal: any }) => {
             </span>
           </div>
         </div>
-        
-        {/* Real-time Status Badge */}
         {getStatusBadge(signal.status)}
       </div>
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent mb-6" />
 
-      {/* Grid Data Items */}
       <div className="space-y-4 text-[11px] font-medium">
         <div className="flex items-center justify-between text-zinc-400">
           <div className="flex items-center gap-2">
@@ -117,7 +111,6 @@ const SignalCard = ({ signal }: { signal: any }) => {
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent my-6" />
 
-      {/* Footer: Confluences */}
       <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl">
         <p className="text-[9px] text-zinc-500 italic flex gap-2">
           <span className="not-italic text-blue-500">📝</span> 
@@ -135,14 +128,13 @@ const SignalCard = ({ signal }: { signal: any }) => {
 };
 
 export default function SignalsPage() {
-  const { tier, loading: authLoading } = useAuth(); // New Addition
+  const { loading: authLoading } = useAuth(); 
   const [signals, setSignals] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (tier < 1) return; // New Addition: Prevent fetch for Tier 0
-
+    // UNLOCKED: Removed tier restriction check
     const fetchSignals = async () => {
       const { data } = await supabase
         .from('signals')
@@ -155,7 +147,6 @@ export default function SignalsPage() {
 
     fetchSignals();
 
-    // LIVE REALTIME UPDATES
     const channel = supabase.channel('terminal_feed')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'signals' }, (payload) => {
         setSignals(prev => [payload.new, ...prev]);
@@ -166,13 +157,12 @@ export default function SignalsPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [tier]); // New Addition: Dependency on tier
+  }, []); // UNLOCKED: Removed tier dependency
 
   const filteredSignals = signals.filter(s => 
     s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // New Addition: Auth Loading State
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
@@ -181,14 +171,10 @@ export default function SignalsPage() {
     );
   }
 
-  // New Addition: Tier Restriction
-  if (tier < 1) {
-    return <AccessGuard tierName="Alpha" />;
-  }
+  // UNLOCKED: AccessGuard restriction removed
 
   return (
     <div className="p-8 min-h-screen bg-[#05070a] space-y-8">
-      {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
         <div className="text-center md:text-left">
           <h1 className="text-4xl font-black tracking-tighter italic text-white uppercase">
@@ -210,7 +196,6 @@ export default function SignalsPage() {
         </div>
       </div>
 
-      {/* Signals Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <AnimatePresence mode="popLayout">
           {filteredSignals.map((signal) => (

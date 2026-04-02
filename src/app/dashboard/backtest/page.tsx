@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth'; // New Addition
-import AccessGuard from '@/components/AccessGuard'; // New Addition
+import { useAuth } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, RotateCcw, TrendingUp, Target, BarChart3, 
@@ -12,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export default function BacktestPage() {
-  const { tier, loading: authLoading } = useAuth(); // New Addition
+  const { loading: authLoading } = useAuth(); 
   const [isSimulating, setIsSimulating] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [equityCurve, setEquityCurve] = useState<number[]>([]);
@@ -26,7 +25,7 @@ export default function BacktestPage() {
   const [endDate, setEndDate] = useState('');
 
   const runSimulation = async () => {
-    if (tier < 3) return; // New Addition: Prevent execution for tiers below Ultra
+    // UNLOCKED: Removed tier restriction
     setIsSimulating(true);
     
     let query = supabase.from('signals').select('*').order('created_at', { ascending: true });
@@ -39,7 +38,6 @@ export default function BacktestPage() {
 
     setTimeout(() => {
       if (data && data.length > 0) {
-        let currentBalance = accountSize;
         let runningR = 0;
         const curve: number[] = [0]; // Start at 0 gain
         
@@ -72,7 +70,7 @@ export default function BacktestPage() {
     }, 1200);
   };
 
-  // New Addition: Auth Loading State
+  // Auth Loading State
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
@@ -81,10 +79,7 @@ export default function BacktestPage() {
     );
   }
 
-  // New Addition: Tier Restriction (Requires Ultra/Tier 3)
-  if (tier < 3) {
-    return <AccessGuard tierName="Ultra" />;
-  }
+  // UNLOCKED: AccessGuard check removed
 
   return (
     <div className="p-8 lg:p-12 bg-[#05070a] min-h-screen text-white font-sans">
@@ -197,7 +192,6 @@ export default function BacktestPage() {
                 ) : results ? (
                   <div className="w-full h-full flex items-end justify-between gap-[2px]">
                     {equityCurve.map((val, i) => {
-                      // Calculate height based on min/max of the curve
                       const maxR = Math.max(...equityCurve, 1);
                       const minR = Math.min(...equityCurve, -1);
                       const range = maxR - minR;
@@ -209,7 +203,7 @@ export default function BacktestPage() {
                           initial={{ height: 0 }}
                           animate={{ height: `${Math.max(heightPercent, 2)}%` }}
                           transition={{ delay: i * 0.01, duration: 0.5 }}
-                          className={`flex-1 rounded-t-sm transition-all ${val >= equityCurve[i-1] ? 'bg-blue-500/40 border-t border-blue-400' : 'bg-red-500/20 border-t border-red-400/30'}`}
+                          className={`flex-1 rounded-t-sm transition-all ${val >= (equityCurve[i-1] ?? 0) ? 'bg-blue-500/40 border-t border-blue-400' : 'bg-red-500/20 border-t border-red-400/30'}`}
                         />
                       );
                     })}

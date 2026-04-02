@@ -2,19 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth'; // New Addition
-import AccessGuard from '@/components/AccessGuard'; // New Addition
-import { Compass, Shield, Zap, Activity, Radio } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Compass, Shield, Activity, Radio } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function RadarPage() {
-  const { tier, loading: authLoading } = useAuth(); // New Addition
+  const { loading: authLoading } = useAuth(); 
   const [liveSignals, setLiveSignals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (tier < 2) return; // New Addition: Prevent fetch for tiers below Pro
-
+    // UNLOCKED: Tier restriction removed
     fetchRadarData();
 
     const heartbeat = setInterval(() => {
@@ -36,7 +34,7 @@ export default function RadarPage() {
       supabase.removeChannel(channel); 
       clearInterval(heartbeat);
     };
-  }, [tier]); // New Addition: Dependency on tier
+  }, []); // UNLOCKED: Removed tier dependency
 
   const fetchRadarData = async () => {
     setIsLoading(true);
@@ -59,7 +57,7 @@ export default function RadarPage() {
     return { val: 30, label: 'EXPIRED' };
   };
 
-  // New Addition: Auth Loading State
+  // Auth Loading State
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
@@ -68,10 +66,7 @@ export default function RadarPage() {
     );
   }
 
-  // New Addition: Tier Restriction (Requires Pro/Tier 2)
-  if (tier < 2) {
-    return <AccessGuard tierName="Pro" />;
-  }
+  // UNLOCKED: AccessGuard restriction removed
 
   return (
     <div className="p-4 md:p-8 lg:p-12 bg-[#05070a] min-h-screen text-white">
@@ -109,7 +104,6 @@ export default function RadarPage() {
                 <thead>
                   <tr className="text-[9px] font-black text-zinc-700 uppercase tracking-widest bg-black/40">
                     <th className="px-6 py-4">Instrument</th>
-                    {/* CATEGORY: Hidden on Mobile */}
                     <th className="hidden md:table-cell py-4">Category</th>
                     <th className="py-4 text-center md:text-left">CRT Confidence</th>
                     <th className="py-4">Bias</th>
@@ -133,7 +127,6 @@ export default function RadarPage() {
                             {signal.symbol}
                           </td>
                           
-                          {/* CATEGORY: Hidden on Mobile */}
                           <td className="hidden md:table-cell py-5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                             {signal.category || 'Global'}
                           </td>

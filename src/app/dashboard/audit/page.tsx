@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth'; // New Addition
-import AccessGuard from '@/components/AccessGuard'; // New Addition
+import { useAuth } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BarChart3, 
@@ -19,7 +18,6 @@ import {
 
 /**
  * SUB-COMPONENT: MetricTile
- * Displays individual data points (Frequency, Bias, etc.)
  */
 function MetricTile({ label, value, icon, color }: any) {
   return (
@@ -35,7 +33,6 @@ function MetricTile({ label, value, icon, color }: any) {
 
 /**
  * SUB-COMPONENT: LogicItem
- * Displays the PASS/FAIL status for audit parameters
  */
 function LogicItem({ label, status }: { label: string, status: 'PASS' | 'FAIL' | 'WAIT' }) {
   const colors = {
@@ -55,14 +52,13 @@ function LogicItem({ label, status }: { label: string, status: 'PASS' | 'FAIL' |
 }
 
 export default function SymbolAudit() {
-  const { tier, loading: authLoading } = useAuth(); // New Addition
+  const { loading: authLoading } = useAuth(); 
   const [symbol, setSymbol] = useState('XAUUSD');
   const [auditData, setAuditData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (tier < 3) return; // New Addition: Prevent fetch for tiers below Ultra
-
+    // UNLOCKED: Removed tier < 3 check
     const fetchAudit = async () => {
       if (!symbol) {
         setAuditData(null);
@@ -115,9 +111,8 @@ export default function SymbolAudit() {
 
     const timer = setTimeout(fetchAudit, 500);
     return () => clearTimeout(timer);
-  }, [symbol, tier]); // New Addition: Dependency on tier
+  }, [symbol]); // UNLOCKED: Removed tier dependency
 
-  // New Addition: Auth Loading State
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
@@ -126,10 +121,7 @@ export default function SymbolAudit() {
     );
   }
 
-  // New Addition: Tier Restriction (Requires Ultra/Tier 3)
-  if (tier < 3) {
-    return <AccessGuard tierName="Ultra" />;
-  }
+  // UNLOCKED: AccessGuard check removed
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
@@ -179,43 +171,43 @@ export default function SymbolAudit() {
             </div>
 
             <div className="h-48 w-full bg-black/40 border border-white/5 rounded-2xl relative flex items-center justify-center overflow-hidden">
-               <div className="absolute inset-0 opacity-5 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
-               <AnimatePresence mode="wait">
-                 {loading ? (
-                    <motion.div 
-                      key="loading"
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="flex flex-col items-center gap-4"
-                    >
-                      <Activity className="text-blue-500 animate-pulse" size={32} />
-                      <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-[0.4em]">Querying Signal DB...</p>
-                    </motion.div>
-                 ) : !auditData ? (
-                    <motion.div 
-                      key="empty"
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      className="text-center"
-                    >
-                      <AlertTriangle className="text-zinc-800 mx-auto mb-3" size={32} />
-                      <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest px-4">No historical CRT data for this asset</p>
-                    </motion.div>
-                 ) : (
-                    <motion.div 
-                      key="data"
-                      initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                      className="flex gap-2 items-end h-24"
-                    >
-                      {auditData.visualHistory.map((item: any, i: number) => (
-                        <motion.div 
-                          key={i} 
-                          initial={{ height: 0 }}
-                          animate={{ height: `${item.height}%` }}
-                          className={`w-3 rounded-t-sm transition-all ${item.isWin ? 'bg-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'bg-red-500/20'}`} 
-                        />
-                      ))}
-                    </motion.div>
-                 )}
-               </AnimatePresence>
+                <div className="absolute inset-0 opacity-5 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
+                <AnimatePresence mode="wait">
+                  {loading ? (
+                     <motion.div 
+                       key="loading"
+                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                       className="flex flex-col items-center gap-4"
+                     >
+                       <Activity className="text-blue-500 animate-pulse" size={32} />
+                       <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-[0.4em]">Querying Signal DB...</p>
+                     </motion.div>
+                  ) : !auditData ? (
+                     <motion.div 
+                       key="empty"
+                       initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                       className="text-center"
+                     >
+                       <AlertTriangle className="text-zinc-800 mx-auto mb-3" size={32} />
+                       <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest px-4">No historical CRT data for this asset</p>
+                     </motion.div>
+                  ) : (
+                     <motion.div 
+                       key="data"
+                       initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                       className="flex gap-2 items-end h-24"
+                     >
+                       {auditData.visualHistory.map((item: any, i: number) => (
+                         <motion.div 
+                           key={i} 
+                           initial={{ height: 0 }}
+                           animate={{ height: `${item.height}%` }}
+                           className={`w-3 rounded-t-sm transition-all ${item.isWin ? 'bg-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'bg-red-500/20'}`} 
+                         />
+                       ))}
+                     </motion.div>
+                  )}
+                </AnimatePresence>
             </div>
           </div>
 
@@ -251,9 +243,9 @@ export default function SymbolAudit() {
           <div className="bg-[#0a0a0a] border border-white/5 p-6 rounded-[2rem]">
             <h4 className="text-[11px] font-black text-white uppercase tracking-widest mb-6 border-b border-white/5 pb-4">Audit Parameters</h4>
             <div className="space-y-4">
-               <LogicItem label="Volume Clustering" status={auditData ? "PASS" : "WAIT"} />
-               <LogicItem label="Liquidity Alignment" status={auditData?.totalSignals > 5 ? "PASS" : "WAIT"} />
-               <LogicItem label="Neural Confidence" status={auditData?.probability > 75 ? "PASS" : "FAIL"} />
+                <LogicItem label="Volume Clustering" status={auditData ? "PASS" : "WAIT"} />
+                <LogicItem label="Liquidity Alignment" status={auditData?.totalSignals > 5 ? "PASS" : "WAIT"} />
+                <LogicItem label="Neural Confidence" status={auditData?.probability > 75 ? "PASS" : "FAIL"} />
             </div>
           </div>
 
