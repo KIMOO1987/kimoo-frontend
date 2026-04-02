@@ -14,7 +14,6 @@ export default function ActiveSignalsPage() {
   const [loadingSignals, setLoadingSignals] = useState(false);
 
   // 1. SIGNAL DATA FETCHING & REALTIME
-  // This only runs if RoleGuard grants access
   useEffect(() => {
     const fetchActive = async () => {
       setLoadingSignals(true);
@@ -51,7 +50,7 @@ export default function ActiveSignalsPage() {
   };
 
   return (
-    <RoleGuard requiredTier={1}>
+    <RoleGuard>
       <div className="p-8 max-w-7xl mx-auto space-y-8">
         
         {/* Header Section */}
@@ -85,7 +84,6 @@ export default function ActiveSignalsPage() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-8 hover:border-blue-500/30 transition-all group relative overflow-hidden flex flex-col justify-between min-h-[450px]"
                 >
-                  {/* Visual Glow Background */}
                   <div className={`absolute -top-24 -right-24 w-48 h-48 blur-[100px] opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity ${
                     signal.side === 'BUY' ? 'bg-green-500' : 'bg-red-500'
                   }`} />
