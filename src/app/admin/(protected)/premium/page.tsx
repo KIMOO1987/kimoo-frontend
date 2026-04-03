@@ -17,7 +17,7 @@ export default function PremiumUsers() {
       const { data } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'USER')
+        .eq('role', 'user')
         .gt('tier', 0)
         .order('tier', { ascending: false });
       if (data) setUsers(data);
