@@ -161,7 +161,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   }
 
   return (
-    <div className="p-4 md:p-12 lg:p-16 bg-[#05070a] min-h-screen text-white font-sans overflow-x-hidden">
+    <div className="p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#05070a] min-h-screen text-white font-sans overflow-x-hidden">
       <div className="max-w-[1700px] mx-auto">
         
         {/* HEADER SECTION */}
