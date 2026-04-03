@@ -96,9 +96,9 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-10">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-10">
       {/* Header */}
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h2 className="text-3xl font-black tracking-tighter italic text-white uppercase leading-none">Account <span className="text-blue-500">Identity</span></h2>
           <p className="text-zinc-600 text-[9px] font-bold uppercase tracking-[0.3em] mt-2">Personal Management & Billing Details</p>
@@ -111,7 +111,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
 
       {/* NEW: PLAN STATUS ROW (Synced with Dashboard) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="crt-card p-6 border-white/5 bg-white/[0.02] flex items-center gap-4">
+        <div className="crt-card p-5 md:p-6 border-white/5 bg-white/[0.02] flex items-center gap-4">
           <Star className="text-yellow-500" size={24} />
           <div>
             <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Current Plan</span>
@@ -120,7 +120,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
             </span>
           </div>
         </div>
-        <div className="crt-card p-6 border-white/5 bg-white/[0.02] flex items-center gap-4">
+        <div className="crt-card p-5 md:p-6 border-white/5 bg-white/[0.02] flex items-center gap-4">
           <Clock className="text-indigo-500" size={24} />
           <div>
             <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Validity Status</span>
@@ -136,7 +136,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-7 space-y-6">
-          <div className="crt-card p-8 border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
+          <div className="crt-card p-5 md:p-8 border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
             <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2">
               <User size={14} className="text-blue-500" /> Personal Information
             </h3>
@@ -192,7 +192,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
 
         {/* Password Change Section */}
         <div className="lg:col-span-12">
-          <div className="crt-card p-8 border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
+          <div className="crt-card p-5 md:p-8 border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
             <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2">
               <Lock size={14} className="text-red-500" /> Security Credentials
             </h3>
