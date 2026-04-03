@@ -190,6 +190,13 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
           </div>
         </div>
 
+          <div className="crt-card p-6 border-blue-500/20 bg-blue-500/[0.02]">
+            <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mb-4">Security Notice</h4>
+            <p className="text-[11px] leading-relaxed text-zinc-400 font-medium italic">
+              Identity details are verified for billing and localization.
+            </p>
+          </div>
+
         <div className="lg:col-span-5 space-y-6">
           {/* Password Change Section */}
           <div className="crt-card p-5 md:p-8 border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
@@ -223,16 +230,10 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
 
             <button onClick={handlePasswordChange} disabled={passwordLoading} className="w-full mt-8 py-4 bg-zinc-800 hover:bg-red-900/20 border border-white/5 hover:border-red-500/50 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-3 group">
               {passwordLoading ? <RefreshCcw size={14} className="animate-spin" /> : <Lock size={14} className="group-hover:text-red-500" />}
-              {passwordLoading ? 'Rotating Keys...' : 'Update Security Credentials'}
+              {passwordLoading ? 'Rotating Keys...' : 'Update Credentials'}
             </button>
           </div>
 
-          <div className="crt-card p-6 border-blue-500/20 bg-blue-500/[0.02]">
-            <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mb-4">Security Notice</h4>
-            <p className="text-[11px] leading-relaxed text-zinc-400 font-medium italic">
-              Identity details are verified for billing and localization.
-            </p>
-          </div>
           <div className="crt-card p-6 border-white/5 bg-white/[0.01]">
             <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-4">Account Metadata</h4>
             <div className="space-y-3">
