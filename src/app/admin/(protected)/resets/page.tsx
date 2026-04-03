@@ -10,8 +10,13 @@ export default function PasswordResets() {
 
   useEffect(() => {
     const fetchRequests = async () => {
-      const { data } = await supabase.from('password_reset_requests').select('*').eq('status', 'pending');
-      if (data) setRequests(data);
+      const { data, error } = await supabase.from('password_reset_requests').select('*').eq('status', 'pending');
+      if (error) {
+        console.error("Error fetching password reset requests:", error);
+        // Optionally, display an error message to the user
+      } else if (data) {
+        setRequests(data);
+      }
       setLoading(false);
     };
     fetchRequests();
