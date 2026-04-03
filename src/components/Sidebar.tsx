@@ -72,7 +72,7 @@ export default function Sidebar({ tier, role }: { tier: number; role?: string })
       <aside className={`
         fixed inset-y-0 left-0 w-72 bg-[#05070a] border-r border-white/5 flex flex-col overflow-hidden
         transition-transform duration-300 ease-in-out z-[9998]
-        ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen
+        ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0
       `}>
         <div className="flex flex-col h-full w-full p-6">
           <div className="mb-10 px-2 shrink-0">
