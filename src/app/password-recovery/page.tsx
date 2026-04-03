@@ -23,6 +23,7 @@ export default function PasswordRecoveryListener() {
       }
     });
 
+    
     // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();

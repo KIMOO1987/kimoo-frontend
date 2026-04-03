@@ -1,21 +1,41 @@
 "use client";
 
-import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useState, useEffect } from 'react';
+// Use your existing client or the standard one
+import { createBrowserClient } from '@supabase/ssr' 
 import { motion } from 'framer-motion';
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function UpdatePasswordPage() {
+  // Initialize the browser client directly
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  
+  const router = useRouter();
+  
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // CRITICAL FIX: Ensure the session is recognized on mount
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        console.log("Password recovery mode active");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 1. Basic Validation
     if (newPassword.length < 6) {
       setMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
       return;
@@ -29,20 +49,23 @@ export default function UpdatePasswordPage() {
     setLoading(true);
     setMessage(null);
 
-    // 2. Supabase Update Call
+    // Supabase Update Call
     const { data, error } = await supabase.auth.updateUser({
       password: newPassword
     });
 
     if (error) {
       setMessage({ type: 'error', text: error.message });
+      setLoading(false);
     } else if (data) {
-      setMessage({ type: 'success', text: 'Password updated successfully! Redirecting...' });
-      // Optional: Redirect to login or dashboard after 2 seconds
-      setTimeout(() => window.location.href = '/login', 2000);
+      setMessage({ type: 'success', text: 'Security Credentials Updated! Accessing Terminal...' });
+      
+      // Give the user time to see the success message
+      setTimeout(() => {
+        router.push('/dashboard');
+        router.refresh(); // Refresh to ensure middleware sees the new session
+      }, 2000);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -60,21 +83,20 @@ export default function UpdatePasswordPage() {
             Reset <span className="text-blue-500">Security</span>
           </h1>
           <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">
-            Enter your new credentials below
+            Protocol: Update Terminal Access
           </p>
         </div>
 
         <form onSubmit={handleUpdatePassword} className="space-y-4">
-          {/* New Password Field */}
           <div className="space-y-1">
-            <label className="text-[8px] font-black text-zinc-500 uppercase ml-2 tracking-widest">New Password</label>
+            <label className="text-[8px] font-black text-zinc-500 uppercase ml-2 tracking-widest">New Credentials</label>
             <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"} 
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white outline-none focus:border-blue-500/50 transition-all"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white outline-none focus:border-blue-500/50 transition-all placeholder:text-zinc-800"
                 required
               />
               <button 
@@ -87,20 +109,18 @@ export default function UpdatePasswordPage() {
             </div>
           </div>
 
-          {/* Confirm Password Field */}
           <div className="space-y-1">
-            <label className="text-[8px] font-black text-zinc-500 uppercase ml-2 tracking-widest">Confirm Password</label>
+            <label className="text-[8px] font-black text-zinc-500 uppercase ml-2 tracking-widest">Confirm Credentials</label>
             <input 
               type={showPassword ? "text" : "password"} 
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white outline-none focus:border-blue-500/50 transition-all"
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white outline-none focus:border-blue-500/50 transition-all placeholder:text-zinc-800"
               required
             />
           </div>
 
-          {/* Message Feedback */}
           {message && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
@@ -114,7 +134,6 @@ export default function UpdatePasswordPage() {
             </motion.div>
           )}
 
-          {/* Submit Button */}
           <button 
             type="submit"
             disabled={loading}
@@ -123,7 +142,7 @@ export default function UpdatePasswordPage() {
             {loading ? (
               <Loader2 className="animate-spin" size={20} />
             ) : (
-              "Update Account Access"
+              "Authorize New Credentials"
             )}
           </button>
         </form>

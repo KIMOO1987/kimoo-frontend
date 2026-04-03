@@ -20,6 +20,7 @@ function ForgotPasswordContent() {
         <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-2">Instructional Flow</p>
       </div>
 
+
       {error && <p className="bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] p-3 rounded-lg mb-6 uppercase font-black text-center">{error}</p>}
       {success && <p className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] p-3 rounded-lg mb-6 uppercase font-black text-center">{success}</p>}
 
