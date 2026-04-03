@@ -212,7 +212,7 @@ export default function SignalsPage() {
 
   return (
     <AccessGuard requiredTier={1} tierName="Active Member">
-      <div className="p-4 md:p-8 min-h-screen bg-[#05070a] flex flex-col">
+      <div className="p-4 md:p-8 lg:ml-72 min-h-screen bg-[#05070a] flex flex-col">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-12">
           <div className="text-left">

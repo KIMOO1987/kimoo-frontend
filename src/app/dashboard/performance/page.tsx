@@ -118,7 +118,7 @@ export default function PerformancePage() {
 
   return (
     <AccessGuard requiredTier={1} tierName="Active Member">
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 flex flex-col min-h-screen">
+      <div className="p-4 md:p-8 lg:ml-72 max-w-7xl mx-auto space-y-8 flex flex-col min-h-screen">
         
         {/* Header with Date Filters */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6">

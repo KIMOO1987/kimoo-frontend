@@ -81,7 +81,7 @@ export default function BacktestPage() {
 
   return (
     <AccessGuard requiredTier={2} tierName="Pro / Yearly">
-      <div className="p-4 md:p-8 lg:p-12 bg-[#05070a] min-h-screen text-white font-sans">
+      <div className="p-4 md:p-8 lg:ml-72 lg:p-12 bg-[#05070a] min-h-screen text-white font-sans">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-10 md:mb-12">
           <div>

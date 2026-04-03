@@ -124,7 +124,7 @@ export default function SymbolAudit() {
 
   return (
     <AccessGuard requiredTier={3} tierName="Lifetime Pro">
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="p-4 md:p-8 lg:ml-72 max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 md:mb-8">
           <div>
             <h2 className="text-2xl md:text-3xl font-black tracking-tighter italic text-white uppercase">Symbol Audit</h2>

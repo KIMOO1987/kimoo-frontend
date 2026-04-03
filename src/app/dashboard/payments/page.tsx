@@ -108,7 +108,7 @@ export default function PaymentsPage() {
   );
 
   return (
-    <div className="p-4 md:p-8 lg:p-12 bg-[#05070a] min-h-screen text-white">
+    <div className="p-4 md:p-8 lg:ml-72 lg:p-12 bg-[#05070a] min-h-screen text-white">
       <div className="text-center mb-10 md:mb-16">
         <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic text-white uppercase">
           Upgrade to <span className="text-blue-500">Pro</span>
