@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   TrendingUp, Zap, Star, Activity, BarChart3, Target, 
   ShieldCheck, Clock, Wallet, MessageSquare, Play, RotateCcw,
-  CheckCircle2, XCircle, MinusCircle, Percent, Save
+  CheckCircle2, XCircle, MinusCircle, Percent, Save, Mail
 } from 'lucide-react';
 
 interface DashboardClientProps {
@@ -177,14 +177,14 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
         </div>
 
         {/* PROFILE & DYNAMIC INPUTS */}
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 p-6 md:p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
+        <div className="flex flex-col mb-10 p-6 md:p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
           <div className="w-full">
-            <div className="flex flex-wrap items-center gap-4 mb-6">
+            <div className="flex flex-wrap items-center gap-4 mb-2">
               <h2 className="text-[7vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
                   {userProfile?.full_name || 'TRADER'}
               </h2>
               {/* UPDATED BADGE LOGIC */}
-              <span className={`text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit shadow-lg ${
+              <span className={`text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit shadow-lg transition-colors ${
                   tier >= 2 || userProfile?.role === 'admin' 
                   ? 'bg-blue-600 shadow-blue-500/20' 
                   : 'bg-zinc-700 shadow-black/10'
@@ -192,8 +192,66 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                   {getTierDisplay()}
               </span>
             </div>
+
+            {/* EMAIL ADDRESS */}
+            <div className="flex items-center gap-2 mb-10 text-zinc-500">
+              <Mail size={14} className="text-blue-500" />
+              <span className="text-[11px] font-bold tracking-[0.2em] uppercase font-mono">
+                {userProfile?.email || 'OFFLINE'}
+              </span>
+            </div>
             
-            <div className="flex flex-wrap gap-y-6 gap-x-12 border-t border-white/5 pt-6 md:border-none md:pt-0">
+            <div className="space-y-10">
+              {/* ROW 1: PLAN INFO & ENGINE STATUS */}
+              <div className="flex flex-wrap gap-y-6 gap-x-12 border-b border-white/5 pb-10">
+                {/* 1. PLAN TYPE SECTION */}
+                <div className="flex items-center gap-3">
+                  <Star size={18} className="text-yellow-500 shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1 italic">Plan Type</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-black text-xl italic uppercase tracking-tight text-white">
+                        {userProfile?.plan_type?.toUpperCase() || (tier === 3 ? 'ULTIMATE' : tier === 2 ? 'PRO' : tier === 1 ? 'ALPHA' : 'FREE')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              
+                {/* 2. PLAN VALIDITY SECTION */}
+                <div className="flex items-center gap-3">
+                  <Clock size={18} className="text-indigo-500 shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1 italic">Plan Validity</span>
+                    <div className="flex flex-wrap items-baseline gap-2">
+                        <span className={`font-black text-xl italic uppercase tracking-tight ${tier > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                          {tier > 0 ? 'ACTIVE' : 'EXPIRED'}
+                        </span>
+                        {tier > 0 && (
+                          <span className="text-zinc-600 font-bold text-[10px] uppercase">
+                            ({daysLeft} REMAINING DAYS)
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. ENGINE STATUS SECTION */}
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <Activity size={18} className="text-emerald-500" />
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1 italic">Engine Status</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-black text-xl italic uppercase tracking-tight text-emerald-500">ONLINE</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ROW 2: DYNAMIC INPUTS & CONTROLS */}
+              <div className="flex flex-wrap items-end gap-y-6 gap-x-12">
               {/* ACCOUNT SIZE INPUT */}
               <div className="flex items-center gap-3">
                 <Wallet size={18} className="text-emerald-500 shrink-0" />
@@ -246,7 +304,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                   </div>
                 </div>
               </div>
-
+              
               {/* TIMEFRAME SELECTOR */}
               <div className="flex items-center gap-3">
                 <BarChart3 size={18} className="text-blue-400 shrink-0" />
@@ -283,54 +341,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                   {isSaving ? 'Saving...' : 'Save Settings'}
                 </button>
               </div>
-              
-            {/* 1. NEW: PLAN TYPE SECTION */}
-              <div className="flex items-center gap-3">
-                <Star size={18} className="text-yellow-500 shrink-0" />
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Plan Type</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-black text-xl italic uppercase tracking-tight text-white">
-                      {/* Prioritize plan_type from DB, fallback to Tier Name */}
-                      {userProfile?.plan_type?.toUpperCase() || (tier === 3 ? 'ULTIMATE' : tier === 2 ? 'PRO' : tier === 1 ? 'ALPHA' : 'FREE')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            
-              {/* 2. PLAN VALIDITY SECTION */}
-                <div className="flex items-center gap-3">
-                  <Clock size={18} className="text-indigo-500 shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1 italic">Plan Validity</span>
-                    <div className="flex flex-wrap items-baseline gap-2">
-                        {/* Status Text */}
-                        <span className={`font-black text-xl italic uppercase tracking-tight ${tier > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                          {tier > 0 ? 'ACTIVE' : 'EXPIRED'}
-                        </span>
-              
-                        {/* Only show the numeric days for any active tier */}
-                        {tier > 0 && (
-                          <span className="text-zinc-600 font-bold text-[10px] uppercase">
-                            ({daysLeft} REMAINING DAYS)
-                          </span>
-                        )}
-                  </div>
-                </div>
               </div>
             </div>
-          </div>
-
-          {/* COMPACT ENGINE STATUS */}
-          <div className="w-full xl:w-auto bg-black/40 border border-white/10 px-5 py-3 rounded-2xl flex flex-wrap items-center justify-center gap-4">
-             <div className="flex items-center gap-2 shrink-0">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest whitespace-nowrap italic">Engine Status: Online</span>
-             </div>
-             <div className="hidden sm:block h-4 w-[1px] bg-white/10" />
-             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter font-mono whitespace-nowrap">
-               {userProfile?.email || 'OFFLINE'}
-             </p>
           </div>
         </div>
 
