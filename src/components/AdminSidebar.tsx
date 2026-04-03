@@ -40,6 +40,7 @@ const adminMenuGroups = [
 export default function AdminSidebar({ userRole }: { userRole: string }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -57,7 +58,11 @@ export default function AdminSidebar({ userRole }: { userRole: string }) {
   if (!mounted) return null;
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-72 bg-[#05070a] border-r border-white/5 flex flex-col overflow-hidden z-[9998]">
+    <aside className={`
+      fixed inset-y-0 left-0 w-72 bg-[#05070a] border-r border-white/5 flex flex-col overflow-hidden
+      transition-transform duration-300 ease-in-out z-[9998]
+      ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0
+    `}>
       <div className="flex flex-col h-full w-full p-6">
         <div className="mb-10 px-2 shrink-0">
           <h1 className="text-xl font-black tracking-tighter text-white italic">
