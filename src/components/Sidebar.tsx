@@ -70,9 +70,9 @@ export default function Sidebar({ tier, role }: { tier: number; role?: string })
   return (
     <>
       <aside className={`
-        fixed inset-y-0 left-0 w-72 bg-[#05070a] border-r border-white/5 flex flex-col
-        transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen lg:sticky lg:top-0
-        z-[9998] ${isOpen ? "translate-x-0" : "-translate-x-full"}
+        fixed inset-y-0 left-0 w-72 bg-[#05070a] border-r border-white/5 flex flex-col overflow-hidden
+        transition-transform duration-300 ease-in-out z-[9998]
+        ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen
       `}>
         <div className="flex flex-col h-full w-full p-6">
           <div className="mb-10 px-2 shrink-0">
@@ -119,7 +119,7 @@ export default function Sidebar({ tier, role }: { tier: number; role?: string })
           <div className="mt-auto pt-6 border-t border-white/5 shrink-0">
             <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-red-500 transition-all rounded-xl w-full group">
               <LogOut size={18} className="group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Terminate Session</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">SIGN OUT</span>
             </button>
           </div>
         </div>
