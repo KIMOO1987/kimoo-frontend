@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import AdminSidebar from '@/components/AdminSidebar';
+import AdminMobileNav from '@/components/AdminMobileNav';
 import { Loader2 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -44,6 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <main className="flex-1 lg:ml-72 overflow-y-auto">
         {children}
       </main>
+      <AdminMobileNav userRole={role || 'user'} />
     </div>
   );
 }
