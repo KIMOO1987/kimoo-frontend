@@ -1,88 +1,112 @@
 "use client";
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-// Added UserPlus icon for Staff Manager
 import { 
   CreditCard, 
   Settings, 
   LogOut, 
   ShieldCheck, 
-  UserPlus 
+  UserPlus,
+  LayoutDashboard
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
+const adminMenuGroups = [
+  {
+    label: 'SYSTEM CONTROL',
+    items: [
+      { name: 'Plans Editor', path: '/admin/plans', icon: Settings, roles: ['admin', 'moderator'] },
+      { name: 'Staff Manager', path: '/admin/staff', icon: UserPlus, roles: ['admin'] },
+    ]
+  },
+  {
+    label: 'USER MANAGEMENT',
+    items: [
+      { name: 'Premium Members', path: '/admin/premium', icon: UserPlus, roles: ['admin', 'moderator'] },
+      { name: 'Free Members', path: '/admin/users', icon: UserPlus, roles: ['admin', 'moderator'] },
+      { name: 'Reset Requests', path: '/admin/resets', icon: UserPlus, roles: ['admin', 'moderator'] },
+    ]
+  },
+  {
+    label: 'FINANCIAL',
+    items: [
+      { name: 'Payment Terminal', path: '/admin/payments', icon: CreditCard, roles: ['admin'] },
+    ]
+  }
+];
+
 export default function AdminSidebar({ userRole }: { userRole: string }) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
 
-  // Updated menuItems to include Staff Manager (Restricted to Admin only)
-  const menuItems = [
-    { 
-      name: 'Plans Editor', 
-      href: '/admin/plans', 
-      icon: <Settings size={18} />, 
-      roles: ['admin', 'moderator'] 
-    },
-    { 
-      name: 'Payment Terminal', 
-      href: '/admin/payments', 
-      icon: <CreditCard size={18} />, 
-      roles: ['admin'] 
-    },
-    { 
-      name: 'Staff Manager', 
-      href: '/admin/staff', 
-      icon: <UserPlus size={18} />, 
-      roles: ['admin'] 
-    },
-  ];
+  useEffect(() => { setMounted(true); }, []);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+      window.location.href = '/login';
+    } catch (error) {
+      window.location.href = '/login';
+    }
+  };
+
+  if (!mounted) return null;
 
   return (
-    <div className="w-64 bg-[#0a0c10] border-r border-white/5 flex flex-col h-screen sticky top-0">
-      <div className="p-8">
-        <h1 className="text-xl font-black italic tracking-tighter uppercase text-white">
-          KIMOO <span className="text-blue-500 text-sm not-italic">Console</span>
-        </h1>
-        <div className="flex items-center gap-2 mt-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5 w-fit">
-          <ShieldCheck size={10} className="text-blue-500" />
-          <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">{userRole}</span>
+    <aside className="fixed inset-y-0 left-0 w-72 bg-[#05070a] border-r border-white/5 flex flex-col overflow-hidden z-[9998]">
+      <div className="flex flex-col h-full w-full p-6">
+        <div className="mb-10 px-2 shrink-0">
+          <h1 className="text-xl font-black tracking-tighter text-white italic">
+            KIMOO <span className="text-blue-500 underline decoration-blue-500/30 underline-offset-4">(+Console)</span>
+          </h1>
+          <div className="flex items-center gap-1.5 mt-2 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md w-fit">
+            <ShieldCheck size={10} className="text-blue-400" />
+            <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">{userRole} Access</span>
+          </div>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto pr-2 no-scrollbar">
+          {adminMenuGroups.map((group) => {
+            const visibleItems = group.items.filter(item => item.roles.includes(userRole));
+            if (visibleItems.length === 0) return null;
+
+            return (
+              <div key={group.label} className="mb-8">
+                <p className="text-[9px] font-black text-zinc-500 tracking-[0.2em] mb-4 px-2 uppercase">{group.label}</p>
+                <div className="space-y-1">
+                  {visibleItems.map((item) => {
+                    const isActive = pathname === item.path;
+                    return (
+                      <Link key={item.path} href={item.path}>
+                        <div className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${
+                          isActive ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                        }`}>
+                          <div className="flex items-center gap-3">
+                            <item.icon size={18} />
+                            <span className="text-[12px] font-bold tracking-tight">{item.name}</span>
+                          </div>
+                          {isActive && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="mt-auto pt-6 border-t border-white/5 shrink-0">
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-red-500 transition-all rounded-xl w-full group">
+            <LogOut size={18} className="group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] font-black uppercase tracking-widest">SIGN OUT</span>
+          </button>
         </div>
       </div>
-
-      <nav className="flex-1 px-4 space-y-2">
-        {menuItems.map((item) => {
-          // Permission Logic: Only show the link if the user's role is in the item's allowed roles
-          if (!item.roles.includes(userRole)) return null;
-          
-          const isActive = pathname === item.href;
-
-          return (
-            <Link 
-              key={item.href} 
-              href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                isActive 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' 
-                : 'text-zinc-500 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              {item.icon}
-              {item.name}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t border-white/5">
-        <button 
-          onClick={async () => { 
-            await supabase.auth.signOut(); 
-            window.location.href = '/'; 
-          }}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-all"
-        >
-          <LogOut size={18} /> Logout
-        </button>
-      </div>
-    </div>
+    </aside>
   );
 }
