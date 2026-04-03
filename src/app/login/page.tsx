@@ -48,6 +48,15 @@ function LoginContent() {
 
         <SubmitButton />
       </form>
+
+      <div className="mt-8 pt-6 border-t border-white/5 text-center">
+        <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">
+          New Operator? 
+          <Link href="/signup" className="text-blue-500 hover:text-blue-400 transition-colors ml-2">
+            Initialize Identity
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
