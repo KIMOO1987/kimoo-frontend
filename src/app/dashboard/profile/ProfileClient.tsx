@@ -190,14 +190,14 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
           </div>
         </div>
 
-        {/* Password Change Section */}
-        <div className="lg:col-span-12">
+        <div className="lg:col-span-5 space-y-6">
+          {/* Password Change Section */}
           <div className="crt-card p-5 md:p-8 border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
             <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2">
               <Lock size={14} className="text-red-500" /> Security Credentials
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-6">
               <div className="space-y-2">
                 <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Old Password</label>
                 <div className="relative">
@@ -226,9 +226,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
               {passwordLoading ? 'Rotating Keys...' : 'Update Security Credentials'}
             </button>
           </div>
-        </div>
 
-        <div className="lg:col-span-5 space-y-6">
           <div className="crt-card p-6 border-blue-500/20 bg-blue-500/[0.02]">
             <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mb-4">Security Notice</h4>
             <p className="text-[11px] leading-relaxed text-zinc-400 font-medium italic">
