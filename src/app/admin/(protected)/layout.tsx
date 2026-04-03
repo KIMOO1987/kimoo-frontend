@@ -39,9 +39,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 
   return (
-    <div className="flex min-h-screen bg-[#05070a]">
+    <div className="flex min-h-screen bg-[#05070a] overflow-x-hidden">
       <AdminSidebar userRole={role || 'user'} />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 lg:ml-72 overflow-y-auto">
         {children}
       </main>
     </div>

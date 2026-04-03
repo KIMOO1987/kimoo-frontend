@@ -94,13 +94,23 @@ export default function AdminPayments() {
   }, [fetchData]);
 
   async function approveUser(userId: string, requestedPlan: string) {
-    const planToAssign = requestedPlan || 'pro';
-    if (!confirm(`Confirm APPROVAL for [${planToAssign.toUpperCase()}]?`)) return;
+    const planToAssign = requestedPlan?.toLowerCase() || 'pro';
+    
+    // Map IDs to Tier numbers
+    const tierMap: Record<string, number> = { 'alpha': 1, 'pro': 2, 'ultimate': 3 };
+    const tierLevel = tierMap[planToAssign] || 2;
+
+    if (!confirm(`Authorize [${planToAssign.toUpperCase()}] Access (Tier ${tierLevel})?`)) return;
+
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 30); // Default 30 days extension
 
     const { error } = await supabase
       .from('profiles')
       .update({ 
-        subscription_status: planToAssign,
+        subscription_status: planToAssign, // This is for your plans display
+        tier: tierLevel,                   // This is for actual access
+        expiry_date: expiryDate.toISOString(),
         pending_crypto_hash: null, 
         pending_plan_id: null,
         last_payment_date: new Date().toISOString()
@@ -130,11 +140,11 @@ export default function AdminPayments() {
   );
 
   return (
-    <div className="p-12 bg-[#05070a] min-h-screen text-white">
+    <div className="p-4 md:p-12 bg-[#05070a] min-h-screen text-white">
       
       {/* Top Stats Bar */}
       <div className="max-w-6xl mx-auto mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-blue-500/5 border border-blue-500/10 p-6 rounded-[32px] flex items-center justify-between">
+        <div className="bg-blue-500/5 border border-blue-500/10 p-6 rounded-3xl md:rounded-[32px] flex items-center justify-between">
           <div>
             <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Total Verified Revenue</p>
             <h2 className="text-3xl font-black italic text-white">${totalEarnings} <span className="text-sm not-italic text-zinc-600 ml-2">USDT</span></h2>
@@ -144,7 +154,7 @@ export default function AdminPayments() {
           </div>
         </div>
         
-        <div className="bg-white/5 border border-white/5 p-6 rounded-[32px] flex items-center justify-between">
+        <div className="bg-white/5 border border-white/5 p-6 rounded-3xl md:rounded-[32px] flex items-center justify-between">
           <div>
             <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Active Queue</p>
             <h2 className="text-3xl font-black italic text-white">{requests.length} <span className="text-sm not-italic text-zinc-600 ml-2">Pending</span></h2>
@@ -157,7 +167,7 @@ export default function AdminPayments() {
 
       {/* Header & Search */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-12 gap-6 max-w-6xl mx-auto">
-        <div>
+        <div className="px-2">
           <h1 className="text-3xl font-black italic uppercase tracking-tighter">
             Terminal <span className="text-blue-500 text-2xl not-italic">Hashes</span>
           </h1>
@@ -198,7 +208,7 @@ export default function AdminPayments() {
               const isAlpha = req.pending_plan_id === 'alpha';
               
               return (
-                <div key={req.id} className="bg-white/[0.01] border border-white/5 p-8 rounded-[32px] flex flex-col lg:flex-row items-start lg:items-center justify-between group hover:border-blue-500/20 transition-all gap-6">
+                <div key={req.id} className="bg-white/[0.01] border border-white/5 p-6 md:p-8 rounded-3xl md:rounded-[32px] flex flex-col lg:flex-row items-start lg:items-center justify-between group hover:border-blue-500/20 transition-all gap-6">
                   <div className="space-y-3 flex-1">
                     <div className="flex flex-wrap items-center gap-4">
                       <span className="text-[11px] font-black uppercase tracking-wider text-white">{req.email}</span>

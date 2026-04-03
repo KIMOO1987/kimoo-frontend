@@ -50,15 +50,15 @@ export default function StaffManager() {
   if (loading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-blue-500" /></div>;
 
   return (
-    <div className="p-12 bg-[#05070a] min-h-screen text-white">
-      <h1 className="text-3xl font-black italic uppercase mb-8">Staff <span className="text-blue-500">Access</span></h1>
+    <div className="p-4 md:p-12 bg-[#05070a] min-h-screen text-white">
+      <h1 className="text-2xl md:text-3xl font-black italic uppercase mb-8">Staff <span className="text-blue-500">Access</span></h1>
 
       {/* Invite Section */}
-      <div className="bg-white/5 border border-white/10 p-8 rounded-[32px] mb-12 max-w-2xl">
+      <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl md:rounded-[32px] mb-12 max-w-2xl">
         <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
           <UserPlus size={14} /> Invite New Moderator
         </h3>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <input 
             type="email" 
             placeholder="moderator@email.com"
@@ -66,7 +66,7 @@ export default function StaffManager() {
             onChange={(e) => setInviteEmail(e.target.value)}
             className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500"
           />
-          <button onClick={generateInvite} className="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+          <button onClick={generateInvite} className="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap">
             Generate Link
           </button>
         </div>
@@ -75,12 +75,12 @@ export default function StaffManager() {
       {/* Staff List */}
       <div className="grid gap-4 max-w-4xl">
         {staff.map((member) => (
-          <div key={member.id} className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex items-center justify-between">
+          <div key={member.id} className="bg-white/[0.02] border border-white/5 p-5 md:p-6 rounded-2xl flex items-center justify-between group">
             <div className="flex items-center gap-4">
               <div className={`p-3 rounded-xl ${member.role === 'admin' ? 'bg-blue-500/10 text-blue-500' : 'bg-zinc-800 text-zinc-400'}`}>
                 <Shield size={20} />
               </div>
-              <div>
+              <div className="truncate">
                 <p className="text-sm font-bold">{member.email}</p>
                 <p className="text-[10px] uppercase font-black tracking-widest text-zinc-600">{member.role}</p>
               </div>
