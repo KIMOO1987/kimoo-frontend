@@ -98,3 +98,44 @@ export async function adminForceResetPassword(userId: string, newPassword: strin
   if (error) throw error
   return data.user
 }
+
+/**
+ * User submits a request for manual intervention
+ */
+export async function submitManualResetRequest(formData: FormData) {
+  const cookieStore = await cookies()
+  const email = formData.get('email') as string
+  const fullName = formData.get('fullName') as string
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: () => {}, // No session needed for insert
+      },
+    }
+  )
+
+  // 1. Find the user ID by email (optional, helps tracking)
+  const { data: userData } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .single();
+
+  // 2. Insert request
+  const { error } = await supabase
+    .from('password_reset_requests')
+    .insert({
+      email,
+      full_name: fullName || 'Unknown Trader',
+      user_id: userData?.id || null,
+      status: 'pending'
+    });
+
+  if (error) redirect('/forgot-password?error=Failed to submit request');
+
+  redirect('/forgot-password?success=Support request sent. A moderator will contact you.');
+}
