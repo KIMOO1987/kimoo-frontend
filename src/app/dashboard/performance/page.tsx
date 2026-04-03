@@ -293,7 +293,7 @@ function StatCard({ label, value, icon, color }: any) {
   return (
     <motion.div 
       whileHover={{ y: -5 }}
-      className="bg-[#0a0a0a] border border-white/5 p-6 rounded-[2rem] shadow-xl"
+      className="bg-[#0a0a0a] border border-white/5 p-5 md:p-6 rounded-2xl md:rounded-[2rem] shadow-xl"
     >
       <div className={`${color} mb-3 opacity-80`}>{icon}</div>
       <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{label}</p>

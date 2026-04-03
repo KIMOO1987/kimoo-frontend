@@ -80,12 +80,12 @@ export default function BacktestPage() {
   }
 
   return (
-    <AccessGuard requiredTier={3} tierName="Ultimate Member">
-      <div className="p-8 lg:p-12 bg-[#05070a] min-h-screen text-white font-sans">
+    <AccessGuard requiredTier={2} tierName="Pro / Yearly">
+      <div className="p-4 md:p-8 lg:p-12 bg-[#05070a] min-h-screen text-white font-sans">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-10 md:mb-12">
           <div>
-            <h1 className="text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase">
+            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase">
               Strategy <span className="text-blue-500">Backtest</span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-3">
@@ -105,7 +105,7 @@ export default function BacktestPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar Inputs */}
           <div className="space-y-6">
-            <div className="bg-[#0a0a0a] border border-white/5 p-6 rounded-[2rem] space-y-6">
+            <div className="bg-[#0a0a0a] border border-white/5 p-5 md:p-6 rounded-2xl md:rounded-[2rem] space-y-6">
               <div className="flex items-center gap-2 text-zinc-500 border-b border-white/5 pb-4">
                 <Settings2 size={14} />
                 <h3 className="text-[10px] font-black uppercase tracking-widest">Parameters</h3>
@@ -155,7 +155,7 @@ export default function BacktestPage() {
                 <ResultCard label="Strategy Accuracy" value={results ? `${results.winRate}%` : "0%"} icon={<Target size={20}/>} color="text-purple-500" />
             </div>
 
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-8 md:p-12 min-h-[500px] flex flex-col justify-between overflow-hidden">
+            <div className="bg-[#0a0a0a] border border-white/5 rounded-3xl md:rounded-[2.5rem] p-5 md:p-12 min-h-[500px] flex flex-col justify-between overflow-hidden">
               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 mb-12">Equity Growth Curve (Real-Time)</h4>
               
               <div className="flex-1 flex items-end gap-1 min-h-[250px]">
@@ -212,7 +212,7 @@ export default function BacktestPage() {
 // Sub-components
 function ResultCard({ label, value, icon, color }: any) {
   return (
-    <div className="bg-[#0a0a0a] border border-white/5 p-8 rounded-[2rem] flex items-center justify-between group">
+    <div className="bg-[#0a0a0a] border border-white/5 p-6 md:p-8 rounded-2xl md:rounded-[2rem] flex items-center justify-between group">
       <div>
         <p className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-2">{label}</p>
         <p className={`text-3xl font-black tracking-tighter italic ${color}`}>{value}</p>

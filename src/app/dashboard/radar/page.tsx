@@ -66,7 +66,7 @@ export default function RadarPage() {
   }
 
   return (
-    <AccessGuard requiredTier={2} tierName="Pro Member">
+    <AccessGuard requiredTier={1} tierName="Active Member">
       <div className="p-4 md:p-8 lg:p-12 bg-[#05070a] min-h-screen text-white">
         {/* Header */}
         <div className="flex justify-between items-start mb-8 md:mb-12">
@@ -176,7 +176,7 @@ export default function RadarPage() {
 
           {/* Right: Visual Radar Circle */}
           <div className="space-y-6">
-            <div className="bg-[#0a0a0a] border border-white/5 p-10 flex flex-col items-center justify-center aspect-square relative rounded-2xl md:rounded-[2rem] overflow-hidden">
+            <div className="bg-[#0a0a0a] border border-white/5 p-6 md:p-10 flex flex-col items-center justify-center aspect-square relative rounded-2xl md:rounded-[2rem] overflow-hidden">
               <div className="absolute inset-4 border border-blue-500/5 rounded-full" />
               <div className="absolute inset-12 border border-blue-500/10 rounded-full" />
               <div className="absolute inset-0 border border-blue-500/5 rounded-full animate-[spin_6s_linear_infinite] pointer-events-none">

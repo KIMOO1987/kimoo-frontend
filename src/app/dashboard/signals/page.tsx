@@ -67,7 +67,7 @@ const SignalCard = ({ signal }: { signal: any }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="bg-[#0a0a0a] border border-white/5 rounded-[2rem] p-6 shadow-2xl hover:border-blue-500/20 transition-all group"
+      className="bg-[#0a0a0a] border border-white/5 rounded-2xl md:rounded-[2rem] p-5 md:p-6 shadow-2xl hover:border-blue-500/20 transition-all group"
     >
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center gap-3">
@@ -216,7 +216,7 @@ export default function SignalsPage() {
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-12">
           <div className="text-left">
-            <h1 className="text-4xl font-black tracking-tighter italic text-white uppercase">
+            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic text-white uppercase">
               Alpha <span className="text-blue-500">Terminal</span>
             </h1>
             <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.4em] mt-2 leading-none">
@@ -279,7 +279,7 @@ export default function SignalsPage() {
 
         {/* Empty State */}
         {filteredSignals.length === 0 && !loading && (
-          <div className="py-32 flex flex-col items-center justify-center space-y-4 border border-dashed border-white/5 rounded-[3rem]">
+          <div className="py-20 md:py-32 flex flex-col items-center justify-center space-y-4 border border-dashed border-white/5 rounded-3xl md:rounded-[3rem]">
             <Activity size={40} className="text-zinc-800 animate-pulse" />
             <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.5em]">
               No Signal Data Found

@@ -22,7 +22,7 @@ import {
  */
 function MetricTile({ label, value, icon, color }: any) {
   return (
-    <div className="bg-[#0a0a0a] border border-white/5 p-6 rounded-[2rem] flex items-center gap-4 hover:border-white/10 transition-all cursor-default">
+    <div className="bg-[#0a0a0a] border border-white/5 p-5 md:p-6 rounded-2xl md:rounded-[2rem] flex items-center gap-4 hover:border-white/10 transition-all cursor-default">
       <div className={`p-3 rounded-xl bg-white/5 ${color}`}>{icon}</div>
       <div>
         <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">{label}</p>
@@ -123,11 +123,11 @@ export default function SymbolAudit() {
   }
 
   return (
-    <AccessGuard requiredTier={2} tierName="Pro Member">
-      <div className="p-8 max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <AccessGuard requiredTier={3} tierName="Lifetime Pro">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 md:mb-8">
           <div>
-            <h2 className="text-3xl font-black tracking-tighter italic text-white uppercase">Symbol Audit</h2>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tighter italic text-white uppercase">Symbol Audit</h2>
             <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em]">Historical Signal Intelligence</p>
           </div>
           
@@ -145,14 +145,14 @@ export default function SymbolAudit() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-[#0a0a0a] border border-white/5 p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl shadow-black/50">
-              <div className="flex justify-between items-start mb-10">
+            <div className="bg-[#0a0a0a] border border-white/5 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] relative overflow-hidden shadow-2xl shadow-black/50">
+              <div className="flex justify-between items-start mb-8 md:mb-10">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
                     <BarChart3 size={24} />
                   </div>
                   <div>
-                    <h3 className="text-4xl font-black tracking-tighter text-white italic">{symbol || '---'}</h3>
+                    <h3 className="text-2xl md:text-4xl font-black tracking-tighter text-white italic">{symbol || '---'}</h3>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`w-2 h-2 rounded-full ${loading ? 'bg-zinc-700 animate-pulse' : 'bg-blue-500'}`} />
                       <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
@@ -240,7 +240,7 @@ export default function SymbolAudit() {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-[#0a0a0a] border border-white/5 p-6 rounded-[2rem]">
+            <div className="bg-[#0a0a0a] border border-white/5 p-5 md:p-6 rounded-2xl md:rounded-[2rem]">
               <h4 className="text-[11px] font-black text-white uppercase tracking-widest mb-6 border-b border-white/5 pb-4">Audit Parameters</h4>
               <div className="space-y-4">
                   <LogicItem label="Volume Clustering" status={auditData ? "PASS" : "WAIT"} />
@@ -249,7 +249,7 @@ export default function SymbolAudit() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 rounded-[2.5rem] text-white relative overflow-hidden group shadow-2xl shadow-blue-900/20">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] text-white relative overflow-hidden group shadow-2xl shadow-blue-900/20">
                <div className="relative z-10">
                  <h4 className="text-xl font-black italic mb-2 uppercase">Pro Insights</h4>
                  <p className="text-xs font-bold opacity-80 mb-6 leading-tight">

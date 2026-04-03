@@ -108,9 +108,9 @@ export default function PaymentsPage() {
   );
 
   return (
-    <div className="p-8 lg:p-12 bg-[#05070a] min-h-screen text-white">
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-black tracking-tighter italic text-white uppercase">
+    <div className="p-4 md:p-8 lg:p-12 bg-[#05070a] min-h-screen text-white">
+      <div className="text-center mb-10 md:mb-16">
+        <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic text-white uppercase">
           Upgrade to <span className="text-blue-500">Pro</span>
         </h1>
         <p className="text-[10px] uppercase tracking-[0.5em] text-zinc-600 font-bold mt-4">
@@ -123,7 +123,7 @@ export default function PaymentsPage() {
           <div 
             key={plan.id} 
             onClick={() => setSelectedPlan(plan)}
-            className={`crt-card p-10 flex flex-col relative cursor-pointer transition-all duration-300 border rounded-[40px] ${
+            className={`crt-card p-6 md:p-10 flex flex-col relative cursor-pointer transition-all duration-300 border rounded-3xl md:rounded-[40px] ${
               selectedPlan?.id === plan.id 
               ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-500/[0.05]' 
               : plan.is_recommended ? 'border-white/10 bg-white/[0.01]' : 'border-white/5 bg-transparent'
@@ -162,7 +162,7 @@ export default function PaymentsPage() {
 
       {selectedPlan && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="crt-card w-full max-w-xl p-8 bg-[#0a0c10] border border-blue-500/30 rounded-[40px] shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="crt-card w-full max-w-xl p-6 md:p-8 bg-[#0a0c10] border border-blue-500/30 rounded-3xl md:rounded-[40px] shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h2 className="text-xl font-black italic tracking-tighter uppercase">Checkout</h2>

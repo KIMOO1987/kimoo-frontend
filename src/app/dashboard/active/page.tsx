@@ -53,12 +53,12 @@ export default function ActiveSignalsPage() {
 
   return (
     <AccessGuard requiredTier={1} tierName="Alpha">
-      <div className="p-8 max-w-7xl mx-auto space-y-8">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
         
         {/* Header Section */}
-        <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div className="mb-8 md:mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h2 className="text-4xl font-black tracking-tighter italic text-white uppercase">
+            <h2 className="text-2xl md:text-4xl font-black tracking-tighter italic text-white uppercase">
               Active <span className="text-blue-500 text-3xl not-italic">Signals</span>
             </h2>
             <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.4em] mt-2 italic">
@@ -84,7 +84,7 @@ export default function ActiveSignalsPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-8 hover:border-blue-500/30 transition-all group relative overflow-hidden flex flex-col justify-between min-h-[450px]"
+                  className="bg-[#0a0a0a] border border-white/5 rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 hover:border-blue-500/30 transition-all group relative overflow-hidden flex flex-col justify-between min-h-[450px]"
                 >
                   <div className={`absolute -top-24 -right-24 w-48 h-48 blur-[100px] opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity ${
                     signal.side === 'BUY' ? 'bg-green-500' : 'bg-red-500'
@@ -130,7 +130,7 @@ export default function ActiveSignalsPage() {
                 </motion.div>
               ))
             ) : !loadingSignals && (
-              <motion.div className="col-span-full py-32 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[3rem] bg-white/[0.01]">
+              <motion.div className="col-span-full py-20 md:py-32 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-3xl md:rounded-[3rem] bg-white/[0.01]">
                 <Activity size={48} className="text-zinc-800 mb-6 animate-pulse" />
                 <p className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.5em]">Awaiting Order Block Displacement...</p>
               </motion.div>

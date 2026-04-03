@@ -89,7 +89,7 @@ export default function SignalHistoryPage() {
             <h2 className="text-3xl md:text-4xl font-black tracking-tighter italic text-white uppercase">
               Signal <span className="text-blue-500">Archive</span>
             </h2>
-            <p className="text-zinc-500 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] md:tracking-[0.4em] mt-2">
+            <p className="text-zinc-500 text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-2">
               Historical CRT Data & Outcome Logs
             </p>
           </div>
