@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User, Mail, MapPin, Globe, ShieldCheck, 
-  RefreshCcw, Save, CheckCircle2, AlertCircle, Star, Clock 
+  RefreshCcw, Save, CheckCircle2, AlertCircle, Star, Clock, Lock 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function ProfileClient({ initialData, tier, expiryDate }: any) {
   const [loading, setLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   const [formData, setFormData] = useState({
@@ -17,6 +18,12 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
     email: initialData?.email || '',
     country: initialData?.country || '',
     address: initialData?.address || ''
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
 
   // Days calculation logic
@@ -47,6 +54,45 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
       setTimeout(() => setMessage(null), 3000);
     }
     setLoading(false);
+  };
+
+  const handlePasswordChange = async () => {
+    if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setMessage({ type: 'error', text: 'All security fields are required.' });
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setMessage({ type: 'error', text: 'New passwords do not match.' });
+      return;
+    }
+
+    setPasswordLoading(true);
+    setMessage(null);
+
+    try {
+      // 1. Verify old password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: initialData.email,
+        password: passwordData.oldPassword,
+      });
+
+      if (signInError) throw new Error('Verification failed: Incorrect old password.');
+
+      // 2. Update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+
+      if (updateError) throw updateError;
+
+      setMessage({ type: 'success', text: 'Security credentials rotated successfully.' });
+      setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   return (
@@ -141,6 +187,44 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
                 {loading ? 'Processing Sync...' : 'Save Identity Changes'}
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Password Change Section */}
+        <div className="lg:col-span-12">
+          <div className="crt-card p-8 border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
+            <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2">
+              <Lock size={14} className="text-red-500" /> Security Credentials
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Old Password</label>
+                <div className="relative">
+                  <input type="password" placeholder="••••••••" className="crt-input w-full pl-10" value={passwordData.oldPassword} onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})} />
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">New Password</label>
+                <div className="relative">
+                  <input type="password" placeholder="••••••••" className="crt-input w-full pl-10" value={passwordData.newPassword} onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})} />
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Re-enter Password</label>
+                <div className="relative">
+                  <input type="password" placeholder="••••••••" className="crt-input w-full pl-10" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})} />
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
+                </div>
+              </div>
+            </div>
+
+            <button onClick={handlePasswordChange} disabled={passwordLoading} className="w-full mt-8 py-4 bg-zinc-800 hover:bg-red-900/20 border border-white/5 hover:border-red-500/50 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-3 group">
+              {passwordLoading ? <RefreshCcw size={14} className="animate-spin" /> : <Lock size={14} className="group-hover:text-red-500" />}
+              {passwordLoading ? 'Rotating Keys...' : 'Update Security Credentials'}
+            </button>
           </div>
         </div>
 
