@@ -188,7 +188,6 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
               </button>
             </div>
           </div>
-        </div>
 
           <div className="crt-card p-6 border-blue-500/20 bg-blue-500/[0.02]">
             <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mb-4">Security Notice</h4>
@@ -196,6 +195,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
               Identity details are verified for billing and localization.
             </p>
           </div>
+        </div>
 
         <div className="lg:col-span-5 space-y-6">
           {/* Password Change Section */}
