@@ -117,9 +117,32 @@ export default function BacktestPage() {
                   <option value="ALL">ALL PAIRS</option>
                   <option value="EURUSD">EURUSD</option>
                   <option value="GBPUSD">GBPUSD</option>
+                  <option value="USDJPY">USDJPY</option>
+                  <option value="GBPJPY">GBPJPY</option>
+                  <option value="AUDUSD">AUDUSD</option>
+                  <option value="EURJPY">EURJPY</option>
+                  <option value="NZDUSD">NZDUSD</option>
+                  <option value="CHFJPY">CHFJPY</option>
                   <option value="XAUUSD">XAUUSD</option>
+                  <option value="XAGUSD">XAGUSD</option>
+                  <option value="XPTUSD">XPTUSD</option>
+                  <option value="XCUUSD">XCUUSD</option>
+                  <option value="US100">US100</option>
+                  <option value="US500">US500</option>
+                  <option value="US30">US30</option>
                   <option value="BTCUSDT">BTCUSDT</option>
-                  {/* ... other options */}
+                  <option value="SOLUSDT">SOLUSDT</option>
+                  <option value="XRPUSDT">XRPUSDT</option>
+                  <option value="BNBUSDT">BNBUSDT</option>
+                  <option value="ETHUSDT">ETHUSDT</option>
+                  <option value="TAOUSDT">TAOUSDT</option>
+                  <option value="ADAUSDT">ADAUSDT</option>
+                  <option value="DOGEUSDT">DOGEUSDT</option>
+                  <option value="AVAXUSDT">AVAXUSDT</option>
+                  <option value="DOTUSDT">DOTUSDT</option>
+                  <option value="NEARUSDT">NEARUSDT</option>
+                  <option value="LTCUSDT">LTCUSDT</option>
+                  <option value="TRXUSDT">TRXUSDT</option>
                 </select>
               </div>
 
