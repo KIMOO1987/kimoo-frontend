@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   // 2. FETCH USER PROFILE DATA (Updated to include tier and role)
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('tier, role, plan_type, expiry_date, full_name, country, email, account_size')
+    .select('id, tier, role, plan_type, expiry_date, full_name, country, email, account_size, risk_value, reward_value')
     .eq('id', user.id)
     .single();
 
@@ -53,9 +53,11 @@ export default async function DashboardPage() {
         tier: 0,
         role: 'user',
         full_name: 'TRADER',
-        account_size: 100000
+        account_size: 100000,
+        risk_value: 1.0,
+        reward_value: 2.0
       })
-      .select('tier, role, expiry_date, full_name, country, email, account_size')
+      .select('id, tier, role, expiry_date, full_name, country, email, account_size, risk_value, reward_value')
       .single();
     
     activeProfile = newProfile;
