@@ -13,9 +13,9 @@ function ForgotPasswordContent() {
   const success = searchParams.get('success');
 
   return (
-    <div className="crt-card w-full max-w-md p-10 relative overflow-hidden">
+    <div className="crt-card w-full max-w-md p-6 md:p-10 relative overflow-hidden">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter text-white uppercase">Access <span className="text-blue-500">Recovery</span></h1>
+        <h1 className="text-2xl md:text-3xl font-black italic tracking-tighter text-white uppercase">Access <span className="text-blue-500">Recovery</span></h1>
         <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-2">Instructional Flow</p>
       </div>
 
