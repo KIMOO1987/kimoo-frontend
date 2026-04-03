@@ -1,68 +1,37 @@
 "use client";
 
-import { requestPasswordReset, submitManualResetRequest } from '../login/actions';
+import { requestPasswordReset } from '../login/actions';
 import { useFormStatus } from 'react-dom';
-import { Mail, Loader2, ArrowLeft, User, HelpCircle } from 'lucide-react';
+import { Mail, Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense } from 'react';
 
 function ForgotPasswordContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
   const success = searchParams.get('success');
-  const [mode, setMode] = useState<'email' | 'manual'>('email');
 
   return (
-    <div className="crt-card w-full max-w-md p-10 relative overflow-hidden">
+    <div className="crt-card w-full max-w-md p-6 md:p-10 relative overflow-hidden">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter text-white uppercase">Access <span className="text-blue-500">Recovery</span></h1>
+        <h1 className="text-2xl md:text-3xl font-black italic tracking-tighter text-white uppercase">Access <span className="text-blue-500">Recovery</span></h1>
         <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-2">Instructional Flow</p>
       </div>
 
       {error && <p className="bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] p-3 rounded-lg mb-6 uppercase font-black text-center">{error}</p>}
       {success && <p className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] p-3 rounded-lg mb-6 uppercase font-black text-center">{success}</p>}
 
-      {mode === 'email' ? (
-        <form action={requestPasswordReset} className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 tracking-widest">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
-              <input name="email" type="email" required placeholder="operator@kimoo.com" className="crt-input w-full pl-12" />
-            </div>
+      <form action={requestPasswordReset} className="space-y-5">
+        <div className="space-y-2">
+          <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 tracking-widest">Email Address</label>
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
+            <input name="email" type="email" required placeholder="operator@kimoo.com" className="crt-input w-full pl-12" />
           </div>
-          <SubmitButton text="Request Reset Link" />
-          <button 
-            type="button" 
-            onClick={() => setMode('manual')}
-            className="w-full text-center text-[9px] uppercase font-black text-zinc-600 hover:text-blue-400 mt-4 transition-colors"
-          >
-            Email not arriving? Request manual help
-          </button>
-        </form>
-      ) : (
-        <form action={submitManualResetRequest} className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 tracking-widest">Full Name</label>
-            <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
-              <input name="fullName" type="text" required placeholder="TRADER NAME" className="crt-input w-full pl-12" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 tracking-widest">Verified Email</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
-              <input name="email" type="email" required placeholder="operator@kimoo.com" className="crt-input w-full pl-12" />
-            </div>
-          </div>
-          <SubmitButton text="Submit Ticket to Admin" />
-          <button type="button" onClick={() => setMode('email')} className="w-full text-center text-[9px] uppercase font-black text-zinc-600 hover:text-blue-400 mt-4 transition-colors">
-            Back to automatic reset
-          </button>
-        </form>
-      )}
+        </div>
+        <SubmitButton />
+      </form>
 
       <div className="mt-10 pt-8 border-t border-white/5 flex flex-col items-center">
         <Link href="/login" className="flex items-center gap-2 text-zinc-500 hover:text-white transition-all">
@@ -84,11 +53,11 @@ export default function ForgotPasswordPage() {
   );
 }
 
-function SubmitButton({ text = "Request Reset Link" }: { text?: string }) {
+function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <button type="submit" disabled={pending} className="crt-btn-primary w-full flex items-center justify-center gap-2 py-4 mt-4 relative overflow-hidden group">
-      {pending ? <Loader2 className="animate-spin" size={16} /> : <span className="relative z-10 uppercase font-black tracking-widest text-[11px]">{text}</span>}
+      {pending ? <Loader2 className="animate-spin" size={16} /> : <span className="relative z-10 uppercase font-black tracking-widest text-[11px]">Request Reset Link</span>}
     </button>
   );
 }
