@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { adminForceResetPassword } from '@/app/login/actions';
-import { Loader2, Mail, Lock, CheckCircle2, User } from 'lucide-react';
+import { Loader2, Mail, Lock, CheckCircle2, User, XCircle } from 'lucide-react';
 
 export default function PasswordResets() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -36,6 +36,18 @@ export default function PasswordResets() {
     }
   };
 
+  const handleRejectRequest = async (requestId: string) => {
+    if (!confirm("Are you sure you want to reject this recovery request?")) return;
+
+    try {
+      const { error } = await supabase.from('password_reset_requests').update({ status: 'rejected' }).eq('id', requestId);
+      if (error) throw error;
+      setRequests(requests.filter(r => r.id !== requestId));
+    } catch (err: any) {
+      alert("Error rejecting request: " + err.message);
+    }
+  };
+
   if (loading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-blue-500" /></div>;
 
   return (
@@ -65,12 +77,20 @@ export default function PasswordResets() {
                   <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest mt-1">{req.email}</p>
                 </div>
               </div>
-              <button 
-                onClick={() => handleManualReset(req.id, req.user_id, req.email)}
-                className="w-full md:w-auto bg-white text-black hover:bg-red-500 hover:text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
-              >
-                Force Rotate Access Key
-              </button>
+              <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                <button 
+                  onClick={() => handleRejectRequest(req.id)}
+                  className="w-full md:w-auto px-6 py-4 text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-red-500 transition-all flex items-center justify-center gap-2"
+                >
+                  <XCircle size={14} /> Reject Ticket
+                </button>
+                <button 
+                  onClick={() => handleManualReset(req.id, req.user_id, req.email)}
+                  className="w-full md:w-auto bg-white text-black hover:bg-red-500 hover:text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  Force Rotate Access Key
+                </button>
+              </div>
             </div>
           ))
         )}

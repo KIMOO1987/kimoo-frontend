@@ -1,90 +1,106 @@
 "use client";
-import { useEffect, useState, use } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Save, User, Mail, Shield, Calendar, Wallet, Percent, TrendingUp, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+import { Save, User, Calendar, TrendingUp, Loader2, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-export default function UserDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+import { createAdminUser } from '@/app/admin/(protected)/users/actions';
+export default function NewUserPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>({
+    full_name: '',
+    email: '',
+    password: '',
+    role: 'user',
+    tier: 0,
+    is_pro: false,
+    plan_type: 'free',
+    subscription_type: 'free',
+    subscription_status: 'free',
+    expiry_date: null,
+    account_size: '0',
+    risk_value: '1.0',
+    reward_value: '2.0',
+    country: '',
+    address: '',
+    age: 0,
+  });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
-      if (data) setUser(data);
-      setLoading(false);
-    };
-    fetchUser();
-  }, [id]);
+  const handleCreate = async () => {
+    if (!user.email || !user.password) {
+      alert("Email and Password are required to create an Authentication record.");
+      return;
+    }
 
-  const handleUpdate = async () => {
     setSaving(true);
     
-    const updateData = {
-      full_name: user.full_name,
-      email: user.email,
-      role: user.role,
+    // 1. Call the Server Action to create the Auth record
+    const { user: authUser, error: authError } = await createAdminUser(user);
+
+    if (authError || !authUser) {
+      alert(`Authentication Error: ${authError}`);
+      setSaving(false);
+      return;
+    }
+
+    // 2. Use the ID from the newly created Auth user for the profile
+    const { password: _, ...profileData } = user;
+    const insertData = {
+      ...profileData,
+      id: authUser.id, 
       tier: Number(user.tier),
       is_pro: user.is_pro === true || user.is_pro === 'true',
-      plan_type: user.plan_type,
-      subscription_type: user.subscription_type,
-      subscription_status: user.subscription_status,
-      expiry_date: user.expiry_date || null, // Convert "" to null for database
+      age: Number(user.age) || 0,
       account_size: user.account_size?.toString() || '0',
       risk_value: user.risk_value?.toString() || '1.0',
       reward_value: user.reward_value?.toString() || '2.0',
-      // New Identity Fields
-      country: user.country,
-      address: user.address,
-      age: Number(user.age) || 0
+      expiry_date: user.expiry_date || null,
     };
     
-    const { data, error } = await supabase.from('profiles').update(updateData).eq('id', id).select();
+    // Use upsert instead of insert to handle cases where a database trigger 
+    // might have already created the profile row upon auth user creation.
+    const { data, error } = await supabase.from('profiles').upsert(insertData).select();
     
     if (error) {
-      alert(`Sync Error: ${error.message}`);
+      alert(`Creation Error: ${error.message}`);
     } else if (!data || data.length === 0) {
-      alert("Sync Failed: No records were updated. Check permissions or ID.");
+      alert("Creation Failed: No record was created.");
     } else {
-      alert("Member profile synchronized with database.");
+      alert("New member profile created successfully.");
+      // Redirect to the newly created user's edit page
+      router.push(`/admin/users/${data[0].id}`);
     }
     setSaving(false);
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-blue-500" /></div>;
-
   return (
     <div className="p-4 md:p-12 bg-[#05070a] min-h-screen text-white">
       <div className="max-w-4xl mx-auto">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-zinc-500 hover:text-white transition-all mb-8 uppercase font-black text-[10px] tracking-widest">
-          <ArrowLeft size={14} /> Identity Registry
+        <button onClick={() => router.push('/admin/users')} className="flex items-center gap-2 text-zinc-500 hover:text-white transition-all mb-8 uppercase font-black text-[10px] tracking-widest">
+          <ArrowLeft size={14} /> Back to Users
         </button>
 
         <div className="flex justify-between items-end mb-12">
           <div>
-            <h1 className="text-3xl font-black italic uppercase tracking-tighter">Edit <span className="text-blue-500">Member</span></h1>
-            <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-[0.3em] mt-2 italic">{user.id}</p>
+            <h1 className="text-3xl font-black italic uppercase tracking-tighter">Add <span className="text-blue-500">New Member</span></h1>
           </div>
           <button 
-            onClick={handleUpdate} 
+            onClick={handleCreate} 
             disabled={saving}
             className="bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all shadow-xl shadow-blue-900/20"
           >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Sync Changes
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Create Member
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Identity Block - Now includes Country and Address */}
+          {/* Identity Block */}
           <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-6">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2"><User size={14}/> Core Identity</h3>
             <div className="space-y-4">
               <InputField label="Full Name" value={user.full_name} onChange={(v: string) => setUser({...user, full_name: v})} />
               <InputField label="Email Address" value={user.email} onChange={(v: string) => setUser({...user, email: v})} />
+              <InputField label="Initial Password" type="password" value={user.password} onChange={(v: string) => setUser({...user, password: v})} />
               <div className="grid grid-cols-2 gap-4">
                 <SelectField 
                   label="Access Role" 
@@ -107,7 +123,7 @@ export default function UserDetail({ params }: { params: Promise<{ id: string }>
             </div>
           </div>
 
-          {/* Subscription Block - Now includes all status flags */}
+          {/* Subscription Block */}
           <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] space-y-6">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2"><Calendar size={14}/> Subscription Meta</h3>
             <div className="space-y-4">

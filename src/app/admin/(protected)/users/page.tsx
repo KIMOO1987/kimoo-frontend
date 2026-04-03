@@ -1,13 +1,15 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, User, ChevronRight, Loader2, Filter } from 'lucide-react';
+import { Search, User, ChevronRight, Loader2, Filter, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { removeUserAction } from './actions';
 
 export default function FreeUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [removingUserId, setRemovingUserId] = useState<string | null>(null); // State to track which user is being removed
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -21,6 +23,25 @@ export default function FreeUsers() {
     };
     fetchUsers();
   }, []);
+
+  const handleRemoveUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to remove this user? This action cannot be undone.')) {
+      return;
+    }
+    setRemovingUserId(userId);
+    try {
+      // Call the server action to remove user from both profiles and auth.users
+      await removeUserAction(userId);
+
+      // Update local state
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+    } catch (error: any) {
+      console.error('Error removing user:', error.message);
+      alert(`Failed to remove user: ${error.message}`);
+    } finally {
+      setRemovingUserId(null);
+    }
+  };
 
   const filtered = users.filter(u => u.email?.toLowerCase().includes(query.toLowerCase()) || u.full_name?.toLowerCase().includes(query.toLowerCase()));
 
@@ -46,23 +67,35 @@ export default function FreeUsers() {
 
       <div className="grid gap-4 max-w-5xl mx-auto">
         {filtered.map(user => (
-          <Link key={user.id} href={`/admin/users/${user.id}`}>
-            <div className="bg-white/[0.01] border border-white/5 p-6 rounded-[2rem] flex items-center justify-between hover:bg-white/[0.03] hover:border-blue-500/20 transition-all group">
-              <div className="flex items-center gap-5">
-                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-700">
-                  <User size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold">{user.full_name || 'TRADER'}</p>
-                  <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest mt-1">{user.email}</p>
-                </div>
+          <div key={user.id} className="bg-white/[0.01] border border-white/5 p-6 rounded-[2rem] flex items-center justify-between hover:bg-white/[0.03] hover:border-blue-500/20 transition-all group">
+            <Link href={`/admin/users/${user.id}`} className="flex items-center gap-5 flex-grow"> {/* Make Link wrap the main content */}
+              <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-700">
+                <User size={20} />
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest bg-blue-500/5 border border-blue-500/10 px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">Promote Operator</span>
-                <ChevronRight size={18} className="text-zinc-800 group-hover:text-blue-500" />
+              <div>
+                <p className="text-sm font-bold">{user.full_name || 'TRADER'}</p>
+                <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest mt-1">{user.email}</p>
               </div>
+            </Link>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent Link navigation
+                  handleRemoveUser(user.id);
+                }}
+                className="text-[8px] font-black text-red-500 uppercase tracking-widest bg-red-500/5 border border-red-500/10 px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+                disabled={removingUserId === user.id}
+              >
+                {removingUserId === user.id ? (
+                  <Loader2 className="animate-spin" size={10} />
+                ) : (
+                  <Trash2 size={10} />
+                )}
+                Remove
+              </button>
+              <ChevronRight size={18} className="text-zinc-800 group-hover:text-blue-500" />
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

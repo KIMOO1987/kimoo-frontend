@@ -1,19 +1,23 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, User, ShieldCheck, ChevronRight, Loader2, Crown, Zap, Star } from 'lucide-react';
+import { Search, User, ShieldCheck, ChevronRight, Loader2, Crown, Zap, Star, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { removeUserAction } from '../users/actions';
+
 
 export default function PremiumUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [removingUserId, setRemovingUserId] = useState<string | null>(null); // State to track which user is being removed
 
   useEffect(() => {
     const fetchUsers = async () => {
       const { data } = await supabase
         .from('profiles')
         .select('*')
+        .eq('role', 'USER')
         .gt('tier', 0)
         .order('tier', { ascending: false });
       if (data) setUsers(data);
@@ -21,6 +25,25 @@ export default function PremiumUsers() {
     };
     fetchUsers();
   }, []);
+
+  const handleRemoveUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to remove this user? This action cannot be undone.')) {
+      return;
+    }
+    setRemovingUserId(userId);
+    try {
+      // Call the server action to remove user from both profiles and auth.users
+      await removeUserAction(userId);
+
+      // Update local state
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+    } catch (error: any) {
+      console.error('Error removing user:', error.message);
+      alert(`Failed to remove user: ${error.message}`);
+    } finally {
+      setRemovingUserId(null);
+    }
+  };
 
   const filtered = users.filter(u => u.email?.toLowerCase().includes(query.toLowerCase()) || u.full_name?.toLowerCase().includes(query.toLowerCase()));
 
@@ -46,20 +69,35 @@ export default function PremiumUsers() {
 
       <div className="grid gap-4 max-w-5xl mx-auto">
         {filtered.map(user => (
-          <Link key={user.id} href={`/admin/users/${user.id}`}>
-            <div className="bg-white/[0.01] border border-white/5 p-6 rounded-[2rem] flex items-center justify-between hover:bg-white/[0.03] hover:border-blue-500/20 transition-all group">
-              <div className="flex items-center gap-5">
-                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-500 group-hover:text-blue-500 transition-colors">
-                  <User size={20} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm font-bold">{user.full_name || 'Anonymous Operator'}</p>
-                    <TierBadge tier={user.tier} />
-                  </div>
-                  <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest mt-1">{user.email}</p>
-                </div>
+          <div key={user.id} className="bg-white/[0.01] border border-white/5 p-6 rounded-[2rem] flex items-center justify-between hover:bg-white/[0.03] hover:border-blue-500/20 transition-all group">
+            <Link href={`/admin/users/${user.id}`} className="flex items-center gap-5 flex-grow"> {/* Make Link wrap the main content */}
+              <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-500 group-hover:text-blue-500 transition-colors">
+                <User size={20} />
               </div>
+              <div>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm font-bold">{user.full_name || 'Anonymous Member'}</p>
+                  <TierBadge tier={user.tier} />
+                </div>
+                <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest mt-1">{user.email}</p>
+              </div>
+            </Link>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent Link navigation
+                  handleRemoveUser(user.id);
+                }}
+                className="text-[8px] font-black text-red-500 uppercase tracking-widest bg-red-500/5 border border-red-500/10 px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+                disabled={removingUserId === user.id}
+              >
+                {removingUserId === user.id ? (
+                  <Loader2 className="animate-spin" size={10} />
+                ) : (
+                  <Trash2 size={10} />
+                )}
+                Remove
+              </button>
               <div className="flex items-center gap-4">
                 <div className="hidden sm:block text-right">
                   <p className="text-[8px] font-black text-zinc-700 uppercase tracking-widest">Expires</p>
@@ -68,7 +106,7 @@ export default function PremiumUsers() {
                 <ChevronRight size={18} className="text-zinc-800 group-hover:text-blue-500" />
               </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>
