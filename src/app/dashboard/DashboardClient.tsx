@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   TrendingUp, Zap, Star, Activity, BarChart3, Target, 
   ShieldCheck, Clock, Wallet, MessageSquare, Play, RotateCcw,
-  CheckCircle2, XCircle, MinusCircle, Percent
+  CheckCircle2, XCircle, MinusCircle, Percent, Save
 } from 'lucide-react';
 
 interface DashboardClientProps {
@@ -16,8 +16,9 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ tier, expiryDate, userProfile }: DashboardClientProps) {
   const [accountSize, setAccountSize] = useState(userProfile?.account_size || 10000); 
-  const [riskValue, setRiskValue] = useState(1.0); 
-  const [rewardValue, setRewardValue] = useState(2.0); 
+  const [riskValue, setRiskValue] = useState(userProfile?.risk_value || 1.0); 
+  const [rewardValue, setRewardValue] = useState(userProfile?.reward_value || 2.0); 
+  const [isSaving, setIsSaving] = useState(false);
   
   const [realStats, setRealStats] = useState({
     total: 0,
@@ -52,6 +53,26 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
     const interval = setInterval(fetchData, 30000); 
     return () => clearInterval(interval);
   }, [accountSize, riskValue, rewardValue]);
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          account_size: accountSize,
+          risk_value: riskValue,
+          reward_value: rewardValue
+        })
+        .eq('id', userProfile.id);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error("Save Error:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   async function fetchData() {
     try {
@@ -199,6 +220,22 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                     <span className="text-zinc-500 font-black text-xl ml-1">R</span>
                   </div>
                 </div>
+              </div>
+
+              {/* SAVE BUTTON */}
+              <div className="flex items-end pb-1">
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${
+                    isSaving 
+                      ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
+                  }`}
+                >
+                  <Save size={14} className={isSaving ? 'animate-spin' : ''} />
+                  {isSaving ? 'Saving...' : 'Save Settings'}
+                </button>
               </div>
               
             {/* 1. NEW: PLAN TYPE SECTION */}
