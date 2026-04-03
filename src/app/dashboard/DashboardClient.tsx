@@ -161,13 +161,13 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   }
 
   return (
-    <div className="p-6 md:p-12 lg:p-16 bg-[#05070a] min-h-screen text-white font-sans overflow-x-hidden">
+    <div className="p-4 md:p-12 lg:p-16 bg-[#05070a] min-h-screen text-white font-sans overflow-x-hidden">
       <div className="max-w-[1700px] mx-auto">
         
         {/* HEADER SECTION */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 md:mb-12">
           <div>
-            <h1 className="text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
               Client<span className="text-blue-500">Dashboard</span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-3 leading-none italic">
@@ -177,7 +177,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
         </div>
 
         {/* PROFILE & DYNAMIC INPUTS */}
-        <div className="flex flex-col mb-10 p-6 md:p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-8 shadow-2xl">
+        <div className="flex flex-col mb-6 md:mb-10 p-5 md:p-10 rounded-3xl md:rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-6 md:gap-8 shadow-2xl">
           <div className="w-full">
             <div className="flex flex-wrap items-center gap-4 mb-2">
               <h2 className="text-[7vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
@@ -194,16 +194,16 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
             </div>
 
             {/* EMAIL ADDRESS */}
-            <div className="flex items-center gap-2 mb-10 text-zinc-500">
+            <div className="flex items-center gap-2 mb-6 md:mb-10 text-zinc-500">
               <Mail size={14} className="text-blue-500" />
-              <span className="text-[11px] font-bold tracking-[0.2em] uppercase font-mono">
+              <span className="text-[10px] md:text-[11px] font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase font-mono truncate">
                 {userProfile?.email || 'OFFLINE'}
               </span>
             </div>
             
-            <div className="space-y-10">
+            <div className="space-y-8 md:space-y-10">
               {/* ROW 1: PLAN INFO & ENGINE STATUS */}
-              <div className="flex flex-wrap gap-y-6 gap-x-12 border-b border-white/5 pb-10">
+              <div className="flex flex-wrap gap-y-6 gap-x-8 md:gap-x-12 border-b border-white/5 pb-8 md:pb-10">
                 {/* 1. PLAN TYPE SECTION */}
                 <div className="flex items-center gap-3">
                   <Star size={18} className="text-yellow-500 shrink-0" />
@@ -251,7 +251,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
               </div>
 
               {/* ROW 2: DYNAMIC INPUTS & CONTROLS */}
-              <div className="flex flex-wrap items-end gap-y-6 gap-x-12">
+              <div className="flex flex-wrap items-end gap-y-6 gap-x-8 md:gap-x-12">
               {/* ACCOUNT SIZE INPUT */}
               <div className="flex items-center gap-3">
                 <Wallet size={18} className="text-emerald-500 shrink-0" />
@@ -347,7 +347,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
         </div>
 
         {/* STATS GRID */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-12">
           <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
           <StatCard label="Total Wins" value={realStats.totalWins} icon={<CheckCircle2 size={18}/>} color="text-emerald-400" />
           <StatCard label="Total Losses" value={realStats.totalLosses} icon={<XCircle size={18}/>} color="text-red-500" />
@@ -361,9 +361,9 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
 
         {/* FOOTER FEATURES */}
         <div className="w-full border-t border-white/5 pt-16 mb-20">
-          <h2 className="text-3xl md:text-6xl font-black text-white mb-12 tracking-tighter italic uppercase leading-tight">
+          <h2 className="text-2xl md:text-6xl font-black text-white mb-8 md:mb-12 tracking-tighter italic uppercase leading-tight">
             Institutional <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">CRT Intelligence (+Pro).</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">CRT Intelligence.</span>
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
@@ -380,7 +380,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
 
 function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
   return (
-    <div className="bg-white/[0.02] border border-white/5 p-5 md:p-8 rounded-[2rem] shadow-xl hover:bg-white/[0.04] transition-all">
+    <div className="bg-white/[0.02] border border-white/5 p-4 md:p-8 rounded-3xl md:rounded-[2rem] shadow-xl hover:bg-white/[0.04] transition-all">
       <div className="flex justify-between items-center mb-4">
         <p className="text-[9px] md:text-[10px] font-black text-zinc-600 uppercase tracking-widest italic">{label}</p>
         <div className="text-zinc-700">{icon}</div>
