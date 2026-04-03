@@ -18,6 +18,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   const [accountSize, setAccountSize] = useState(userProfile?.account_size || 10000); 
   const [riskValue, setRiskValue] = useState(userProfile?.risk_value || 1.0); 
   const [rewardValue, setRewardValue] = useState(userProfile?.reward_value || 2.0); 
+  const [timeframe, setTimeframe] = useState('all');
   const [isSaving, setIsSaving] = useState(false);
   
   const [realStats, setRealStats] = useState({
@@ -52,7 +53,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
     fetchData(); 
     const interval = setInterval(fetchData, 30000); 
     return () => clearInterval(interval);
-  }, [accountSize, riskValue, rewardValue]);
+  }, [accountSize, riskValue, rewardValue, timeframe]);
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
@@ -76,8 +77,32 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
 
   async function fetchData() {
     try {
-      const { data: signals } = await supabase.from('signals').select('*');
-      if (!signals || signals.length === 0) return;
+      const { data: allSignals } = await supabase.from('signals').select('*');
+      if (!allSignals || allSignals.length === 0) return;
+
+      const now = new Date();
+      const signals = allSignals.filter(s => {
+        if (timeframe === 'all') return true;
+        const signalDate = new Date(s.created_at || s.timestamp);
+        const diffInDays = (now.getTime() - signalDate.getTime()) / (1000 * 60 * 60 * 24);
+        
+        switch (timeframe) {
+          case 'daily': return diffInDays <= 1;
+          case 'weekly': return diffInDays <= 7;
+          case 'monthly': return diffInDays <= 30;
+          case 'yearly': return diffInDays <= 365;
+          default: return true;
+        }
+      });
+
+      if (signals.length === 0) {
+        setRealStats({
+          total: 0, totalWins: 0, totalLosses: 0, totalBE: 0,
+          winRate: "0%", totalRR: "0.00R", profitUSD: "$0.00",
+          mostProfitable: "---", mostTraded: "---", highWRPair: "---",
+        });
+        return;
+      }
 
       const wins = signals.filter(s => s.status?.toUpperCase().includes('TP'));
       const losses = signals.filter(s => s.status?.toUpperCase() === 'SL');
@@ -218,6 +243,27 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                       className="bg-transparent text-white font-black text-xl w-14 outline-none focus:text-blue-400 text-center" 
                     />
                     <span className="text-zinc-500 font-black text-xl ml-1">R</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* TIMEFRAME SELECTOR */}
+              <div className="flex items-center gap-3">
+                <BarChart3 size={18} className="text-blue-400 shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Result Scope</span>
+                  <div className="flex items-center border-b border-white/10 pb-0.5">
+                    <select 
+                      value={timeframe} 
+                      onChange={(e) => setTimeframe(e.target.value)}
+                      className="bg-transparent text-white font-black text-xl outline-none cursor-pointer hover:text-blue-400 appearance-none pr-4"
+                    >
+                      <option value="all" className="bg-[#05070a]">All Time</option>
+                      <option value="daily" className="bg-[#05070a]">Daily</option>
+                      <option value="weekly" className="bg-[#05070a]">Weekly</option>
+                      <option value="monthly" className="bg-[#05070a]">Monthly</option>
+                      <option value="yearly" className="bg-[#05070a]">Yearly</option>
+                    </select>
                   </div>
                 </div>
               </div>
