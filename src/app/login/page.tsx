@@ -72,7 +72,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <button type="submit" disabled={pending} className="crt-btn-primary w-full flex items-center justify-center gap-2 py-4 mt-4 relative overflow-hidden group">
-      {pending ? <Loader2 className="animate-spin" size={16} /> : <span className="relative z-10 uppercase font-black tracking-widest text-[11px]">Authorize Link</span>}
+      {pending ? <Loader2 className="animate-spin" size={16} /> : <span className="relative z-10 uppercase font-black tracking-widest text-[11px]">SIGN IN</span>}
     </button>
   );
 }
