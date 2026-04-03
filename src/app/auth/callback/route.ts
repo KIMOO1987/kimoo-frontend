@@ -1,4 +1,3 @@
-// app/auth/callback/route.ts
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -6,11 +5,8 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const origin = requestUrl.origin
   
-  // Hardcode your production URL as a fallback if origin is weird
-  const origin = requestUrl.origin; 
-  const type = requestUrl.searchParams.get('type');
-
   if (code) {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -28,18 +24,30 @@ export async function GET(request: Request) {
       }
     )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    // Exchange the code for a session
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error) {
-      // If the URL contains 'recovery' or 'type=recovery', force them to the update page
-      if (type === 'recovery' || requestUrl.toString().includes('recovery')) {
+    if (!error && data.session) {
+      const { session } = data;
+      
+      // LOGIC: Check if the session was created specifically for recovery
+      // This is the most reliable way to detect a password reset
+      const isRecoveryFlow = 
+        requestUrl.searchParams.get('type') === 'recovery' || 
+        requestUrl.toString().includes('recovery') ||
+        session.user?.recovery_sent_at !== null; // Optional: extra check
+
+      if (isRecoveryFlow) {
+        // Use a relative path to ensure Vercel handles it correctly
         return NextResponse.redirect(`${origin}/update-password`)
       }
 
-      return NextResponse.redirect(`${origin}/dashboard`)
+      // Default redirect for signups/logins
+      const next = requestUrl.searchParams.get('next') ?? '/dashboard'
+      return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
-  // If there is an error, check what it is
-  return NextResponse.redirect(`${origin}/login?error=session_not_created`)
+  // If something went wrong, go back to login
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
 }
