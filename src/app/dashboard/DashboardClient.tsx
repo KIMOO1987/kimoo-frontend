@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { 
+import {
   TrendingUp, Zap, Star, Activity, BarChart3, Target, 
   ShieldCheck, Clock, Wallet, MessageSquare, Play, RotateCcw,
-  CheckCircle2, XCircle, MinusCircle, Percent, Save, Mail
+  CheckCircle2, XCircle, MinusCircle, Percent, Save, Mail, TrendingDown
 } from 'lucide-react';
 
 interface DashboardClientProps {
@@ -22,6 +22,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   const [isSaving, setIsSaving] = useState(false);
   
   const [realStats, setRealStats] = useState({
+    // Initialize maxDrawdown
     total: 0,
     totalWins: 0,
     totalLosses: 0,
@@ -32,6 +33,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
     mostProfitable: "---",
     mostTraded: "---",
     highWRPair: "---",
+    maxDrawdown: "0.00R",
   });
 
   // --- NEW TIER LOGIC ---
@@ -44,6 +46,15 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
       default: return 'FREE TRADER';
     }
   };
+
+  // Sync external profile changes to local state if the parent component re-fetches
+  useEffect(() => {
+    if (userProfile) {
+      setAccountSize(userProfile.account_size || 10000);
+      setRiskValue(userProfile.risk_value || 1.0);
+      setRewardValue(userProfile.reward_value || 2.0);
+    }
+  }, [userProfile]);
 
   const daysLeft = expiryDate 
     ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
@@ -77,7 +88,11 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
 
   async function fetchData() {
     try {
-      const { data: allSignals } = await supabase.from('signals').select('*');
+      // Fetch in chronological order so Max Drawdown / Equity Curve is accurate
+      const { data: allSignals } = await supabase.from('signals')
+        .select('*')
+        .order('created_at', { ascending: true });
+        
       if (!allSignals || allSignals.length === 0) return;
 
       const now = new Date();
@@ -100,62 +115,113 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
           total: 0, totalWins: 0, totalLosses: 0, totalBE: 0,
           winRate: "0%", totalRR: "0.00R", profitUSD: "$0.00",
           mostProfitable: "---", mostTraded: "---", highWRPair: "---",
+          maxDrawdown: "0.00R",
         });
         return;
       }
 
-      const wins = signals.filter(s => s.status?.toUpperCase().includes('TP'));
-      const losses = signals.filter(s => s.status?.toUpperCase() === 'SL');
-      const bes = signals.filter(s => s.status?.toUpperCase().includes('BE'));
-      
-      const riskAmountUSD = accountSize * (riskValue / 100); 
+      let totalWinsCount = 0;
+      let totalLossesCount = 0;
+      let totalBECount = 0;
       let totalRRCount = 0;
-      const pairMap: Record<string, { count: number, profit: number, wins: number, closed: number }> = {};
+      let runningR = 0; // For equity curve and max drawdown
+      let peakR = 0;
+      let maxDrawdown = 0;
+
+      const riskAmountUSD = accountSize * (riskValue / 100); 
+      const pairMap: Record<string, { symbol: string, count: number, profit: number, wins: number, losses: number, be: number, closed: number }> = {};
+
+      // Helper function to calculate actual R-multiple for a signal
+      const calculateActualSignalRR = (signal: any): number => {
+        const entry = Number(signal.entry_price || 0);
+        const sl = Number(signal.sl || 0);
+        const tp = Number(signal.tp || 0);
+        const tpSecondary = Number(signal.tp_secondary || 0);
+        const risk = Math.abs(entry - sl);
+
+        if (!risk) return 0; // Avoid division by zero
+
+        const status = signal.status?.toUpperCase();
+
+        if (['WIN', 'TP2'].includes(status)) {
+          // Use TP2 if available, otherwise TP1
+          const actualTp = tpSecondary || tp;
+          if (actualTp) {
+            return Math.abs(actualTp - entry) / risk;
+          }
+        } else if (['TP1', 'TP1 + SL (BE)'].includes(status)) {
+          if (tp) {
+            return Math.abs(tp - entry) / risk;
+          }
+        } else if (status === 'SL' || status === 'LOSS') {
+          return -1; // Always -1R for a full stop loss
+        } else if (status === 'BE') {
+          return 0; // Break-even
+        }
+        return 0; // Default for pending or unknown status
+      };
 
       signals.forEach(s => {
-        const sym = s.symbol || "---";
-        if (!pairMap[sym]) pairMap[sym] = { count: 0, profit: 0, wins: 0, closed: 0 };
+        const sym = s.symbol?.toUpperCase() || "---";
+        if (!pairMap[sym]) pairMap[sym] = { symbol: sym, count: 0, profit: 0, wins: 0, losses: 0, be: 0, closed: 0 };
         pairMap[sym].count += 1;
 
+        const signalRR = calculateActualSignalRR(s); // Use the new helper
         const status = s.status?.toUpperCase() || "";
+
+        if (signalRR > 0 && status !== 'TP1 + SL (BE)') {
+          totalWinsCount++;
+          pairMap[sym].wins++;
+        } else if (signalRR < 0) {
+          totalLossesCount++;
+          pairMap[sym].losses++;
+        } else if (status === 'BE' || status === 'TP1 + SL (BE)') {
+          totalBECount++;
+          pairMap[sym].be++;
+        }
         
-        if (status.includes('TP2')) { 
-          totalRRCount += rewardValue; 
-          pairMap[sym].profit += rewardValue; 
-          pairMap[sym].wins += 1; 
-          pairMap[sym].closed += 1; 
+        runningR += signalRR;
+        totalRRCount += signalRR;
+        pairMap[sym].profit += signalRR;
+        pairMap[sym].closed += 1;
+
+        // Max Drawdown calculation
+        if (runningR > peakR) {
+          peakR = runningR;
         }
-        else if (status.includes('TP1') && !status.includes('BE')) { 
-          const partialReward = rewardValue / 2;
-          totalRRCount += partialReward; 
-          pairMap[sym].profit += partialReward; 
-          pairMap[sym].wins += 1; 
-          pairMap[sym].closed += 1; 
-        }
-        else if (status === 'SL') { 
-          totalRRCount -= riskValue; 
-          pairMap[sym].profit -= riskValue; 
-          pairMap[sym].closed += 1; 
-        }
-        else if (status.includes('BE')) { 
-          pairMap[sym].closed += 1; 
+        const currentDrawdown = peakR - runningR;
+        if (currentDrawdown > maxDrawdown) {
+          maxDrawdown = currentDrawdown;
         }
       });
 
       const sortedByProfit = Object.entries(pairMap).sort((a, b) => b[1].profit - a[1].profit);
       const sortedByTraded = Object.entries(pairMap).sort((a, b) => b[1].count - a[1].count);
 
+      // Standard Win Rate logic: Wins / (Wins + Losses). BE trades are excluded from denominator.
+      const decidedWandL = totalWinsCount + totalLossesCount;
+      const winRate = decidedWandL > 0 ? ((totalWinsCount / decidedWandL) * 100).toFixed(1) + "%" : "0%";
+
+      // Find Highest Win Rate pair (Min 2 trades for significance)
+      const highWRPairObj = Object.values(pairMap)
+        .filter(p => (p.wins + p.losses) >= 2)
+        .sort((a, b) => (b.wins / (b.wins + b.losses || 1)) - (a.wins / (a.wins + a.losses || 1)))[0];
+
       setRealStats({
         total: signals.length,
-        totalWins: wins.length,
-        totalLosses: losses.length,
-        totalBE: bes.length,
-        winRate: (wins.length + losses.length) > 0 ? ((wins.length / (wins.length + losses.length)) * 100).toFixed(1) + "%" : "0%",
+        totalWins: totalWinsCount,
+        totalLosses: totalLossesCount,
+        totalBE: totalBECount,
+        winRate: winRate,
         totalRR: totalRRCount.toFixed(2) + "R",
-        profitUSD: `$${(totalRRCount * (accountSize * 0.01)).toLocaleString(undefined, {minimumFractionDigits: 2})}`,
+        profitUSD: `${totalRRCount >= 0 ? '$' : '-$'}${Math.abs(totalRRCount * riskAmountUSD).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })}`,
         mostProfitable: sortedByProfit[0]?.[0] || "---",
         mostTraded: sortedByTraded[0]?.[0] || "---",
-        highWRPair: "---",
+        highWRPair: highWRPairObj?.symbol || "---",
+        maxDrawdown: maxDrawdown.toFixed(2) + "R", // Add maxDrawdown
       });
     } catch (err) { console.error("Sync Error:", err); }
   }
@@ -357,6 +423,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
           <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
           <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Star size={18}/>} color="text-emerald-500" />
           <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="CRT Alpha Pair" />
+          <StatCard label="Highest Win Rate" value={realStats.highWRPair} icon={<Target size={18}/>} color="text-blue-400" />
+          <StatCard label="Max Drawdown" value={realStats.maxDrawdown} icon={<TrendingDown size={18}/>} color="text-red-500" />
         </div>
 
         {/* FOOTER FEATURES */}

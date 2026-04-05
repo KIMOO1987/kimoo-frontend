@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Check, Zap, Crown, Star, CreditCard, Bitcoin, Loader2, Copy, ShieldCheck } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Check, Zap, Crown, Star, CreditCard, Bitcoin, Loader2, Copy, ShieldCheck, X } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
 /** * 1. UPDATED REDIRECTION MAPPING
@@ -42,6 +42,11 @@ export default function PaymentsPage() {
     };
     fetchPlans();
   }, []);
+
+  // Determine the recommended plan (e.g., the middle one or a specific ID)
+  const recommendedPlan = useMemo(() => {
+    return plans.find(p => p.is_recommended) || plans[Math.floor(plans.length / 2)];
+  }, [plans]);
 
   const renderIcon = (type: string) => {
     switch (type) {
@@ -108,17 +113,17 @@ export default function PaymentsPage() {
   );
 
   return (
-    <div className="p-4 md:p-8 lg:ml-72 lg:p-12 bg-[#05070a] min-h-screen text-white">
+    <div className="p-4 md:p-8 lg:ml-72 lg:p-12 bg-[#05070a] min-h-screen text-white overflow-hidden">
       <div className="text-center mb-10 md:mb-16">
         <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic text-white uppercase">
           Upgrade to <span className="text-blue-500">Pro</span>
         </h1>
-        <p className="text-[10px] uppercase tracking-[0.5em] text-zinc-600 font-bold mt-4">
+        <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-4">
           Institutional CRT License Selection
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
         {plans.map((plan) => (
           <div 
             key={plan.id} 
@@ -126,10 +131,10 @@ export default function PaymentsPage() {
             className={`crt-card p-6 md:p-10 flex flex-col relative cursor-pointer transition-all duration-300 border rounded-3xl md:rounded-[40px] ${
               selectedPlan?.id === plan.id 
               ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-500/[0.05]' 
-              : plan.is_recommended ? 'border-white/10 bg-white/[0.01]' : 'border-white/5 bg-transparent'
+              : recommendedPlan?.id === plan.id ? 'border-white/10 bg-white/[0.01] shadow-lg' : 'border-white/5 bg-transparent hover:border-white/10'
             }`}
           >
-            {plan.is_recommended && (
+            {recommendedPlan?.id === plan.id && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
                 Best Value
               </div>
@@ -146,7 +151,7 @@ export default function PaymentsPage() {
               {plan.features.map((feature: string) => (
                 <div key={feature} className="flex items-center gap-3">
                   <Check size={14} className="text-blue-500" />
-                  <span className="text-[11px] font-bold text-zinc-400">{feature}</span>
+                  <span className="text-[11px] font-medium text-zinc-400">{feature}</span>
                 </div>
               ))}
             </div>
@@ -163,14 +168,14 @@ export default function PaymentsPage() {
       {selectedPlan && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="crt-card w-full max-w-xl p-6 md:p-8 bg-[#0a0c10] border border-blue-500/30 rounded-3xl md:rounded-[40px] shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-8">
+            <div className="flex justify-between items-center mb-8">
               <div>
                 <h2 className="text-xl font-black italic tracking-tighter uppercase">Checkout</h2>
                 <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-1">
                   Global License Provisioning
                 </p>
               </div>
-              <button onClick={() => { setSelectedPlan(null); setCryptoStatus('idle'); setCryptoHash(''); }} className="text-zinc-600 hover:text-white p-2">✕</button>
+              <button onClick={() => { setSelectedPlan(null); setCryptoStatus('idle'); setCryptoHash(''); }} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all"><X size={20} className="text-zinc-500" /></button>
             </div>
 
             <div className="bg-white/[0.02] rounded-xl p-4 mb-6 border border-white/5 flex justify-between items-center">
@@ -178,16 +183,16 @@ export default function PaymentsPage() {
                 <span className="text-xl font-black text-blue-500">${selectedPlan.price}</span>
             </div>
 
-            <div className="flex gap-2 mb-8 bg-black p-1 rounded-xl border border-white/5">
+            <div className="flex gap-2 mb-8 bg-black p-1 rounded-2xl border border-white/5">
               <button 
                 onClick={() => setPaymentMethod('WHOP')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${paymentMethod === 'WHOP' ? 'bg-zinc-800 text-white' : 'text-zinc-600'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${paymentMethod === 'WHOP' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-600'}`}
               >
                 <CreditCard size={14} /> Card
               </button>
               <button 
                 onClick={() => setPaymentMethod('CRYPTO')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${paymentMethod === 'CRYPTO' ? 'bg-orange-500/10 text-orange-500' : 'text-zinc-600'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${paymentMethod === 'CRYPTO' ? 'bg-orange-500/10 text-orange-500 shadow-md' : 'text-zinc-600'}`}
               >
                 <Bitcoin size={14} /> Crypto
               </button>
@@ -197,12 +202,16 @@ export default function PaymentsPage() {
               <button 
                 onClick={handleWhopPayment}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-4 px-6 py-5 bg-blue-600 rounded-xl hover:bg-blue-500 transition-all shadow-[0_0_30px_rgba(37,99,235,0.2)]"
+                className="w-full flex items-center justify-center gap-4 px-6 py-5 bg-blue-600 rounded-2xl hover:bg-blue-500 transition-all shadow-[0_0_30px_rgba(37,99,235,0.2)]"
               >
                 {loading ? <Loader2 className="animate-spin" size={18}/> : <span className="text-[11px] font-black uppercase tracking-widest text-white">Pay with Whop Checkout</span>}
               </button>
             ) : (
               <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest text-center leading-relaxed">
+                  Send exactly <span className="text-orange-400">${selectedPlan.price}</span> to one of the addresses below.
+                  <br/>Then paste your transaction hash (TxID) for verification.
+                </p>
                 <div className="grid gap-3">
                   {WALLETS.map((w) => (
                     <div key={w.network} className="bg-white/[0.02] border border-white/5 p-3 rounded-xl flex justify-between items-center group">
@@ -223,7 +232,7 @@ export default function PaymentsPage() {
                     type="text" 
                     value={cryptoHash}
                     onChange={(e) => setCryptoHash(e.target.value)}
-                    placeholder="Paste your hash here..."
+                    placeholder="Paste your transaction hash (TxID) here..."
                     className="w-full bg-black border border-white/10 rounded-xl px-4 py-4 text-xs font-mono text-white focus:border-orange-500/50 outline-none transition-all"
                   />
                   <button 
@@ -231,7 +240,7 @@ export default function PaymentsPage() {
                     disabled={!cryptoHash || cryptoStatus !== 'idle'}
                     className={`w-full py-5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all
                       ${cryptoStatus === 'success' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-orange-600 text-white hover:bg-orange-500'}
-                    `}
+                      ${cryptoStatus === 'submitting' ? 'bg-orange-800/50 cursor-not-allowed' : ''}`}
                   >
                     {cryptoStatus === 'idle' && 'Submit for Manual Validation'}
                     {cryptoStatus === 'submitting' && <Loader2 className="animate-spin mx-auto" size={18} />}

@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  User, Mail, MapPin, Globe, ShieldCheck, 
-  RefreshCcw, Save, CheckCircle2, AlertCircle, Star, Clock, Lock 
+  User, Mail, MapPin, Globe, ShieldCheck, Activity,
+  RefreshCcw, Save, CheckCircle2, AlertCircle, Star, Clock, Lock,
+  Camera, CreditCard, Zap, Trash2, Fingerprint
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function ProfileClient({ initialData, tier, expiryDate }: any) {
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(initialData?.avatar_url || null);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   const [formData, setFormData] = useState({
@@ -26,10 +29,22 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
     confirmPassword: ''
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Days calculation logic
   const daysLeft = expiryDate 
     ? Math.max(0, Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
     : 0;
+
+  const memberSince = initialData?.created_at 
+    ? new Date(initialData.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) 
+    : '---';
+
+  const tierFeatures = tier === 3 
+    ? ['Global Radar Access', 'Neural Signal Stream', 'Audit Intelligence', 'Priority Support'] 
+    : tier === 2 
+    ? ['Neural Signal Stream', 'Radar Access', 'Standard Support'] 
+    : ['Alpha Signal Stream', 'Standard Support'];
 
   const handleUpdateProfile = async () => {
     setLoading(true);
@@ -95,8 +110,62 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
     }
   };
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) {
+      setMessage({ type: 'error', text: 'Please select an image to upload.' });
+      return;
+    }
+
+    setAvatarLoading(true);
+    setMessage(null);
+
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${initialData.id}/${fileName}`; // Store in user's folder
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('avatars') // Assuming you have a storage bucket named 'avatars'
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      if (publicUrlData.publicUrl) {
+        const { error: updateProfileError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: publicUrlData.publicUrl })
+          .eq('id', initialData.id);
+
+        if (updateProfileError) throw updateProfileError;
+
+        setAvatarUrl(publicUrlData.publicUrl);
+        setMessage({ type: 'success', text: 'Avatar updated successfully.' });
+      } else {
+        throw new Error('Failed to get public URL for avatar.');
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: `Avatar upload failed: ${error.message}` });
+    } finally {
+      setAvatarLoading(false);
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
   return (
-    <div className="p-4 md:p-8 lg:ml-72 max-w-5xl mx-auto space-y-6 md:space-y-10">
+    <div className="p-4 md:p-8 lg:ml-72 space-y-6 md:space-y-10 overflow-hidden">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
@@ -110,7 +179,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
       </div>
 
       {/* NEW: PLAN STATUS ROW (Synced with Dashboard) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="crt-card p-5 md:p-6 border-white/5 bg-white/[0.02] flex items-center gap-4">
           <Star className="text-yellow-500" size={24} />
           <div>
@@ -132,14 +201,53 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
             </div>
           </div>
         </div>
+        <div className="crt-card p-5 md:p-6 border-white/5 bg-white/[0.02] flex items-center gap-4">
+          <Fingerprint className="text-blue-500" size={24} />
+          <div>
+            <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Account ID</span>
+            <span className="text-xs font-mono font-bold text-white">
+               #{initialData?.id?.slice(0, 8).toUpperCase() || 'KMO-XXXX'}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-7 space-y-6">
           <div className="crt-card p-5 md:p-8 border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
-            <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2">
-              <User size={14} className="text-blue-500" /> Personal Information
-            </h3>
+            <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-6">
+              <h3 className="text-[11px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+                <User size={14} className="text-blue-500" /> Personal Information
+              </h3>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Member Since</p>
+                  <p className="text-[10px] font-bold text-white italic">{memberSince}</p>
+                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarUpload}
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  disabled={avatarLoading}
+                />
+                <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
+                  {avatarLoading ? (
+                    <div className="w-12 h-12 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center overflow-hidden animate-pulse">
+                      <Activity size={20} className="text-blue-500" />
+                    </div>
+                  ) : avatarUrl ? (
+                    <img src={avatarUrl} alt="User Avatar" className="w-12 h-12 rounded-full object-cover border border-white/10" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center overflow-hidden">
+                      <User size={20} className="text-zinc-600" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Camera size={12} className="text-white"/></div>
+                </div>
+              </div>
+            </div>
             
             <div className="space-y-6">
               <div className="space-y-2">
@@ -234,11 +342,36 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
             </button>
           </div>
 
-          <div className="crt-card p-6 border-white/5 bg-white/[0.01]">
-            <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-4">Account Metadata</h4>
-            <div className="space-y-3">
+          <div className="crt-card p-8 border-white/5 bg-white/[0.01]">
+            <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+              <Zap size={14} className="text-yellow-500" /> Current Privileges
+            </h4>
+            <div className="space-y-4">
+              {tierFeatures.map((feat, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <CheckCircle2 size={14} className="text-emerald-500" />
+                  <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-tight">{feat}</span>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-10 pt-8 border-t border-white/5">
+              <h4 className="text-[10px] font-black text-red-500/50 uppercase tracking-[0.3em] mb-4">Danger Zone</h4>
+              <button className="w-full py-4 border border-red-900/20 hover:bg-red-900/10 text-red-500/60 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-3">
+                <Trash2 size={14} /> Request Account Deletion
+              </button>
+            </div>
+          </div>
+
+          <div className="crt-card p-6 border-white/5 bg-black/20">
+            <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em] mb-4 italic">Security Logs</h4>
+            <div className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-[9px] font-bold text-zinc-600 uppercase">Status</span>
+                <span className="text-[9px] font-bold text-zinc-700 uppercase">Last Security Rotation</span>
+                <span className="text-[9px] font-black text-zinc-500 uppercase">NEVER</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[9px] font-bold text-zinc-700 uppercase">Current Session</span>
                 <span className="text-[9px] font-black text-green-500 uppercase">Active</span>
               </div>
               <div className="flex justify-between">

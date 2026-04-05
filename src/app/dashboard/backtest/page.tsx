@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard'; // Added AccessGuard
@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, RotateCcw, TrendingUp, Target, BarChart3, 
   Settings2, Activity, History, DollarSign, Calendar,
-  TrendingDown
+  TrendingDown, Info
 } from 'lucide-react';
 
 export default function BacktestPage() {
@@ -16,6 +16,7 @@ export default function BacktestPage() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [equityCurve, setEquityCurve] = useState<number[]>([]);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   
   // --- INPUT STATES ---
   const [selectedSymbol, setSelectedSymbol] = useState('ALL');
@@ -39,17 +40,22 @@ export default function BacktestPage() {
     setTimeout(() => {
       if (data && data.length > 0) {
         let runningR = 0;
+        let peakR = 0;
+        let maxDD = 0;
         const curve: number[] = [0]; 
         
         const wins = data.filter(s => s.status === 'TP2').length;
         const partials = data.filter(s => s.status === 'TP1 + SL (BE)').length;
         const losses = data.filter(s => s.status === 'SL').length;
 
-        // --- REAL-TIME CALCULATION LOOP ---
         data.forEach((signal) => {
           if (signal.status === 'TP2') runningR += rrRatio;
           else if (signal.status === 'TP1 + SL (BE)') runningR += 0.5;
           else if (signal.status === 'SL') runningR -= 1;
+          
+          if (runningR > peakR) peakR = runningR;
+          const currentDD = peakR - runningR;
+          if (currentDD > maxDD) maxDD = currentDD;
           
           curve.push(runningR);
         });
@@ -59,11 +65,13 @@ export default function BacktestPage() {
         setEquityCurve(curve);
         setResults({
           winRate: ((wins + partials) / data.length * 100).toFixed(1),
-          profitFactor: ((wins * rrRatio + partials * 0.5) / (losses || 1)).toFixed(2),
+          profitFactor: ((wins * rrRatio + partials * 0.5) / Math.abs(losses || 1)).toFixed(2),
           totalSignals: data.length,
           equityGain: runningR.toFixed(2),
+          maxDrawdown: maxDD.toFixed(1),
           cashProfit: (runningR * riskAmount).toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
-          wins, losses, partials
+          wins, losses, partials,
+          avgTrade: (runningR / data.length).toFixed(2)
         });
       }
       setIsSimulating(false);
@@ -172,40 +180,87 @@ export default function BacktestPage() {
 
           {/* Results & Real-Time Graph */}
           <div className="lg:col-span-3 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <ResultCard label="Profit Factor" value={results ? results.profitFactor : "0.00"} icon={<TrendingUp size={20}/>} color="text-green-500" />
                 <ResultCard label="Realized P/L" value={results ? results.cashProfit : "$0.00"} icon={<DollarSign size={20}/>} color="text-blue-500" />
                 <ResultCard label="Strategy Accuracy" value={results ? `${results.winRate}%` : "0%"} icon={<Target size={20}/>} color="text-purple-500" />
+                <ResultCard label="Max Drawdown" value={results ? `-${results.maxDrawdown}R` : "0.0R"} icon={<TrendingDown size={20}/>} color="text-red-500" />
             </div>
 
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-3xl md:rounded-[2.5rem] p-5 md:p-12 min-h-[500px] flex flex-col justify-between overflow-hidden">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 mb-12">Equity Growth Curve (Real-Time)</h4>
+            <div className="bg-[#0a0a0a] border border-white/5 rounded-3xl md:rounded-[2.5rem] p-5 md:p-10 min-h-[500px] flex flex-col justify-between overflow-hidden relative">
+              <div className="flex justify-between items-start mb-8">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600">Equity Growth Curve (Real-Time)</h4>
+                {results && (
+                  <div className="text-right">
+                    <p className="text-[8px] font-black text-zinc-700 uppercase tracking-widest">Avg Expectancy</p>
+                    <p className="text-xs font-black text-blue-500">+{results.avgTrade}R / Trade</p>
+                  </div>
+                )}
+              </div>
               
-              <div className="flex-1 flex items-end gap-1 min-h-[250px]">
+              <div className="flex-1 flex items-end gap-1 min-h-[300px] relative mt-4">
                 <AnimatePresence mode="wait">
                   {isSimulating ? (
                     <div className="w-full h-full flex flex-col items-center justify-center">
                       <BarChart3 size={40} className="text-blue-500 animate-bounce mb-4" />
                       <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Processing Trade History...</p>
                     </div>
-                  ) : results ? (
-                    <div className="w-full h-full flex items-end justify-between gap-[2px]">
-                      {equityCurve.map((val, i) => {
-                        const maxR = Math.max(...equityCurve, 1);
-                        const minR = Math.min(...equityCurve, -1);
-                        const range = maxR - minR;
-                        const heightPercent = ((val - minR) / range) * 100;
-                        
-                        return (
-                          <motion.div
-                            key={i}
-                            initial={{ height: 0 }}
-                            animate={{ height: `${Math.max(heightPercent, 2)}%` }}
-                            transition={{ delay: i * 0.01, duration: 0.5 }}
-                            className={`flex-1 rounded-t-sm transition-all ${val >= (equityCurve[i-1] ?? 0) ? 'bg-blue-500/40 border-t border-blue-400' : 'bg-red-500/20 border-t border-red-400/30'}`}
-                          />
-                        );
-                      })}
+                  ) : results && equityCurve.length > 0 ? (
+                    <div 
+                      className="w-full h-full relative"
+                      onMouseMove={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const idx = Math.floor((x / rect.width) * (equityCurve.length - 1));
+                        setHoverIndex(Math.max(0, Math.min(idx, equityCurve.length - 1)));
+                      }}
+                      onMouseLeave={() => setHoverIndex(null)}
+                    >
+                      <svg viewBox="0 0 1000 400" preserveAspectRatio="none" className="w-full h-full overflow-visible">
+                        <defs>
+                          <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        {/* Grid Lines */}
+                        {[0, 100, 200, 300, 400].map(y => (
+                          <line key={y} x1="0" y1={y} x2="1000" y2={y} stroke="white" strokeOpacity="0.03" strokeWidth="1" />
+                        ))}
+                        {/* Path Logic */}
+                        {(() => {
+                          const max = Math.max(...equityCurve, 1);
+                          const min = Math.min(...equityCurve, -1);
+                          const range = max - min;
+                          const getX = (i: number) => (i / (equityCurve.length - 1)) * 1000;
+                          const getY = (v: number) => 400 - (((v - min) / range) * 350 + 25);
+                          
+                          const pathData = equityCurve.map((v, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(v)}`).join(' ');
+                          const areaData = `${pathData} L 1000 400 L 0 400 Z`;
+
+                          return (
+                            <>
+                              <path d={areaData} fill="url(#curveGradient)" />
+                              <motion.path 
+                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                                d={pathData} fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" 
+                              />
+                              {hoverIndex !== null && (
+                                <g>
+                                  <line x1={getX(hoverIndex)} y1="0" x2={getX(hoverIndex)} y2="400" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4" />
+                                  <circle cx={getX(hoverIndex)} cy={getY(equityCurve[hoverIndex])} r="6" fill="#3b82f6" />
+                                  <foreignObject x={getX(hoverIndex) > 800 ? getX(hoverIndex)-120 : getX(hoverIndex)+10} y={getY(equityCurve[hoverIndex])-60} width="120" height="50">
+                                    <div className="bg-black/90 border border-blue-500/30 rounded-lg p-2 backdrop-blur-md">
+                                      <p className="text-[8px] font-black text-zinc-500 uppercase">Trade #{hoverIndex}</p>
+                                      <p className="text-[11px] font-black text-white italic">{equityCurve[hoverIndex].toFixed(2)}R</p>
+                                    </div>
+                                  </foreignObject>
+                                </g>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </svg>
                     </div>
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center opacity-20">

@@ -12,6 +12,29 @@ import {
 export default function ActiveSignalsPage() {
   const [activeSignals, setActiveSignals] = useState<any[]>([]);
   const [loadingSignals, setLoadingSignals] = useState(false);
+  // State to hold live prices, keyed by symbol
+  const [livePrices, setLivePrices] = useState<{ [key: string]: number }>({});
+
+  // --- SYMBOL CATEGORIZATION HELPER ---
+  const getSymbolData = (symbol: string) => {
+    const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    // Metal: OANDA
+    if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) {
+      return { category: 'METAL', provider: 'OANDA', clean: upper };
+    }
+    // Indices: CAPITALCOM
+    if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) {
+      return { category: 'INDICES', provider: 'CAPITALCOM', clean: upper };
+    }
+    // Forex: FOREXCOM
+    const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY'];
+    if (forexPairs.includes(upper)) {
+      return { category: 'FOREX', provider: 'FOREXCOM', clean: upper };
+    }
+    // Default to Crypto: BINANCE
+    return { category: 'CRYPTO', provider: 'BINANCE', clean: upper };
+  };
 
   // 1. SIGNAL DATA FETCHING & REALTIME
   useEffect(() => {
@@ -27,8 +50,20 @@ export default function ActiveSignalsPage() {
         .not('status', 'in', '("SL","TP2")') 
         .order('created_at', { ascending: false });
 
-      if (error) console.error("Signal Fetch Error:", error.message);
-      if (data) setActiveSignals(data || []);
+      if (error) {
+        console.error("Signal Fetch Error:", error.message);
+      } else if (data) {
+        setActiveSignals(data);
+        // Initialize live prices only for symbols we aren't tracking yet
+        setLivePrices(prev => {
+          const next = { ...prev };
+          data.forEach(s => {
+            const clean = s.symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            if (next[clean] === undefined) next[clean] = Number(s.entry_price || 0);
+          });
+          return next;
+        });
+      }
       setLoadingSignals(false);
     };
 
@@ -43,6 +78,66 @@ export default function ActiveSignalsPage() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // 2. REAL-TIME PRICE UPDATES
+  useEffect(() => {
+    if (activeSignals.length === 0) return;
+
+    // --- A. CRYPTO WEBSOCKET (BINANCE) ---
+    const cryptoPairs = activeSignals.filter(s => getSymbolData(s.symbol).category === 'CRYPTO');
+    let socket: WebSocket | null = null;
+
+    if (cryptoPairs.length > 0) {
+      const streams = cryptoPairs.map(s => `${getSymbolData(s.symbol).clean.toLowerCase()}@ticker`).join('/');
+      socket = new WebSocket(`wss://stream.binance.com:9443/ws/${streams}`);
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.s && data.c) {
+          setLivePrices(prev => ({ ...prev, [data.s.toUpperCase()]: parseFloat(data.c) }));
+        }
+      };
+    }
+
+    // --- B. NON-CRYPTO POLLING (FOREX, METAL, INDICES) ---
+    const otherSignals = activeSignals.filter(s => getSymbolData(s.symbol).category !== 'CRYPTO');
+    
+    const pollInterval = setInterval(async () => {
+      if (otherSignals.length === 0) return;
+      
+      // Finnhub API Key integrated
+      const FINNHUB_KEY = 'd78oc2pr01qp0fl5vgi0d78oc2pr01qp0fl5vgig';
+      
+      for (const s of otherSignals) {
+        const { category, provider, clean } = getSymbolData(s.symbol);
+        let finnhubSymbol = clean;
+
+        // Format symbols for Finnhub according to provider logic
+        if (category === 'FOREX') finnhubSymbol = `OANDA:${clean.replace(/(USD|JPY|GBP|AUD|NZD|EUR|CHF)/, '$1_').replace(/_$/, '')}`; 
+        if (category === 'FOREX' && provider === 'FOREXCOM') finnhubSymbol = `FX:${clean}`;
+        if (category === 'METAL') finnhubSymbol = `OANDA:${clean.replace('USD', '_USD')}`;
+        if (category === 'INDICES') finnhubSymbol = `${provider}:${clean}`;
+
+        try {
+          const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${FINNHUB_KEY}`);
+          const data = await response.json();
+          
+          if (data.c) { // 'c' is the current price in Finnhub
+            setLivePrices(prev => ({
+              ...prev,
+              [clean]: parseFloat(data.c)
+            }));
+          }
+        } catch (err) {
+          console.error(`Finnhub Fetch Error for ${clean}:`, err);
+        }
+      }
+    }, 10000); // Polling every 10 seconds to respect free tier limits
+
+    return () => {
+      if (socket) socket.close();
+      clearInterval(pollInterval);
+    };
+  }, [activeSignals]); 
+
   // 2. UI HANDLERS
   const handleViewSetup = (symbol: string) => {
     const myLayoutId = "TWlqcP20"; 
@@ -53,7 +148,7 @@ export default function ActiveSignalsPage() {
 
   return (
     <AccessGuard requiredTier={1} tierName="Alpha">
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
+      <div className="p-4 md:p-7 max-w-7xl mx-auto space-y-6 md:space-y-8">
         
         {/* Header Section */}
         <div className="mb-8 md:mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -108,8 +203,51 @@ export default function ActiveSignalsPage() {
 
                     <div className="space-y-4 mb-8">
                       <TradeDataRow icon={<Activity size={12} className="text-blue-500"/>} label="Status" value={getDisplayStatus(signal.status)} valueClass="text-blue-400 animate-pulse" />
+                      
+                      {/* Dynamic Trade RR - Logic Synced with History Page */}
+                      <TradeDataRow 
+                        icon={<TrendingUp size={12} className="text-blue-400"/>} 
+                        label="Trade R:R" 
+                        value={getDynamicRR(signal)} 
+                        valueClass="text-blue-400" 
+                      />
+
                       <TradeDataRow icon={<Zap size={12}/>} label="Entry Region" value={Number(signal.entry_price || 0).toFixed(5)} />
-                      <TradeDataRow icon={<Target size={12} className="text-green-500"/>} label="Price Target" value={Number(signal.tp || 0).toFixed(5)} valueClass="text-green-500" />
+                      
+                      {/* TP-1 with Final RR */}
+                      <TradeDataRow 
+                        icon={<Target size={12} className="text-green-500"/>} 
+                        label="TP-1 (EQ)" 
+                        value={`${Number(signal.tp || 0).toFixed(5)} (${calculateTargetRR(signal.tp, signal.entry_price, signal.sl)})`} 
+                        valueClass="text-green-500" 
+                      />
+
+                      {/* TP-2 with Final RR */}
+                      <TradeDataRow 
+                        icon={<Zap size={12} className="text-yellow-500"/>} 
+                        label="TP-2 (TARGET)" 
+                        value={signal.tp_secondary ? `${Number(signal.tp_secondary).toFixed(5)} (${calculateTargetRR(signal.tp_secondary, signal.entry_price, signal.sl)})` : 'N/A'} 
+                        valueClass="text-yellow-500" 
+                      />
+
+                      {/* Confluences Row */}
+                      <TradeDataRow 
+                        icon={<Layout size={12} className="text-zinc-500"/>} 
+                        label="Confluences" 
+                        value={signal.confluences || 'Institutional Bias Confirmed'} 
+                        valueClass="text-zinc-400 text-xs italic" 
+                      />
+
+                      {/* Live Realtime RR */}
+                      {(() => {
+                        const liveRRValue = calculateLiveRR(signal, livePrices);
+                        return <TradeDataRow
+                          icon={<Activity size={12} className="text-blue-500"/>}
+                          label="Live R:R"
+                          value={liveRRValue}
+                          valueClass={parseFloat(liveRRValue) >= 0 ? "text-green-400" : "text-red-400"}
+                        />;
+                      })()}
                       <TradeDataRow icon={<Shield size={12} className="text-red-500"/>} label="Invalidation" value={Number(signal.sl || 0).toFixed(5)} valueClass="text-red-500" />
                       
                       <div className="flex justify-between items-center py-3 border-t border-white/5 mt-4">
@@ -166,8 +304,72 @@ function getDisplayStatus(status: string) {
   switch (status) {
     case 'PENDING': return 'In Progress';
     case 'TP1': return 'TP1 Hit';
+    case 'TP1 + SL (BE)': return 'Partial TP1';
     case 'SL': return 'Stopped Out';
     case 'TP2': return 'TP1 / TP2';
     default: return 'Active';
   }
+}
+
+/**
+ * Calculates the potential R:R for a specific target level
+ */
+function calculateTargetRR(target: any, entry: any, sl: any) {
+  const t = Number(target);
+  const e = Number(entry);
+  const s = Number(sl);
+  if (!t || !e || !s || e === s) return "0.0R";
+  const risk = Math.abs(e - s);
+  const reward = Math.abs(t - e);
+  return `+${(reward / risk).toFixed(1)}R`;
+}
+
+/**
+ * Calculates the Dynamic RR based on current status (Ported from History Page)
+ */
+function getDynamicRR(signal: any) {
+  const entry = Number(signal.entry_price || 0);
+  const sl = Number(signal.sl || 0);
+  const tp2 = Number(signal.tp_secondary || 0);
+  const tp1 = Number(signal.tp || 0);
+
+  if (!entry || !sl || entry === sl) return '0.0R';
+  const risk = Math.abs(entry - sl);
+  
+  // Outcome-based results
+  if (signal.status === 'SL') return '-1.0R';
+  if (signal.status === 'TP2' && tp2) {
+    return `+${(Math.abs(tp2 - entry) / risk).toFixed(1)}R`;
+  }
+  if ((signal.status === 'TP1' || signal.status === 'TP1 + SL (BE)') && tp1) {
+    return `+${(Math.abs(tp1 - entry) / risk).toFixed(1)}R`;
+  }
+
+  // Setup fallback (Potential)
+  const targetTp = tp2 || tp1;
+  return `1:${(Math.abs(targetTp - entry) / risk).toFixed(1)}`;
+}
+
+/**
+ * Calculates Realtime R:R based on current price vs entry and risk
+ */
+function calculateLiveRR(signal: any, livePrices: { [key: string]: number }) {
+  const entry = Number(signal.entry_price || 0);
+  const sl = Number(signal.sl || 0);
+  
+  // Normalize symbol to match WebSocket keys (remove slashes and force uppercase)
+  const cleanSymbol = signal.symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  
+  // Use the live price from state, fallback to signal's current_price or entry
+  const current = livePrices[cleanSymbol] ?? Number(signal.current_price || entry);
+  const side = signal.side?.toUpperCase();
+  const risk = Math.abs(entry - sl);
+  
+  if (!entry || !sl || risk === 0) return '0.00R';
+
+  const isBuy = side === 'BUY' || side === 'BULLISH';
+  const reward = isBuy ? (current - entry) : (entry - current);
+  const rr = reward / risk;
+  
+  return `${rr >= 0 ? '+' : ''}${rr.toFixed(2)}R`;
 }

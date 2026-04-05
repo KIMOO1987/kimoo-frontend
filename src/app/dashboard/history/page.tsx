@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard';
+import SignalChart from '@/components/SignalChart';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   History as HistoryIcon, 
@@ -20,12 +21,105 @@ import {
 
 const ITEMS_PER_PAGE = 20;
 
+// --- 1. HELPER COMPONENTS ---
+const DetailBox = ({ label, value, color = "text-white", highlight = false }: any) => (
+  <div className={`p-4 rounded-2xl border border-white/5 bg-white/[0.01] ${highlight ? 'border-blue-500/20 bg-blue-500/[0.02]' : ''}`}>
+    <p className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-1">{label}</p>
+    <p className={`text-[11px] font-bold truncate tracking-tight ${color}`}>{value}</p>
+  </div>
+);
+
+const PriceRow = ({ label, value, color }: any) => (
+  <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
+    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{label}</span>
+    <span className={`font-mono text-sm font-black ${color}`}>{Number(value || 0).toFixed(5)}</span>
+  </div>
+);
+
+// --- 1.5 DYNAMIC RR CALCULATION ---
+const getDynamicRR = (signal: any) => {
+  const entry = Number(signal.entry_price || 0);
+  const sl = Number(signal.sl || 0);
+  const tp2 = Number(signal.tp_secondary || 0);
+  const tp1 = Number(signal.tp || 0);
+
+  if (!entry || !sl || entry === sl) return '0.0R';
+
+  const risk = Math.abs(entry - sl);
+  
+  // Realized RR based on Outcome
+  if (signal.status === 'SL') return '-1.0R';
+  
+  if (signal.status === 'TP2' && tp2) {
+    const reward = Math.abs(tp2 - entry);
+    return `+${(reward / risk).toFixed(1)}R`;
+  }
+  
+  if (signal.status === 'TP1 + SL (BE)' && tp1) {
+    const reward = Math.abs(tp1 - entry);
+    return `+${(reward / risk).toFixed(1)}R`;
+  }
+
+  // Fallback to Setup RR
+  const targetTp = tp2 || tp1;
+  const setupReward = Math.abs(targetTp - entry);
+  return `1:${(setupReward / risk).toFixed(1)}`;
+};
+
+// --- 2. MODAL COMPONENT ---
+const SignalModal = ({ signal, onClose }: { signal: any, onClose: () => void }) => {
+  if (!signal) return null;
+  const isBuy = signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH';
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 bg-black/95 backdrop-blur-xl"
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        className="bg-[#0d0f14] border border-white/10 w-full max-w-6xl rounded-[2rem] overflow-hidden flex flex-col lg:flex-row shadow-[0_0_80px_rgba(0,0,0,0.8)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="lg:w-[35%] p-8 overflow-y-auto max-h-[50vh] lg:max-h-none border-b lg:border-b-0 lg:border-r border-white/5 bg-[#0a0c10]">
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white">{signal.symbol}</h2>
+              <p className="text-[10px] text-blue-500 font-bold tracking-[0.2em] mt-1">HISTORICAL CRT SETUP</p>
+            </div>
+            <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all"><X size={20} className="text-zinc-500" /></button>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-8">
+            <DetailBox label="Setup Time" value={new Date(signal.created_at).toLocaleTimeString()} />
+            <DetailBox label="confluences" value={signal.confluences || 'Institutional Bias Confirmed'} />
+          </div>
+          <div className="space-y-3">
+            <PriceRow label="ENTRY ZONE" value={signal.entry_price} color="text-blue-400" />
+            <PriceRow label="STOP LOSS" value={signal.sl} color="text-red-400" />
+            <PriceRow label="TP 1 (EQ)" value={signal.tp} color="text-green-400" />
+            <PriceRow label="TP 2 (TARGET)" value={signal.tp_secondary} color="text-green-400" />
+          </div>
+        </div>
+        <div className="lg:w-[65%] bg-black relative flex flex-col min-h-[450px]">
+          <div className="absolute top-6 left-6 z-10 flex gap-2">
+             <span className={`px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest ${isBuy ? 'bg-green-500/20 text-green-500 border border-green-500/20' : 'bg-red-500/20 text-red-500 border border-red-500/20'}`}>{isBuy ? 'LONG' : 'SHORT'}</span>
+             <span className="px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest bg-zinc-500/20 text-zinc-400 border border-zinc-500/20 flex items-center gap-2"><Clock size={12} /> ARCHIVED</span>
+          </div>
+          <SignalChart symbol={signal.symbol} />
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 export default function SignalHistoryPage() {
   const { loading: authLoading } = useAuth(); 
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSignal, setSelectedSignal] = useState<any | null>(null);
   
   // Date Filter State
   const [dateFrom, setDateFrom] = useState('');
@@ -81,7 +175,7 @@ export default function SignalHistoryPage() {
 
   return (
     <AccessGuard requiredTier={1} tierName="Active Member">
-      <div className="p-4 md:p-8 lg:ml-72 max-w-7xl mx-auto space-y-8 flex flex-col min-h-screen">
+      <div className="p-4 md:p-8 lg:ml-72 space-y-8 flex flex-col min-h-screen">
         
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6">
@@ -150,8 +244,10 @@ export default function SignalHistoryPage() {
                   <th className="py-6">Side</th>
                   <th className="py-6">Entry</th>
                   <th className="hidden md:table-cell py-6">Strategy</th>
+                  <th className="hidden md:table-cell py-6">Confluences</th>
                   <th className="py-6">Result</th>
-                  <th className="hidden md:table-cell px-8 py-6 text-right">Action</th>
+                  <th className="hidden md:table-cell py-6 text-center">R:R</th>
+                  <th className="hidden md:table-cell px-8 py-6 text-right">Chart</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.02]">
@@ -163,8 +259,9 @@ export default function SignalHistoryPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        key={signal.id} 
-                        className="group hover:bg-blue-500/[0.02] transition-colors"
+                        key={signal.id}
+                        onClick={() => setSelectedSignal(signal)}
+                        className="group hover:bg-blue-500/[0.02] transition-colors cursor-pointer"
                       >
                         <td className="hidden md:table-cell px-8 py-5 text-[11px] font-mono text-zinc-500">
                           {new Date(signal.created_at).toLocaleDateString()}
@@ -197,8 +294,21 @@ export default function SignalHistoryPage() {
                           {signal.strategy || 'CRT Alpha'}
                         </td>
 
+                        <td className="hidden md:table-cell py-5 text-[10px] font-medium text-zinc-500 italic max-w-[180px] truncate">
+                          {signal.confluences || 'Institutional Bias Confirmed'}
+                        </td>
+
                         <td className="py-5">
                           <ResultBadge status={signal.status} />
+                        </td>
+
+                        <td className={`hidden md:table-cell py-5 text-[11px] font-mono font-black text-center ${
+                          signal.status === 'TP2' ? 'text-green-400' : 
+                          signal.status === 'SL' ? 'text-red-400' : 
+                          signal.status === 'TP1 + SL (BE)' ? 'text-yellow-400' : 
+                          'text-blue-400'
+                        }`}>
+                          {getDynamicRR(signal)}
                         </td>
 
                         <td className="hidden md:table-cell px-8 py-5 text-right">
@@ -211,7 +321,7 @@ export default function SignalHistoryPage() {
                   ) : (
                     !loading && (
                       <tr>
-                        <td colSpan={7} className="py-32 text-center">
+                        <td colSpan={9} className="py-32 text-center">
                           <div className="flex flex-col items-center opacity-20">
                             <HistoryIcon size={48} className="mb-4" />
                             <p className="text-[10px] font-black uppercase tracking-[0.5em]">No Data Found</p>
@@ -262,6 +372,13 @@ export default function SignalHistoryPage() {
             </button>
           </div>
         )}
+
+        {/* Modal Overlay */}
+        <AnimatePresence>
+          {selectedSignal && (
+            <SignalModal signal={selectedSignal} onClose={() => setSelectedSignal(null)} />
+          )}
+        </AnimatePresence>
       </div>
     </AccessGuard>
   );
