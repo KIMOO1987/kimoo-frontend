@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Terminal, Copy, Power, Activity, ShieldAlert } from 'lucide-react';
+import { Terminal, Copy, Power, Activity, ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function CTraderDashboard() {
   const [status, setStatus] = useState<'stopped' | 'running'>('stopped');
@@ -17,6 +17,10 @@ export default function CTraderDashboard() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  const addLog = useCallback((msg: string) => {
+    setLogs((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 20));
+  }, []);
+
   useEffect(() => {
     async function initializeBridge() {
       try {
@@ -25,11 +29,10 @@ export default function CTraderDashboard() {
         
         if (authError || !user) {
           setError("Authentication required. Please log in.");
-          setLoading(false);
           return;
         }
 
-        // 1. Fetch User Tier (Verify they are Lifetime Pro / Tier 3)
+        // 1. Fetch User Profile & Bot Config from Supabase
         const { data: profile } = await supabase
           .from('profiles')
           .select('tier')
@@ -38,23 +41,29 @@ export default function CTraderDashboard() {
         
         setUserTier(profile?.tier || 0);
 
-        // 2. Fetch or Create Bot Token
+        // 2. Fetch Bot Token and the PERSISTENT Status
         let { data, error: tokenError } = await supabase
           .from('bot_signals')
-          .select('bot_token')
+          .select('bot_token, is_active') // IMPORTANT: fetching the saved state
           .eq('user_id', user.id)
           .maybeSingle();
 
         if (!data && !tokenError) {
           const { data: newData } = await supabase
             .from('bot_signals')
-            .insert([{ user_id: user.id }])
+            .insert([{ user_id: user.id, is_active: false }])
             .select()
             .single();
           data = newData;
         }
 
-        if (data) setBotToken(data.bot_token);
+        if (data) {
+          setBotToken(data.bot_token);
+          // SYNC UI WITH DATABASE: If DB says it's active, set running.
+          setStatus(data.is_active ? 'running' : 'stopped');
+          addLog(data.is_active ? "Cloud Bridge is currently ACTIVE." : "Cloud Bridge is currently STANDBY.");
+        }
+
       } catch (err) {
         console.error("Bridge Init Error:", err);
         setError("Failed to initialize secure bridge.");
@@ -64,41 +73,49 @@ export default function CTraderDashboard() {
     }
 
     initializeBridge();
-  }, [supabase]);
-
-  const addLog = (msg: string) => {
-    setLogs((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 20));
-  };
+  }, [supabase, addLog]);
 
   const handleControl = async (action: 'start' | 'stop') => {
-    addLog(`Sending ${action.toUpperCase()} command to Cloud Bridge...`);
+    const isStarting = action === 'start';
+    addLog(`Initiating ${action.toUpperCase()} sequence...`);
     
-    // Simulate API call - Replace with your actual /api/terminal/control
     try {
+      // 1. Update Supabase FIRST so the state is saved even if the API call is slow
+      const { error: dbError } = await supabase
+        .from('bot_signals')
+        .update({ is_active: isStarting })
+        .eq('bot_token', botToken);
+
+      if (dbError) throw new Error("Database update failed");
+
+      // 2. Trigger your Backend API Bridge
       const res = await fetch('/api/terminal/control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform: 'ctrader', action }),
+        body: JSON.stringify({ 
+            platform: 'ctrader', 
+            action, 
+            botToken // Pass token so backend knows which user to start/stop
+        }),
       });
 
       if (res.ok) {
-        setStatus(action === 'start' ? 'running' : 'stopped');
-        addLog(`cTrader Bridge: ${action === 'start' ? 'ACTIVE & LISTENING' : 'OFFLINE'}.`);
+        setStatus(isStarting ? 'running' : 'stopped');
+        addLog(`SUCCESS: cTrader Bridge is now ${isStarting ? 'ONLINE' : 'OFFLINE'}.`);
       } else {
-        addLog(`Error: Server responded with status ${res.status}`);
+        addLog(`API Error: Server returned ${res.status}. Check backend logs.`);
       }
     } catch (e) {
-      addLog("Connection Error: Check your internet or API route.");
+      addLog("CRITICAL ERROR: Could not sync state with cloud server.");
+      console.error(e);
     }
   };
-
-  // --- UI STATES ---
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#05070a] flex flex-col items-center justify-center space-y-4">
         <Activity className="text-cyan-500 animate-spin" size={32} />
-        <p className="text-cyan-800 text-[10px] font-black uppercase tracking-[0.4em]">Initializing Secure Bridge</p>
+        <p className="text-cyan-800 text-[10px] font-black uppercase tracking-[0.4em]">Syncing with Cloud Terminal</p>
       </div>
     );
   }
@@ -113,9 +130,7 @@ export default function CTraderDashboard() {
     );
   }
 
-  const apiBaseUrl = typeof window !== 'undefined' 
-  ? `${window.location.origin}/api/signals` 
-  : "";
+  const apiBaseUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/signals` : "";
   const fullUrl = botToken ? `${apiBaseUrl}?botId=${botToken}` : "Generating Token...";
 
   return (
@@ -124,12 +139,16 @@ export default function CTraderDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/5 pb-6 mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-black text-white italic uppercase tracking-tighter">cTrader Cloud Bridge</h1>
-          <p className="text-[10px] font-bold text-cyan-600 uppercase tracking-widest mt-1">Status: {status === 'running' ? 'Connected' : 'Disconnected'}</p>
+          <p className="text-[10px] font-bold text-cyan-600 uppercase tracking-widest mt-1">
+            Mode: Persistent Webhook Execution
+          </p>
         </div>
         
         <div className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded-full border border-white/5">
-          <div className={`w-2 h-2 rounded-full ${status === 'running' ? 'bg-cyan-500 animate-pulse' : 'bg-zinc-700'}`} />
-          <span className="text-[10px] font-black uppercase text-zinc-500">{status}</span>
+          {status === 'running' ? <CheckCircle2 size={14} className="text-cyan-500" /> : <XCircle size={14} className="text-zinc-600" />}
+          <span className={`text-[10px] font-black uppercase ${status === 'running' ? 'text-cyan-500' : 'text-zinc-500'}`}>
+            {status}
+          </span>
         </div>
       </div>
 
@@ -145,7 +164,7 @@ export default function CTraderDashboard() {
               className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 transition-all font-black text-xs uppercase
                 ${status === 'running' 
                   ? 'bg-zinc-900 text-zinc-700 border border-transparent cursor-not-allowed' 
-                  : 'bg-cyan-600/10 text-cyan-500 border border-cyan-500/20 hover:bg-cyan-600/20'}`}
+                  : 'bg-cyan-600/10 text-cyan-500 border border-cyan-500/20 hover:bg-cyan-600/20 shadow-[0_0_20px_rgba(6,182,212,0.1)]'}`}
             >
               <Power size={14} /> Start Bridge
             </button>
@@ -174,13 +193,13 @@ export default function CTraderDashboard() {
                     navigator.clipboard.writeText(fullUrl);
                     addLog("URL Copied to clipboard.");
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-600 hover:text-white"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-600 hover:text-white transition-colors"
                 >
                   <Copy size={14} />
                 </button>
               </div>
               <p className="mt-4 text-[9px] text-zinc-500 leading-relaxed italic">
-                Paste this into your <span className="text-white">Kimoo cBot</span> parameters within cTrader.
+                Signals sent to this URL will be processed by the bridge 24/7 until stopped.
               </p>
             </div>
           </div>
@@ -189,21 +208,24 @@ export default function CTraderDashboard() {
         {/* Console / Logs Panel */}
         <div className="lg:col-span-3">
           <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl h-[550px] flex flex-col shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-white/5 flex items-center gap-2 bg-white/[0.02]">
-              <Terminal size={14} className="text-cyan-500" />
-              <span className="text-[10px] font-black text-white uppercase tracking-widest">Secure Console Logs</span>
+            <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-2">
+                <Terminal size={14} className="text-cyan-500" />
+                <span className="text-[10px] font-black text-white uppercase tracking-widest">Secure Console Logs</span>
+              </div>
+              <span className="text-[9px] text-zinc-600 font-bold uppercase">Session Live</span>
             </div>
             
-            <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-2">
+            <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-2 scrollbar-hide">
               {logs.length === 0 && (
                 <div className="h-full flex items-center justify-center text-zinc-700 italic text-[10px] uppercase tracking-widest">
                   System Standby - Awaiting Command
                 </div>
               )}
               {logs.map((log, i) => (
-                <div key={i} className="flex gap-4 group">
-                  <span className="text-zinc-700 shrink-0 select-none">{logs.length - i}</span>
-                  <span className={`${log.includes('Error') ? 'text-red-400' : 'text-zinc-500'} group-hover:text-zinc-300 transition-colors`}>
+                <div key={i} className="flex gap-4 group border-l border-white/5 pl-4 hover:border-cyan-500/50 transition-colors">
+                  <span className="text-zinc-800 shrink-0 select-none text-[10px]">{logs.length - i}</span>
+                  <span className={`${log.includes('Error') || log.includes('CRITICAL') ? 'text-red-400' : log.includes('SUCCESS') ? 'text-cyan-400' : 'text-zinc-500'} group-hover:text-zinc-300 transition-colors`}>
                     {log}
                   </span>
                 </div>
