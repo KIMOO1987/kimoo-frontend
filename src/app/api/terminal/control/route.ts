@@ -4,21 +4,29 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    // Standard initialization for Next.js 15/16
-    const supabase = createRouteHandlerClient({ cookies });
+    // FIX: Await cookies first in Next.js 16
+    const cookieStore = await cookies();
+    
+    // Pass the resolved store to the Supabase client
+    const supabase = createRouteHandlerClient({ 
+      cookies: () => cookieStore 
+    });
     
     const { action } = await req.json();
+    
+    // Verify user session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Set the state in the database
+    // Determine signal status based on dashboard button
     const signalValue = action === 'start' 
       ? { action: 'none', status: 'active' } 
       : { action: 'none', status: 'paused' };
 
+    // Update database
     const { error: dbError } = await supabase
       .from('bot_signals')
       .update({ 
