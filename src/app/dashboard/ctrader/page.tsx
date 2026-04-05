@@ -113,7 +113,7 @@ export default function CTraderDashboard() {
     );
   }
 
-  const apiBaseUrl = "https://kimoocrt.supabase.co/functions/v1/get-signal";
+  const apiBaseUrl = "https://kimoocrt.vercel.app/functions/v1/get-signal";
   const fullUrl = botToken ? `${apiBaseUrl}?botId=${botToken}` : "Generating Token...";
 
   return (
