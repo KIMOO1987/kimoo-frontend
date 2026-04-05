@@ -113,7 +113,9 @@ export default function CTraderDashboard() {
     );
   }
 
-  const apiBaseUrl = "https://kimoocrt.vercel.app/functions/v1/get-signal";
+  const apiBaseUrl = typeof window !== 'undefined' 
+  ? `${window.location.origin}/api/signals` 
+  : "";
   const fullUrl = botToken ? `${apiBaseUrl}?botId=${botToken}` : "Generating Token...";
 
   return (
