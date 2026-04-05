@@ -2,12 +2,9 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-
 export async function POST(req: Request) {
   try {
     const cookieStore = await cookies();
-
-    // Using the modern SSR client to avoid the base64 parsing error
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,27 +20,51 @@ export async function POST(req: Request) {
                 cookieStore.set(name, value, options)
               );
             } catch {
-              // The setAll method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
+              // Ignore if called from Server Component
             }
           },
         },
       }
     );
-    
 
-    const { action } = await req.json();
+    const { action, symbol, volume } = await req.json();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const signalValue = action === 'start' 
-      ? { action: 'none', status: 'active' } 
-      : { action: 'none', status: 'paused' };
+    let signalValue;
+
+    // Logic Switch for different Dashboard Actions
+    switch (action) {
+      case 'start':
+        signalValue = { action: 'none', status: 'active' };
+        break;
+      case 'stop':
+        signalValue = { action: 'none', status: 'paused' };
+        break;
+      case 'buy':
+        signalValue = { 
+            action: 'buy', 
+            status: 'active', 
+            symbol: symbol || 'BTCUSD', 
+            volume: volume || 0.01,
+            time: Math.floor(Date.now() / 1000) 
+        };
+        break;
+      case 'sell':
+        signalValue = { 
+            action: 'sell', 
+            status: 'active', 
+            symbol: symbol || 'BTCUSD', 
+            volume: volume || 0.01,
+            time: Math.floor(Date.now() / 1000) 
+        };
+        break;
+      default:
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    }
 
     const { error: dbError } = await supabase
       .from('bot_signals')
@@ -55,7 +76,11 @@ export async function POST(req: Request) {
 
     if (dbError) throw dbError;
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+        success: true, 
+        message: `KIMOO PRO: ${action.toUpperCase()} signal deployed.` 
+    });
+
   } catch (err: any) {
     console.error("Control API Error:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
