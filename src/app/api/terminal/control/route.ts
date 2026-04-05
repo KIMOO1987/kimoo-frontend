@@ -2,6 +2,22 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+// GET: For the cTrader Bot (Fetches the signal)
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const botId = searchParams.get('botId');
+
+    if (!botId) return NextResponse.json({ error: 'Missing botId' }, { status: 400 });
+
+    const res = await fetch(`https://mdchezakdhcwnoelwiye.supabase.co/functions/v1/get-signal?botId=${botId}`, {
+        cache: 'no-store'
+    });
+    
+    const data = await res.json();
+    return NextResponse.json(data);
+}
+
+// POST: For your Dashboard (Controls Start/Stop)
 export async function POST(req: Request) {
   try {
     const cookieStore = await cookies();
