@@ -41,6 +41,14 @@ const menuGroups = [
       { name: 'Profile', icon: User, path: '/dashboard/profile', minTier: 0 },
       { name: 'Payments', icon: CreditCard, path: '/dashboard/payments', minTier: 0 },
     ]
+  },
+  { 
+    label: 'AUTO EXECUATION PLATFORMS',
+    items: [
+      { name: 'MT5', icon: User, path: '/dashboard/mt5', minTier: 0 },
+      { name: 'cTrader', icon: CreditCard, path: '/dashboard/ctrader', minTier: 0 },
+      { name: 'Binance', icon: CreditCard, path: '/dashboard/binance', minTier: 0 },
+    ]
   }
 ];
 
