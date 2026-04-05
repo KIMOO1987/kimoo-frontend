@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+
+  // 2. Add rewrites to mask the Supabase URL
+  async rewrites() {
+    return [
+      {
+        source: "/api/signals",
+        destination: "https://mdchezakdhcwnoelwiye.supabase.co/functions/v1/get-signal",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
