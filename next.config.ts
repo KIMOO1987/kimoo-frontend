@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/api/terminal/control",
+        source: "/api/signals",
         destination: "https://mdchezakdhcwnoelwiye.supabase.co/functions/v1/get-signal",
       },
     ];
