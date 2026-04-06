@@ -30,7 +30,9 @@ serve(async (req) => {
 
     if (error) throw error;
     if (!trades || trades.length === 0) {
-        return new Response(JSON.stringify({ action: "none" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify([]), { // Return empty array [] instead of {action:none}
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        });
     }
 
     // 2. Map through all active trades to build a list of actions
