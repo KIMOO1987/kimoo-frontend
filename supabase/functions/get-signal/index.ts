@@ -11,16 +11,22 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    const url = new URL(req.url)
+    const botToken = url.searchParams.get('botId')
+
+    if (!botToken) throw new Error("Missing botId parameter")
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Query the 'signals' table for the most recent ACTIVE entry
+    // Fetch the latest active trade for this user
     const { data, error } = await supabase
       .from('signals')
-      .select('symbol, side, sl, tp, tp_secondary, status')
-      .eq('is_active', true)
+      .select('symbol, side, sl, tp, tp_secondary, status, is_active')
+      .eq('bot_token', botToken)
+      .eq('is_active', true) // Only grab live trades
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -31,12 +37,25 @@ serve(async (req) => {
       })
     }
 
-    // Format the response for the C# cBot
+    // --- SMART LOGIC FOR TRADE PHASES ---
+    let action = "none";
+    
+    if (data.status === "PENDING" || data.status === "ENTRY") {
+        action = data.side.toLowerCase(); // 'buy' or 'sell' (Open New Trade)
+    } 
+    else if (data.status === "TP1") {
+        action = "partial_close"; // Tell cBot to close 50% and move SL to BE
+    }
+    else if (data.status === "TP2" || data.status === "SL" || data.status === "TP1 + SL (BE)") {
+        action = "close_all"; // Final Exit
+    }
+
     const responseBody = {
+      action: action,
       symbol: data.symbol,
-      action: data.side.toLowerCase(), // 'buy' or 'sell'
       sl: data.sl,
       tp: data.tp,
+      tp2: data.tp_secondary, // Added support for TP2
       status: data.status
     }
 
