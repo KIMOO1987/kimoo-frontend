@@ -1,4 +1,3 @@
-// supabase/functions/get-signal/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -21,44 +20,44 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Fetch the latest active trade for this user
-    const { data, error } = await supabase
+    // 1. Fetch ALL active trades for this user (Removed .limit(1))
+    const { data: trades, error } = await supabase
       .from('signals')
-      .select('symbol, side, sl, tp, tp_secondary, status, is_active')
+      .select('symbol, side, sl, tp, tp_secondary, status, is_active, created_at')
       .eq('bot_token', botToken)
-      .eq('is_active', true) // Only grab live trades
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
 
-    if (error || !data) {
-      return new Response(JSON.stringify({ action: "none" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+    if (error) throw error;
+    if (!trades || trades.length === 0) {
+        return new Response(JSON.stringify({ action: "none" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // --- SMART LOGIC FOR TRADE PHASES ---
-    let action = "none";
-    
-    if (data.status === "PENDING" || data.status === "ENTRY") {
-        action = data.side.toLowerCase(); // 'buy' or 'sell' (Open New Trade)
-    } 
-    else if (data.status === "TP1") {
-        action = "partial_close"; // Tell cBot to close 50% and move SL to BE
-    }
-    else if (data.status === "TP2" || data.status === "SL" || data.status === "TP1 + SL (BE)") {
-        action = "close_all"; // Final Exit
-    }
+    // 2. Map through all active trades to build a list of actions
+    const responseBody = trades.map(trade => {
+        let action = "none";
+        const status = trade.status?.toUpperCase();
 
-    const responseBody = {
-      action: action,
-      symbol: data.symbol,
-      sl: data.sl,
-      tp: data.tp,
-      tp2: data.tp_secondary, // Added support for TP2
-      status: data.status
-    }
+        if (status === "PENDING" || status === "ENTRY") {
+            action = trade.side.toLowerCase(); 
+        } else if (status === "TP1") {
+            action = "partial_close";
+        } else if (status === "TP2" || status === "SL" || status === "TP1 + SL (BE)") {
+            action = "close_all";
+        }
 
+        return {
+            action: action,
+            symbol: trade.symbol,
+            sl: trade.sl,
+            tp: trade.tp,
+            tp2: trade.tp_secondary,
+            status: trade.status,
+            time: new Date(trade.created_at).getTime() // Send timestamp as unique ID
+        };
+    });
+
+    // 3. Return the array of signals
     return new Response(JSON.stringify(responseBody), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
