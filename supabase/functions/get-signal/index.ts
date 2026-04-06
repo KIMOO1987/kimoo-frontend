@@ -20,22 +20,39 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 1. Fetch ALL active trades for this user (Removed .limit(1))
-    const { data: trades, error } = await supabase
+    // --- STEP 1: VALIDATE USER TOKEN ---
+    // Check if the provided botId exists in your user profile table
+    const { data: userProfile, error: userError } = await supabase
+      .from('bot_signals')
+      .select('bot_token')
+      .eq('bot_token', botToken)
+      .maybeSingle();
+
+    if (userError || !userProfile) {
+        return new Response(JSON.stringify({ error: "Unauthorized: Invalid Bot Token" }), { 
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+    }
+
+    // --- STEP 2: FETCH GLOBAL ACTIVE SIGNALS ---
+    // We remove the bot_token filter here because signals are broadcast to all valid users
+    const { data: trades, error: tradesError } = await supabase
       .from('signals')
       .select('symbol, side, sl, tp, tp_secondary, status, is_active, created_at')
-      .eq('bot_token', botToken)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (tradesError) throw tradesError;
+
+    // If no active trades, return empty array so cBot loop handles it cleanly
     if (!trades || trades.length === 0) {
-        return new Response(JSON.stringify([]), { // Return empty array [] instead of {action:none}
+        return new Response(JSON.stringify([]), { 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         });
     }
 
-    // 2. Map through all active trades to build a list of actions
+    // --- STEP 3: MAP ACTIONS PER TRADE ---
     const responseBody = trades.map(trade => {
         let action = "none";
         const status = trade.status?.toUpperCase();
@@ -55,11 +72,10 @@ serve(async (req) => {
             tp: trade.tp,
             tp2: trade.tp_secondary,
             status: trade.status,
-            time: new Date(trade.created_at).getTime() // Send timestamp as unique ID
+            time: new Date(trade.created_at).getTime() // For C# HashSet tracking
         };
     });
 
-    // 3. Return the array of signals
     return new Response(JSON.stringify(responseBody), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
