@@ -24,12 +24,14 @@ serve(async (req) => {
     // Check if the provided botId exists in your user profile table
     const { data: userProfile, error: userError } = await supabase
       .from('bot_signals')
-      .select('bot_token')
+      .select('bot_token', 'is_active')
       .eq('bot_token', botToken)
+      .eq('current_signal')
+      .eq('status')
       .maybeSingle();
 
-    if (userError || !userProfile) {
-        return new Response(JSON.stringify({ error: "Unauthorized: Invalid Bot Token" }), { 
+    if (userError || !userProfile|| userProfile.is_active === false) {
+        return new Response(JSON.stringify({ error: "Unauthorized: Subscription Expired or Invalid Token" }), { 
             status: 401,
             headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
