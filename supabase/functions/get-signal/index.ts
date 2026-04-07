@@ -20,10 +20,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // --- STEP 1: VALIDATE USER TOKEN ---
-    // Check if the provided botId exists in your user profile table
-// --- STEP 1: VALIDATE USER (With Cleanup & Detailed Error) ---
-    const cleanToken = botToken.trim(); // Removes accidental spaces from cTrader paste
+    // --- STEP 1: VALIDATE USER (With Cleanup & Detailed Error) ---
+    const cleanToken = botToken.trim(); 
 
     const { data: userProfile, error: userError } = await supabase
       .from('bot_signals')
@@ -49,17 +47,29 @@ serve(async (req) => {
         });
     }
 
-    // --- STEP 2: FETCH GLOBAL ACTIVE SIGNALS ---
-    // We remove the bot_token filter here because signals are broadcast to all valid users
+    // --- STEP 2: FETCH GLOBAL ACTIVE SIGNALS (JOINED WITH PROFILES) ---
+    // We join the 'profiles' table to get 'grade' and 'category'
     const { data: trades, error: tradesError } = await supabase
       .from('signals')
-      .select('symbol, side, sl, tp, tp_secondary, status, is_active, created_at')
+      .select(`
+        symbol, 
+        side, 
+        sl, 
+        tp, 
+        tp_secondary, 
+        status, 
+        is_active, 
+        created_at,
+        profiles!inner (
+          grade,
+          category
+        )
+      `)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
     if (tradesError) throw tradesError;
 
-    // If no active trades, return empty array so cBot loop handles it cleanly
     if (!trades || trades.length === 0) {
         return new Response(JSON.stringify([]), { 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
@@ -84,9 +94,12 @@ serve(async (req) => {
             symbol: trade.symbol,
             sl: trade.sl,
             tp: trade.tp,
-            tp2: trade.tp_secondary,
+            tp_secondary: trade.tp_secondary, // Renamed to match C# ExtractDouble key
             status: trade.status,
-            time: new Date(trade.created_at).getTime() // For C# HashSet tracking
+            // Accessing joined data from the profiles object
+            grade: trade.profiles?.grade || "NORMAL",
+            category: trade.profiles?.category || "FOREX",
+            time: new Date(trade.created_at).getTime() 
         };
     });
 
