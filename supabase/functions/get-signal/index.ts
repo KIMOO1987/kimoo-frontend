@@ -22,18 +22,30 @@ serve(async (req) => {
 
     // --- STEP 1: VALIDATE USER TOKEN ---
     // Check if the provided botId exists in your user profile table
+// --- STEP 1: VALIDATE USER (With Cleanup & Detailed Error) ---
+    const cleanToken = botToken.trim(); // Removes accidental spaces from cTrader paste
+
     const { data: userProfile, error: userError } = await supabase
       .from('bot_signals')
-      .select('bot_token', 'is_active')
-      .eq('bot_token', botToken)
-      .eq('current_signal')
-      .eq('status')
+      .select('is_active')
+      .eq('bot_token', cleanToken)
       .maybeSingle();
 
-    if (userError || !userProfile|| userProfile.is_active === false) {
-        return new Response(JSON.stringify({ error: "Unauthorized: Subscription Expired or Invalid Token" }), { 
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+    if (userError) {
+        return new Response(JSON.stringify({ error: "DB_ERROR", details: userError.message }), { 
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+    }
+
+    if (!userProfile) {
+        return new Response(JSON.stringify({ error: "TOKEN_NOT_FOUND", token_received: cleanToken }), { 
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+    }
+
+    if (userProfile.is_active !== true) {
+        return new Response(JSON.stringify({ error: "SUBSCRIPTION_INACTIVE" }), { 
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
     }
 
