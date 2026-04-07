@@ -6,83 +6,91 @@ export async function POST(req: Request) {
   try {
     const cookieStore = await cookies();
 
+    // 1. Initialize Supabase Client
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
+          getAll() { return cookieStore.getAll(); },
           setAll(cookiesToSet) {
             try {
               cookiesToSet.forEach(({ name, value, options }) =>
                 cookieStore.set(name, value, options)
               );
-            } catch {
-              // Ignore if called from Server Component
-            }
+            } catch { /* Server Component Safety */ }
           },
         },
       }
     );
 
+    // 2. Parse Incoming Request from Dashboard
     const { action, symbol, volume } = await req.json();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
+    // 3. Authenticate User
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let signalValue;
+    // 4. Build the Update Payload
+    // This object maps exactly to your Supabase Columns
+    let updateData: any = {
+      updated_at: new Date().toISOString()
+    };
 
-    // Logic Switch for different Dashboard Actions
     switch (action) {
       case 'start':
-        signalValue = { action: 'none', status: 'active' };
+        updateData.is_active = true;
+        updateData.status = 'ACTIVE';
+        updateData.current_signal = { action: 'START', time: Date.now() };
         break;
+
       case 'stop':
-        signalValue = { action: 'none', status: 'paused' };
+        updateData.is_active = false;
+        updateData.status = 'PAUSED';
+        updateData.current_signal = { action: 'STOP', time: Date.now() };
         break;
+
       case 'buy':
-        signalValue = { 
-            action: 'buy', 
-            status: 'active', 
-            symbol: symbol || 'BTCUSD', 
-            volume: volume || 0.01,
-            time: Math.floor(Date.now() / 1000) 
-        };
-        break;
       case 'sell':
-        signalValue = { 
-            action: 'sell', 
-            status: 'active', 
-            symbol: symbol || 'BTCUSD', 
-            volume: volume || 0.01,
-            time: Math.floor(Date.now() / 1000) 
+        updateData.is_active = true; // Ensure engine is "on" for manual trades
+        updateData.status = 'MANUAL_ENTRY';
+        updateData.current_signal = {
+          action: action.toLowerCase(),
+          symbol: symbol || 'XAUUSD',
+          volume: volume || 0.01,
+          time: Math.floor(Date.now() / 1000)
         };
         break;
+
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
 
+    // 5. Update the Database
+    // We target the specific user's row in bot_signals
     const { error: dbError } = await supabase
       .from('bot_signals')
-      .update({ 
-          current_signal: signalValue,
-          updated_at: new Date().toISOString() 
-      })
+      .update(updateData)
       .eq('user_id', user.id);
 
-    if (dbError) throw dbError;
+    if (dbError) {
+        // If this fails, the column likely doesn't exist yet
+        console.error("Database Update Failed:", dbError.message);
+        throw new Error(dbError.message);
+    }
 
     return NextResponse.json({ 
         success: true, 
-        message: `KIMOO PRO: ${action.toUpperCase()} signal deployed.` 
+        message: `KIMOO Engine: ${action.toUpperCase()} command deployed.` 
     });
 
   } catch (err: any) {
-    console.error("Control API Error:", err.message);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Terminal Control Error:", err.message);
+    return NextResponse.json(
+        { error: `Integration Error: ${err.message}` }, 
+        { status: 500 }
+    );
   }
 }
