@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import CryptoJS from 'crypto-js';
 
-// IMPORTANT: This key must match the one in your Python script.
-// In production, use process.env.NEXT_PUBLIC_ENCRYPTION_KEY
-const MASTER_ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || 'your-default-secure-passphrase';
+// This line now correctly pulls from your .env.local file.
+// IMPORTANT: Ensure NEXT_PUBLIC_ENCRYPTION_KEY is defined in .env.local
+const MASTER_ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY;
 
 export default function BinanceDashboard() {
   const supabase = createBrowserClient(
@@ -30,9 +30,13 @@ export default function BinanceDashboard() {
   };
 
   useEffect(() => {
+    // Check if the key is missing on load to warn the developer
+    if (!MASTER_ENCRYPTION_KEY) {
+        console.error("❌ CRITICAL: NEXT_PUBLIC_ENCRYPTION_KEY is missing from .env.local");
+        addLog("❌ SECURITY ERROR: Encryption key missing.");
+    }
     fetchBotData();
 
-    // REAL-TIME MONITORING: Listen for signals and configuration updates
     const channel = supabase
       .channel('guardian-sync')
       .on('postgres_changes', 
@@ -44,7 +48,6 @@ export default function BinanceDashboard() {
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'binance_auth' },
         (payload) => {
-            // Update UI if heartbeat or bot status changes from the Python side
             setBotConfig(payload.new);
         }
       )
@@ -57,7 +60,6 @@ export default function BinanceDashboard() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      // RLS Policy ensures this query only returns YOUR row
       const { data } = await supabase.from('binance_auth').select('*').eq('user_id', user.id).single();
       if (data) {
         setBotConfig(data);
@@ -65,7 +67,6 @@ export default function BinanceDashboard() {
         setRiskPercent(data.risk_percentage || 1.0);
         setIsBotEnabled(data.is_bot_enabled ?? true);
         setApiKey(data.api_key || '');
-        // Note: api_secret is stored encrypted in DB; we don't decrypt it here for security
       }
     }
     setLoading(false);
@@ -73,15 +74,22 @@ export default function BinanceDashboard() {
 
   const saveAllSettings = async () => {
     if (!botConfig) return;
+    
+    // Safety check for the key
+    if (!MASTER_ENCRYPTION_KEY) {
+        addLog("❌ CANNOT SAVE: Encryption key not configured in .env.local");
+        return;
+    }
+
     addLog("🔒 Encrypting & Syncing Credentials...");
     
-    // Logic: Encrypt Secret before it leaves the browser
-    let encryptedSecret = botConfig.api_secret; // Default to existing if not changed
+    let encryptedSecret = botConfig.api_secret; 
     if (apiSecret) {
         try {
+            // Encrypt using the key from .env.local
             encryptedSecret = CryptoJS.AES.encrypt(apiSecret, MASTER_ENCRYPTION_KEY).toString();
         } catch (e) {
-            return addLog("❌ Encryption Error: Check configuration.");
+            return addLog("❌ Encryption Error: Check your environment variables.");
         }
     }
 
@@ -97,7 +105,7 @@ export default function BinanceDashboard() {
 
     if (!error) {
         addLog("✅ System Secured & Cloud Synced.");
-        setApiSecret(''); // Clear local plain-text secret
+        setApiSecret(''); 
     } else {
         addLog(`❌ Sync Failed: ${error.message}`);
     }
@@ -107,7 +115,7 @@ export default function BinanceDashboard() {
     if (!botConfig?.last_heartbeat) return false;
     const lastSeen = new Date(botConfig.last_heartbeat).getTime();
     const now = new Date().getTime();
-    return (now - lastSeen) < 120000; // Online if heartbeat < 2 mins old
+    return (now - lastSeen) < 120000;
   };
 
   if (loading) return (
@@ -136,9 +144,7 @@ export default function BinanceDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* SIDEBAR CONTROLS */}
         <div className="space-y-6">
-          
           {/* AES VAULT */}
           <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded shadow-2xl">
             <h2 className="text-[10px] text-yellow-500 mb-4 uppercase font-bold flex items-center gap-2">
@@ -164,7 +170,7 @@ export default function BinanceDashboard() {
                   className="w-full bg-black border border-zinc-800 p-2 text-[11px] focus:border-yellow-500/50 outline-none text-white transition-colors" 
                   placeholder="••••••••••••"
                 />
-                <p className="text-[8px] text-zinc-600 mt-2 italic">* Encrypted locally. Plaintext never reaches the server.</p>
+                <p className="text-[8px] text-zinc-600 mt-2 italic">* Encrypted via .env.local master key.</p>
               </div>
             </div>
           </div>
