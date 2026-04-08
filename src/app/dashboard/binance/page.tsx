@@ -42,26 +42,28 @@ export default function BinanceDashboard() {
   };
 
   const handleInitialize = async () => {
-    addLog("Initializing Binance Access...");
-    const { data: { user } } = await supabase.auth.getUser();
+    addLog("Connecting to Secure Setup Route...");
     
-    if (!user) return addLog("Error: No User Session");
-
-    const { data, error } = await supabase
-      .from('binance_auth')
-      .insert([{ 
-        user_id: user.id, 
-        daily_risk_wallet: 1000, 
-        risk_percentage: 1.0 
-      }])
-      .select()
-      .single();
-
-    if (error) {
-        addLog(`Error: ${error.message}`);
-    } else {
-        setBotConfig(data);
-        addLog("Success: Bot Token Generated.");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return addLog("Error: Session expired. Please re-login.");
+  
+    try {
+      const response = await fetch('/api/binance/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+  
+      const result = await response.json();
+  
+      if (response.ok) {
+        setBotConfig(result);
+        addLog("✅ Success: Binance Row Created.");
+      } else {
+        addLog(`❌ Error: ${result.error}`);
+      }
+    } catch (err) {
+      addLog("❌ Critical: Failed to reach backend.");
     }
   };
 
