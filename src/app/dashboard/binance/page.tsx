@@ -115,7 +115,7 @@ export default function BinanceDashboard() {
   };
 
   if (loading) return (
-    <div className="p-10 bg-black min-h-screen flex items-center justify-center font-mono">
+    <div className="lg:ml-72 bg-black min-h-screen flex items-center justify-center font-mono">
         <div className="text-yellow-500 animate-pulse uppercase tracking-widest">Initialising Guardian Terminal...</div>
     </div>
   );
