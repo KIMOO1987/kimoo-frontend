@@ -116,13 +116,13 @@ export default function BinanceDashboard() {
   };
 
   if (loading) return (
-    <div className="p-10 bg-black min-h-screen flex items-center justify-center font-mono">
+    <div className="p-10 bg-[#05070a] min-h-screen flex items-center justify-center font-mono">
         <div className="text-yellow-500 animate-pulse uppercase tracking-widest">Initialising Guardian Terminal...</div>
     </div>
   );
 
   return (
-    <div className="lg:ml-72 bg-black min-h-screen text-gray-300 font-mono transition-all duration-300">
+    <div className="lg:ml-72 bg-[#05070a] min-h-screen text-gray-300 font-mono transition-all duration-300">
       <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
         
         {/* HEADER SECTION */}
@@ -153,7 +153,7 @@ export default function BinanceDashboard() {
                     type="text" 
                     value={apiKey} 
                     onChange={(e) => setApiKey(e.target.value)} 
-                    className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-[11px] focus:border-yellow-500/50 outline-none text-white transition-all" 
+                    className="w-full bg-[#05070a] border border-zinc-800 p-3 rounded-lg text-[11px] focus:border-yellow-500/50 outline-none text-white transition-all" 
                     placeholder="Binance API Key..."
                   />
                 </div>
@@ -163,7 +163,7 @@ export default function BinanceDashboard() {
                     type="password" 
                     value={apiSecret} 
                     onChange={(e) => setApiSecret(e.target.value)} 
-                    className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-[11px] focus:border-yellow-500/50 outline-none text-white transition-all" 
+                    className="w-full bg-[#05070a] border border-zinc-800 p-3 rounded-lg text-[11px] focus:border-yellow-500/50 outline-none text-white transition-all" 
                     placeholder="••••••••••••"
                   />
                 </div>
@@ -182,7 +182,7 @@ export default function BinanceDashboard() {
                         type="number" 
                         value={dailyRisk} 
                         onChange={(e) => setDailyRisk(Number(e.target.value))} 
-                        className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-xs focus:border-yellow-500/50 outline-none"
+                        className="w-full bg-[#05070a] border border-zinc-800 p-3 rounded-lg text-xs focus:border-yellow-500/50 outline-none"
                       />
                   </div>
                   <div>
@@ -192,13 +192,13 @@ export default function BinanceDashboard() {
                         step="0.1" 
                         value={riskPercent} 
                         onChange={(e) => setRiskPercent(Number(e.target.value))} 
-                        className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-xs focus:border-yellow-500/50 outline-none"
+                        className="w-full bg-[#05070a] border border-zinc-800 p-3 rounded-lg text-xs focus:border-yellow-500/50 outline-none"
                       />
                   </div>
               </div>
               
               <div className="py-2">
-                  <label className="flex items-center gap-3 cursor-pointer group bg-black/40 p-3 rounded-lg border border-zinc-800/50 hover:border-yellow-500/30 transition-all">
+                  <label className="flex items-center gap-3 cursor-pointer group bg-[#05070a]/40 p-3 rounded-lg border border-zinc-800/50 hover:border-yellow-500/30 transition-all">
                       <input 
                         type="checkbox" 
                         checked={isBotEnabled} 
@@ -225,7 +225,7 @@ export default function BinanceDashboard() {
             
             {/* LOG TERMINAL */}
             <div className="bg-zinc-900/20 border border-zinc-800 rounded-2xl h-[400px] flex flex-col shadow-2xl overflow-hidden backdrop-blur-md">
-              <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-black/40">
+              <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-[#05070a]/40">
                 <span className="text-[10px] font-black tracking-widest text-zinc-300 flex items-center gap-2 uppercase">
                   <span className="h-2 w-2 bg-yellow-500 rounded-full animate-pulse"></span>
                   Live Execution Logs
@@ -259,7 +259,7 @@ export default function BinanceDashboard() {
 
             {/* TRADE HISTORY TABLE */}
             <div className="bg-zinc-900/20 border border-zinc-800 rounded-2xl min-h-[300px] shadow-2xl backdrop-blur-md overflow-hidden">
-              <div className="p-4 border-b border-zinc-800 bg-black/40">
+              <div className="p-4 border-b border-zinc-800 bg-[#05070a]/40">
                   <span className="text-[10px] font-black tracking-widest text-zinc-300 flex items-center gap-2 uppercase">
                     <span className="h-2 w-2 bg-blue-500 rounded-full"></span>
                     Global Signal History
