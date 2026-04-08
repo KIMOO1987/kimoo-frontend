@@ -13,218 +13,173 @@ export default function BinanceDashboard() {
   const [botConfig, setBotConfig] = useState<any>(null);
   const [logs, setLogs] = useState<string[]>([]);
   
-  // Risk & Control Settings State
+  // Settings & Credentials State
   const [dailyRisk, setDailyRisk] = useState(1000);
   const [riskPercent, setRiskPercent] = useState(1.0);
+  const [apiKey, setApiKey] = useState('');
+  const [apiSecret, setApiSecret] = useState('');
   const [isBotEnabled, setIsBotEnabled] = useState(true);
 
   const addLog = (msg: string) => {
-    setLogs((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 20));
+    setLogs((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 30));
   };
 
   useEffect(() => {
     fetchBotData();
+
+    // REAL-TIME MONITORING: Listen for trade executions in the signals table
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'signals' }, 
+        (payload) => {
+          addLog(`🚀 NEW SIGNAL: ${payload.new.symbol} ${payload.new.side} @ ${payload.new.entry_price}`);
+        }
+      )
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'binance_auth' },
+        (payload) => {
+            // Update local state if heartbeat or status changes from Python side
+            setBotConfig(payload.new);
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); }
   }, []);
 
   const fetchBotData = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    
     if (user) {
-      const { data, error } = await supabase
-        .from('binance_auth')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
+      const { data } = await supabase.from('binance_auth').select('*').eq('user_id', user.id).single();
       if (data) {
         setBotConfig(data);
         setDailyRisk(data.daily_risk_wallet || 1000);
         setRiskPercent(data.risk_percentage || 1.0);
         setIsBotEnabled(data.is_bot_enabled ?? true);
+        setApiKey(data.api_key || '');
+        // We don't fetch/show the full secret for security
       }
     }
     setLoading(false);
   };
 
-  const handleInitialize = async () => {
-    addLog("Connecting to Secure Setup Route...");
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return addLog("Error: Session expired. Please re-login.");
-  
-    try {
-      const response = await fetch('/api/binance/setup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
-      });
-  
-      const result = await response.json();
-  
-      if (response.ok) {
-        setBotConfig(result);
-        addLog("✅ Success: Binance Row Created.");
-        fetchBotData(); // Refresh UI
-      } else {
-        addLog(`❌ Error: ${result.error}`);
-      }
-    } catch (err) {
-      addLog("❌ Critical: Failed to reach backend.");
-    }
-  };
-
-  const saveSettings = async () => {
+  const saveAllSettings = async () => {
     if (!botConfig) return;
-    addLog("Updating Cloud Risk Parameters...");
+    addLog("🔒 Syncing Credentials & Risk Parameters...");
     
-    const { error } = await supabase
-      .from('binance_auth')
-      .update({ 
+    const updates: any = { 
         daily_risk_wallet: dailyRisk, 
         risk_percentage: riskPercent,
-        is_bot_enabled: isBotEnabled
-      })
-      .eq('id', botConfig.id);
+        is_bot_enabled: isBotEnabled,
+        api_key: apiKey
+    };
 
-    if (!error) {
-      addLog("🚀 Settings Synced to Guardian Bot.");
-      // Briefly show success in the UI
-      setBotConfig({...botConfig, is_bot_enabled: isBotEnabled});
-    } else {
-      addLog(`❌ Error: ${error.message}`);
-    }
+    // Only update secret if user typed something new
+    if (apiSecret) updates.api_secret = apiSecret;
+
+    const { error } = await supabase.from('binance_auth').update(updates).eq('id', botConfig.id);
+
+    if (!error) addLog("✅ System Updated Successfully.");
+    else addLog(`❌ Update Failed: ${error.message}`);
   };
 
-  const toggleBot = () => {
-    const newState = !isBotEnabled;
-    setIsBotEnabled(newState);
-    addLog(newState ? "Bot Armed: Ready for signals." : "Bot Disarmed: Trade execution paused.");
+  // Logic to check if bot is "Live" based on heartbeat timestamp
+  const isOnline = () => {
+    if (!botConfig?.last_heartbeat) return false;
+    const lastSeen = new Date(botConfig.last_heartbeat).getTime();
+    const now = new Date().getTime();
+    return (now - lastSeen) < 120000; // Online if seen in last 2 mins
   };
 
-  if (loading) return (
-    <div className="p-10 bg-black min-h-screen flex items-center justify-center">
-      <div className="text-yellow-500 animate-pulse font-mono">INITIALIZING KIMOO TERMINAL...</div>
-    </div>
-  );
+  if (loading) return <div className="p-10 bg-black min-h-screen text-yellow-500 font-mono">LOADING KIMOO TERMINAL...</div>;
 
   return (
     <div className="p-6 bg-black min-h-screen text-gray-300 font-mono">
-      {/* HEADER SECTION */}
+      {/* HEADER */}
       <div className="flex justify-between items-center border-b border-yellow-500/30 pb-4 mb-6">
         <div>
           <h1 className="text-xl font-bold text-yellow-500">BINANCE LIVE TERMINAL</h1>
-          <p className="text-[10px] text-zinc-500 tracking-widest">KIMOO PRO GUARDIAN SYSTEM v2.0</p>
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest">KIMOO PRO GUARDIAN v2.0</p>
         </div>
-        <div className="flex items-center gap-6">
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] text-zinc-500">ENGINE STATUS</span>
-            <div className="flex items-center gap-2">
-               <span className={`h-2 w-2 rounded-full ${botConfig?.is_bot_enabled ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-               <span className={`text-sm ${botConfig?.is_bot_enabled ? 'text-green-400' : 'text-red-400'}`}>
-                 {botConfig?.is_bot_enabled ? 'ACTIVE' : 'PAUSED'}
-               </span>
+        <div className="text-right">
+          <div className="flex items-center justify-end gap-2">
+            <span className={`h-2 w-2 rounded-full ${isOnline() ? 'bg-green-500 animate-pulse' : 'bg-red-600'}`}></span>
+            <span className={isOnline() ? 'text-green-400' : 'text-red-600'}>
+                {isOnline() ? 'SYSTEM LIVE' : 'SYSTEM OFFLINE'}
+            </span>
+          </div>
+          <p className="text-[9px] text-zinc-600">HB: {botConfig?.last_heartbeat ? new Date(botConfig.last_heartbeat).toLocaleTimeString() : 'N/A'}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* LEFT COLUMN: CONTROLS */}
+        <div className="space-y-6">
+          {/* BINANCE API VAULT */}
+          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded">
+            <h2 className="text-xs text-yellow-500 mb-4 uppercase">API Credentials</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] text-zinc-500">Binance API Key</label>
+                <input type="text" value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="w-full bg-black border border-zinc-800 p-2 text-xs focus:border-yellow-500 outline-none" placeholder="Paste Key..."/>
+              </div>
+              <div>
+                <label className="text-[10px] text-zinc-500">Binance Secret Key</label>
+                <input type="password" value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} className="w-full bg-black border border-zinc-800 p-2 text-xs focus:border-yellow-500 outline-none" placeholder="••••••••••••"/>
+              </div>
+            </div>
+          </div>
+
+          {/* RISK MANAGEMENT */}
+          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded space-y-4">
+            <h2 className="text-xs text-yellow-500 uppercase">Risk Parameters</h2>
+            <div className="grid grid-cols-2 gap-2">
+                <div>
+                    <label className="text-[10px] text-zinc-500">Daily Risk ($)</label>
+                    <input type="number" value={dailyRisk} onChange={(e) => setDailyRisk(Number(e.target.value))} className="w-full bg-black border border-zinc-800 p-2 text-sm"/>
+                </div>
+                <div>
+                    <label className="text-[10px] text-zinc-500">Trade Risk (%)</label>
+                    <input type="number" step="0.1" value={riskPercent} onChange={(e) => setRiskPercent(Number(e.target.value))} className="w-full bg-black border border-zinc-800 p-2 text-sm"/>
+                </div>
+            </div>
+            
+            <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={isBotEnabled} onChange={() => setIsBotEnabled(!isBotEnabled)} className="accent-yellow-500"/>
+                    <span className="text-xs uppercase">Enable Execution Engine</span>
+                </label>
+            </div>
+
+            <button onClick={saveAllSettings} className="w-full bg-yellow-600 hover:bg-yellow-700 text-black font-bold py-2 rounded text-xs transition-all">
+              SAVE & SYNC SYSTEM
+            </button>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: LOGS & MONITORING */}
+        <div className="lg:col-span-3">
+          <div className="bg-zinc-900 border border-zinc-800 rounded h-[600px] flex flex-col">
+            <div className="p-3 border-b border-zinc-800 flex justify-between items-center bg-black/40">
+              <span className="text-xs font-bold">EXECUTION TERMINAL</span>
+              <span className="text-[10px] text-zinc-600 tracking-tighter">SECURE_ID: {botConfig?.id}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono scrollbar-hide">
+              {logs.map((log, i) => (
+                <div key={i} className={`text-xs flex gap-3 ${log.includes('SIGNAL') ? 'bg-yellow-500/10 p-1 border-l-2 border-yellow-500' : ''}`}>
+                  <span className="text-zinc-600 select-none">[{i}]</span>
+                  <span className={log.includes('❌') ? 'text-red-500' : log.includes('🚀') ? 'text-yellow-400 font-bold' : 'text-zinc-400'}>
+                    {log}
+                  </span>
+                </div>
+              ))}
+              <div className="animate-pulse text-zinc-800 text-xs">_</div>
             </div>
           </div>
         </div>
       </div>
-
-      {!botConfig ? (
-        <div className="flex flex-col items-center justify-center h-64 border border-dashed border-zinc-700 rounded-lg">
-          <p className="mb-4 text-zinc-500">No Binance Bot linked to this account.</p>
-          <button 
-            onClick={handleInitialize}
-            className="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded transition-all"
-          >
-            GENERATE ACCESS TOKEN
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="md:col-span-1 space-y-4">
-            
-            {/* MASTER SWITCH */}
-            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded">
-              <h2 className="text-xs text-zinc-500 mb-3 uppercase">Master Control</h2>
-              <button 
-                onClick={toggleBot}
-                className={`w-full py-3 rounded font-bold text-xs transition-all border ${
-                  isBotEnabled 
-                  ? 'bg-red-500/10 border-red-500/50 text-red-500 hover:bg-red-500/20' 
-                  : 'bg-green-500/10 border-green-500/50 text-green-500 hover:bg-green-500/20'
-                }`}
-              >
-                {isBotEnabled ? "DISARM BOT (KILL SWITCH)" : "ARM BOT (READY)"}
-              </button>
-            </div>
-
-            {/* TOKEN SECTION */}
-            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded">
-              <h2 className="text-xs text-zinc-500 mb-2 uppercase">Your Bot Token</h2>
-              <div className="bg-black p-2 rounded text-[10px] break-all text-yellow-400 border border-yellow-500/20">
-                {botConfig.bot_token}
-              </div>
-              <p className="text-[9px] mt-2 text-zinc-600">* Ensure this token matches your .env in Python.</p>
-            </div>
-
-            {/* RISK CONTROL */}
-            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded space-y-4">
-              <h2 className="text-xs text-zinc-500 uppercase">Risk Management</h2>
-              <div>
-                <label className="text-[10px] text-zinc-400 block mb-1">Daily Risk Wallet ($)</label>
-                <input 
-                    type="number" 
-                    value={dailyRisk} 
-                    onChange={(e) => setDailyRisk(Number(e.target.value))}
-                    className="w-full bg-black border border-zinc-700 p-2 text-white text-sm focus:border-yellow-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-zinc-400 block mb-1">Risk per Trade (%)</label>
-                <input 
-                    type="number" 
-                    step="0.1" 
-                    value={riskPercent} 
-                    onChange={(e) => setRiskPercent(Number(e.target.value))}
-                    className="w-full bg-black border border-zinc-700 p-2 text-white text-sm focus:border-yellow-500 outline-none"
-                />
-              </div>
-              <button 
-                onClick={saveSettings}
-                className="w-full text-xs bg-yellow-600 hover:bg-yellow-700 text-white py-2 rounded font-bold transition-all"
-              >
-                SAVE & SYNC SETTINGS
-              </button>
-            </div>
-          </div>
-
-          {/* LOGS SECTION */}
-          <div className="md:col-span-3">
-            <div className="bg-zinc-900 border border-zinc-800 rounded h-[500px] flex flex-col">
-              <div className="p-2 border-b border-zinc-800 text-xs text-zinc-500 flex justify-between bg-black/20">
-                <span>SYSTEM LOGS (REAL-TIME)</span>
-                <span className="text-[10px]">SESSION: {botConfig.id.slice(0,13)}</span>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-1 text-[13px] font-mono scrollbar-thin scrollbar-thumb-zinc-700">
-                {logs.length === 0 && <div className="text-zinc-600">Initializing stream...</div>}
-                {logs.map((log, i) => (
-                  <div key={i} className="flex gap-2 border-b border-white/5 pb-1">
-                    <span className="text-zinc-600">▸</span>
-                    <span className={
-                      log.includes('Success') || log.includes('Synced') || log.includes('Armed') 
-                      ? 'text-green-400' 
-                      : log.includes('Error') || log.includes('Disarmed') 
-                      ? 'text-red-400' 
-                      : 'text-zinc-400'
-                    }>
-                      {log}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
