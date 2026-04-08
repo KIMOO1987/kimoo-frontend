@@ -8,6 +8,7 @@ import CryptoJS from 'crypto-js';
 // IMPORTANT: Ensure NEXT_PUBLIC_ENCRYPTION_KEY is defined in .env.local
 const MASTER_ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY;
 
+
 export default function BinanceDashboard() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
