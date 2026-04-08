@@ -47,24 +47,10 @@ serve(async (req) => {
         });
     }
 
-    // --- STEP 2: FETCH GLOBAL ACTIVE SIGNALS (JOINED WITH PROFILES) ---
-    // We join the 'profiles' table to get 'grade' and 'category'
+    // --- STEP 2: FETCH GLOBAL ACTIVE SIGNALS (No Join Needed) ---
     const { data: trades, error: tradesError } = await supabase
       .from('signals')
-      .select(`
-        symbol, 
-        side, 
-        sl, 
-        tp, 
-        tp_secondary, 
-        status, 
-        is_active, 
-        created_at,
-        profiles!inner (
-          grade,
-          category
-        )
-      `)
+      .select('symbol, side, sl, tp, tp_secondary, status, is_active, created_at, grade, category')
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
@@ -76,7 +62,7 @@ serve(async (req) => {
         });
     }
 
-    // --- STEP 3: MAP ACTIONS PER TRADE ---
+// --- STEP 3: MAP ACTIONS PER TRADE ---
     const responseBody = trades.map(trade => {
         let action = "none";
         const status = trade.status?.toUpperCase();
@@ -89,16 +75,19 @@ serve(async (req) => {
             action = "close_all";
         }
 
+        const rawGrade = (trade.grade || "NORMAL").toUpperCase();
+        const rawCategory = (trade.category || "FOREX").toUpperCase();
+
         return {
             action: action,
             symbol: trade.symbol,
             sl: trade.sl,
             tp: trade.tp,
-            tp_secondary: trade.tp_secondary, // Renamed to match C# ExtractDouble key
+            tp_secondary: trade.tp_secondary,
             status: trade.status,
-            // Accessing joined data from the profiles object
-            grade: trade.profiles?.grade || "NORMAL",
-            category: trade.profiles?.category || "FOREX",
+            // Access directly from the trade object now
+            grade: rawGrade, 
+            category: rawCategory,
             time: new Date(trade.created_at).getTime() 
         };
     });
