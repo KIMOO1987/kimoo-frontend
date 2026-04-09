@@ -50,7 +50,7 @@ serve(async (req) => {
     // --- STEP 2: FETCH GLOBAL ACTIVE SIGNALS (No Join Needed) ---
     const { data: trades, error: tradesError } = await supabase
       .from('signals')
-      .select('symbol, side, sl, tp, tp_secondary, status, is_active, created_at, grade, category')
+      .select('symbol, side, sl, tp, tp_secondary, status, is_active, created_at, grade, category', 'tf_alignment')
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
@@ -88,6 +88,7 @@ serve(async (req) => {
             // Access directly from the trade object now
             grade: rawGrade, 
             category: rawCategory,
+            tf_alignment: trade.tf_alignment || "5m-1H",
             time: new Date(trade.created_at).getTime() 
         };
     });
