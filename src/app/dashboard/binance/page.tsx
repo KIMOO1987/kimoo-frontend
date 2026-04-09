@@ -28,6 +28,9 @@ export default function BinanceDashboard() {
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [isBotEnabled, setIsBotEnabled] = useState(true);
+  
+  // NEW: Environment State (Testnet vs Live)
+  const [environment, setEnvironment] = useState<'testnet' | 'live'>('testnet');
 
   // Optimized log handler to prevent unnecessary re-renders
   const addLog = useCallback((msg: string) => {
@@ -46,6 +49,8 @@ export default function BinanceDashboard() {
         setRiskPercent(data.risk_percentage || 1.0);
         setIsBotEnabled(data.is_bot_enabled ?? true);
         setApiKey(data.api_key || '');
+        // NEW: Load Environment from DB
+        setEnvironment(data.environment || 'testnet');
       }
     }
     setLoading(false);
@@ -102,13 +107,15 @@ export default function BinanceDashboard() {
         is_bot_enabled: isBotEnabled,
         api_key: apiKey,
         api_secret: encryptedSecret,
+        // NEW: Sync environment to DB
+        environment: environment,
         updated_at: new Date().toISOString()
     };
 
     const { error } = await supabase.from('binance_auth').update(updates).eq('id', botConfig.id);
 
     if (!error) {
-        addLog("✅ System Secured & Cloud Synced.");
+        addLog(`✅ System Secured & Cloud Synced to ${environment.toUpperCase()}.`);
         setApiSecret(''); 
     } else {
         addLog(`❌ Sync Failed: ${error.message}`);
@@ -128,7 +135,9 @@ export default function BinanceDashboard() {
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-yellow-500/30 pb-6 mb-8 gap-4">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-yellow-500 tracking-tighter uppercase italic">Binance Live Terminal</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-yellow-500 tracking-tighter uppercase italic">
+                Binance {environment === 'live' ? 'Live' : 'Testnet'} Terminal
+            </h1>
             <p className="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-bold">Kimoo Pro Secure Engine v2.0</p>
           </div>
           
@@ -147,6 +156,25 @@ export default function BinanceDashboard() {
                 <span className="opacity-50 tracking-tighter">01</span> SECURE API VAULT
               </h2>
               <div className="space-y-5">
+                {/* NEW: ENVIRONMENT TOGGLE */}
+                <div className="pb-2">
+                  <label className="text-[9px] text-zinc-600 uppercase font-black block mb-1.5 ml-1">Network Mode</label>
+                  <div className="flex bg-[#05070a] rounded-lg p-1 border border-zinc-800">
+                    <button 
+                      onClick={() => setEnvironment('testnet')}
+                      className={`flex-1 py-2 text-[9px] font-black rounded-md transition-all ${environment === 'testnet' ? 'bg-yellow-500 text-black' : 'text-zinc-500 hover:text-white'}`}
+                    >
+                      TESTNET
+                    </button>
+                    <button 
+                      onClick={() => setEnvironment('live')}
+                      className={`flex-1 py-2 text-[9px] font-black rounded-md transition-all ${environment === 'live' ? 'bg-red-600 text-white' : 'text-zinc-500 hover:text-white'}`}
+                    >
+                      LIVE
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label className="text-[9px] text-zinc-600 uppercase font-black block mb-1.5 ml-1">Public API Key</label>
                   <input 
@@ -213,9 +241,9 @@ export default function BinanceDashboard() {
 
               <button 
                 onClick={saveAllSettings} 
-                className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-black py-4 rounded-xl text-[11px] uppercase transition-all active:scale-95 shadow-lg shadow-yellow-900/20"
+                className={`w-full ${environment === 'live' ? 'bg-red-700 hover:bg-red-600' : 'bg-yellow-600 hover:bg-yellow-500'} text-white font-black py-4 rounded-xl text-[11px] uppercase transition-all active:scale-95 shadow-lg`}
               >
-                SAVE & SYNC SYSTEM
+                SAVE & SYNC {environment.toUpperCase()}
               </button>
             </div>
           </div>
@@ -227,8 +255,8 @@ export default function BinanceDashboard() {
             <div className="bg-zinc-900/20 border border-zinc-800 rounded-2xl h-[400px] flex flex-col shadow-2xl overflow-hidden backdrop-blur-md">
               <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-[#05070a]/40">
                 <span className="text-[10px] font-black tracking-widest text-zinc-300 flex items-center gap-2 uppercase">
-                  <span className="h-2 w-2 bg-yellow-500 rounded-full animate-pulse"></span>
-                  Live Execution Logs
+                  <span className={`h-2 w-2 rounded-full animate-pulse ${environment === 'live' ? 'bg-red-500' : 'bg-yellow-500'}`}></span>
+                  Live Execution Logs [{environment}]
                 </span>
                 <span className="hidden sm:block text-[9px] text-zinc-600 font-mono bg-zinc-800/50 px-2 py-1 rounded tracking-tighter">
                   UUID: {botConfig?.id?.slice(0,18)}
