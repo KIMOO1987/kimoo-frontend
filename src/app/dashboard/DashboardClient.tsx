@@ -91,7 +91,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
       // Fetch in chronological order so Max Drawdown / Equity Curve is accurate
       const { data: allSignals } = await supabase.from('signals')
         .select('*')
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(10000);
         
       if (!allSignals || allSignals.length === 0) return;
 
