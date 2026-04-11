@@ -223,7 +223,7 @@ function SelectField({ label, value, options, onChange }: any) {
         className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono font-bold text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all appearance-none cursor-pointer" 
         value={value} 
         onChange={(e) => onChange(e.target.value)}
-        />
+      >
         {options.map((o: any) => (
           <option key={o} value={o} className="bg-[#05070a]">{o.toString().toUpperCase()}</option>
         ))}
