@@ -11,7 +11,7 @@ import {
 
 export default function ActiveSignalsPage() {
   const [activeSignals, setActiveSignals] = useState<any[]>([]);
-  const [loadingSignals, setLoadingSignals] = useState(false);
+  const [loadingSignals, setLoadingSignals] = useState(true);
   // State to hold live prices, keyed by symbol
   const [livePrices, setLivePrices] = useState<{ [key: string]: number }>({});
 
@@ -19,9 +19,9 @@ export default function ActiveSignalsPage() {
   const getSymbolData = (symbol: string) => {
     const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
     
-    // Metal: OANDA
+    // METALS: OANDA
     if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) {
-      return { category: 'METAL', provider: 'OANDA', clean: upper };
+      return { category: 'METALS', provider: 'OANDA', clean: upper };
     }
     // Indices: CAPITALCOM
     if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) {
@@ -39,7 +39,28 @@ export default function ActiveSignalsPage() {
   // 1. SIGNAL DATA FETCHING & REALTIME
   useEffect(() => {
     const fetchActive = async () => {
-      setLoadingSignals(true);
+      // 1. Optimistic Cache Load: Instantly show previous signals
+      const cached = sessionStorage.getItem('active_signals_cache');
+      if (cached) {
+        try {
+          const parsedSignals = JSON.parse(cached);
+          setActiveSignals(parsedSignals);
+          setLivePrices(prev => {
+            const next = { ...prev };
+            parsedSignals.forEach((s: any) => {
+              const clean = s.symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+              if (next[clean] === undefined) next[clean] = Number(s.entry_price || 0);
+            });
+            return next;
+          });
+          setLoadingSignals(false); // Instantly hide loader if cache is found
+        } catch (e) {}
+      } else {
+        // Only show loading screen if there is no cache
+        setLoadingSignals(true);
+      }
+
+      // 2. Fetch fresh data silently in the background
       // Fetches signals from the last 24 hours
       const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
@@ -54,6 +75,9 @@ export default function ActiveSignalsPage() {
         console.error("Signal Fetch Error:", error.message);
       } else if (data) {
         setActiveSignals(data);
+        // Save the fresh signals to cache for the next refresh
+        sessionStorage.setItem('active_signals_cache', JSON.stringify(data));
+        
         // Initialize live prices only for symbols we aren't tracking yet
         setLivePrices(prev => {
           const next = { ...prev };
@@ -97,7 +121,7 @@ export default function ActiveSignalsPage() {
       };
     }
 
-    // --- B. NON-CRYPTO POLLING (FOREX, METAL, INDICES) ---
+    // --- B. NON-CRYPTO POLLING (FOREX, METALS, INDICES) ---
     const otherSignals = activeSignals.filter(s => getSymbolData(s.symbol).category !== 'CRYPTO');
     
     const pollInterval = setInterval(async () => {
@@ -113,7 +137,7 @@ export default function ActiveSignalsPage() {
         // Format symbols for Finnhub according to provider logic
         if (category === 'FOREX') finnhubSymbol = `OANDA:${clean.replace(/(USD|JPY|GBP|AUD|NZD|EUR|CHF)/, '$1_').replace(/_$/, '')}`; 
         if (category === 'FOREX' && provider === 'FOREXCOM') finnhubSymbol = `FX:${clean}`;
-        if (category === 'METAL') finnhubSymbol = `OANDA:${clean.replace('USD', '_USD')}`;
+        if (category === 'METALS') finnhubSymbol = `OANDA:${clean.replace('USD', '_USD')}`;
         if (category === 'INDICES') finnhubSymbol = `${provider}:${clean}`;
 
         try {

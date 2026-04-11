@@ -31,13 +31,25 @@ export default function PaymentsPage() {
 
   // --- FETCH DYNAMIC PLANS FROM SUPABASE ---
   useEffect(() => {
+    // 1. Optimistic Cache Load: Instantly show previous plans
+    const cachedPlans = sessionStorage.getItem('payments_plans_cache');
+    if (cachedPlans) {
+      try {
+        setPlans(JSON.parse(cachedPlans));
+        setPageLoading(false); // Instantly hide loader
+      } catch (e) {}
+    }
+
     const fetchPlans = async () => {
       const { data, error } = await supabase
         .from('plans')
         .select('*')
         .order('price', { ascending: true });
       
-      if (!error && data) setPlans(data);
+      if (!error && data) {
+        setPlans(data);
+        sessionStorage.setItem('payments_plans_cache', JSON.stringify(data));
+      }
       setPageLoading(false);
     };
     fetchPlans();

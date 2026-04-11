@@ -3,6 +3,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Lock, ShieldAlert, Activity } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 interface AccessGuardProps {
   children: React.ReactNode;
@@ -12,9 +13,29 @@ interface AccessGuardProps {
 
 export default function AccessGuard({ children, requiredTier, tierName }: AccessGuardProps) {
   const { tier, loading } = useAuth();
+  const [cachedTier, setCachedTier] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Optimistically grab the tier from cache immediately to skip the loading screen
+    const saved = sessionStorage.getItem('user_tier_cache');
+    if (saved !== null) {
+      setCachedTier(Number(saved));
+    }
+  }, []);
+
+  useEffect(() => {
+    // Update the background cache once the real network request finishes
+    if (!loading) {
+      sessionStorage.setItem('user_tier_cache', tier.toString());
+      setCachedTier(tier);
+    }
+  }, [tier, loading]);
+
+  const currentTier = cachedTier !== null ? cachedTier : tier;
+  const showLoading = loading && cachedTier === null;
 
   // 1. Show a loader while checking the database
-  if (loading) {
+  if (showLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
         <Activity size={32} className="text-blue-500 animate-spin" />
@@ -23,7 +44,7 @@ export default function AccessGuard({ children, requiredTier, tierName }: Access
   }
 
   // 2. If the user's tier is too low, show the "Blocked" UI
-  if (tier < requiredTier) {
+  if (currentTier < requiredTier) {
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 text-center">
         <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 border border-blue-500/20">

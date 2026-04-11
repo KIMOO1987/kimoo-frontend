@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 
-export function useOptimisticAuth(cacheKey: string) {
+export function useOptimisticAuth(cacheKey: string = 'global_auth_cache') {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -12,7 +12,7 @@ export function useOptimisticAuth(cacheKey: string) {
 
   useEffect(() => {
     // 1. Instantly load from cache to skip loading screen
-    const cachedUser = localStorage.getItem(cacheKey);
+    const cachedUser = sessionStorage.getItem(cacheKey);
     if (cachedUser) {
       try {
         setUser(JSON.parse(cachedUser));
@@ -20,14 +20,14 @@ export function useOptimisticAuth(cacheKey: string) {
       } catch (e) {}
     }
 
-    // 2. Fetch fresh data in the background
+    // 2. Fetch fresh data in the background silently
     async function fetchUser() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUser(user);
-        localStorage.setItem(cacheKey, JSON.stringify(user));
+        sessionStorage.setItem(cacheKey, JSON.stringify(user));
       } else {
-        localStorage.removeItem(cacheKey);
+        sessionStorage.removeItem(cacheKey);
       }
       setLoading(false);
     }

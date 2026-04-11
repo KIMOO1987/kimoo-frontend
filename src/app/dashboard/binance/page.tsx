@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import CryptoJS from 'crypto-js';
+import { ShieldAlert } from 'lucide-react';
 
 // Internal Components
 import BotStatus from '@/components/BotStatus';
@@ -20,6 +21,8 @@ export default function BinanceDashboard() {
   const [loading, setLoading] = useState(true);
   const [botConfig, setBotConfig] = useState<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userTier, setUserTier] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   
   // Settings & Credentials State
@@ -44,37 +47,54 @@ export default function BinanceDashboard() {
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
+        setUserTier(parsed.tier);
         setUserId(parsed.userId);
-        setBotConfig(parsed.data);
-        setDailyRisk(parsed.data.daily_risk_wallet || 1000);
-        setRiskPercent(parsed.data.risk_percentage || 1.0);
-        setMinRR(parsed.data.rr || 1.2);
-        setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
-        setApiKey(parsed.data.api_key || '');
-        setEnvironment(parsed.data.environment || 'testnet');
+        if (parsed.data) {
+          setBotConfig(parsed.data);
+          setDailyRisk(parsed.data.daily_risk_wallet || 1000);
+          setRiskPercent(parsed.data.risk_percentage || 1.0);
+          setMinRR(parsed.data.rr || 1.2);
+          setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
+          setApiKey(parsed.data.api_key || '');
+          setEnvironment(parsed.data.environment || 'testnet');
+        }
         setLoading(false); // Instantly hide initialization screen
       } catch (e) {}
     } else {
       setLoading(true);
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setUserId(user.id);
-      const { data } = await supabase.from('binance_auth').select('*').eq('user_id', user.id).single();
-      if (data) {
-        setBotConfig(data);
-        setDailyRisk(data.daily_risk_wallet || 1000);
-        setRiskPercent(data.risk_percentage || 1.0);
-        setMinRR(data.rr || 1.2);
-        setIsBotEnabled(data.is_bot_enabled ?? true);
-        setApiKey(data.api_key || '');
-        // NEW: Load Environment from DB
-        setEnvironment(data.environment || 'testnet');
-        
-        // Update cache silently in the background for next refresh
-        localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, data }));
-      }
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      setError("Authentication required. Please log in.");
+      setLoading(false);
+      return;
+    }
+
+    // Fetch User Tier
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tier')
+      .eq('id', user.id)
+      .single();
+    
+    setUserTier(profile?.tier || 0);
+    setUserId(user.id);
+    
+    const { data } = await supabase.from('binance_auth').select('*').eq('user_id', user.id).single();
+    if (data) {
+      setBotConfig(data);
+      setDailyRisk(data.daily_risk_wallet || 1000);
+      setRiskPercent(data.risk_percentage || 1.0);
+      setMinRR(data.rr || 1.2);
+      setIsBotEnabled(data.is_bot_enabled ?? true);
+      setApiKey(data.api_key || '');
+      setEnvironment(data.environment || 'testnet');
+      
+      sessionStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data }));
+    } else {
+      sessionStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data: null }));
     }
     setLoading(false);
   };
@@ -178,6 +198,16 @@ export default function BinanceDashboard() {
         <div className="text-yellow-500 animate-pulse uppercase tracking-widest">Initialising Guardian Terminal...</div>
     </div>
   );
+
+  if (error || (userTier !== null && userTier < 3)) {
+    return (
+      <div className="min-h-screen bg-[#05070a] flex flex-col items-center justify-center p-6 text-center">
+        <ShieldAlert className="text-red-500 mb-4" size={48} />
+        <h2 className="text-white font-black text-xl uppercase italic">Access Denied</h2>
+        <p className="text-zinc-500 text-sm mt-2 max-w-xs">{error || "This feature requires a Lifetime Pro (Tier 3) subscription."}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="lg:ml-72 bg-[#05070a] min-h-screen text-gray-300 font-mono transition-all duration-300">

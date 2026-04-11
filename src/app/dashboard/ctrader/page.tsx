@@ -9,6 +9,7 @@ export default function CTraderDashboard() {
   const [logs, setLogs] = useState<string[]>([]);
   const [userTier, setUserTier] = useState<number | null>(null);
   const [botToken, setBotToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +47,7 @@ export default function CTraderDashboard() {
           setLoading(false);
           return;
         }
+        setUserId(user.id);
 
         // 1. Fetch User Tier (Verify they are Lifetime Pro / Tier 3)
         const { data: profile } = await supabase
@@ -59,7 +61,7 @@ export default function CTraderDashboard() {
         // 2. Fetch or Create Bot Token
         let { data, error: tokenError } = await supabase
           .from('bot_signals')
-          .select('bot_token')
+          .select('bot_token, is_active')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -74,6 +76,13 @@ export default function CTraderDashboard() {
 
         if (data) {
           setBotToken(data.bot_token);
+          if (data.is_active) {
+            setStatus('running');
+            sessionStorage.setItem('ctrader_bridge_status', 'running');
+          } else {
+            setStatus('stopped');
+            sessionStorage.setItem('ctrader_bridge_status', 'stopped');
+          }
           // Update cache silently in the background for the next refresh
           localStorage.setItem('ctrader_data_cache', JSON.stringify({
             tier: profile?.tier || 0,
@@ -111,6 +120,11 @@ export default function CTraderDashboard() {
         // Save the status to localStorage so it survives page refreshes
         localStorage.setItem('ctrader_bridge_status', action === 'start' ? 'running' : 'stopped');
         addLog(`cTrader Bridge: ${action === 'start' ? 'ACTIVE & LISTENING' : 'OFFLINE'}.`);
+        
+        // Sync the new status to the Supabase Database
+        if (userId) {
+          await supabase.from('bot_signals').update({ is_active: action === 'start' }).eq('user_id', userId);
+        }
       } else {
         addLog(`Error: Server responded with status ${res.status}`);
       }

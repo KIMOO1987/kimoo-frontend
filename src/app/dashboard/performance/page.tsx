@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard';
 import SignalChart from '@/components/SignalChart';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,7 +26,7 @@ const ITEMS_PER_PAGE = 20;
 // --- HELPERS ---
 const getSymbolData = (symbol: string) => {
   const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (upper.startsWith('XAU') || upper.startsWith('XAG')) return { category: 'METAL', provider: 'OANDA' };
+  if (upper.startsWith('XAU') || upper.startsWith('XAG')) return { category: 'METALS', provider: 'OANDA' };
   if (['US100', 'US30', 'US500', 'NAS100'].includes(upper)) return { category: 'INDICES', provider: 'CAPITALCOM' };
   const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD'];
   if (forexPairs.includes(upper)) return { category: 'FOREX', provider: 'FOREXCOM' };
@@ -92,7 +91,6 @@ const SignalModal = ({ signal, onClose }: { signal: any, onClose: () => void }) 
 };
 
 export default function PerformancePage() {
-  const { loading: authLoading } = useAuth(); 
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -113,6 +111,17 @@ export default function PerformancePage() {
   });
 
   useEffect(() => {
+    // 1. Optimistic Cache Load: Instantly show previous performance data
+    const cached = sessionStorage.getItem('performance_history_cache');
+    if (cached) {
+      try {
+        setHistory(JSON.parse(cached));
+        setLoading(false); // Instantly hide loader
+      } catch (e) {}
+    } else {
+      setLoading(true);
+    }
+
     const fetchPerformanceData = async () => {
       const { data } = await supabase
         .from('signals')
@@ -122,6 +131,8 @@ export default function PerformancePage() {
 
       if (data) {
         setHistory(data);
+        // 2. Save the fresh data to cache for the next refresh
+        sessionStorage.setItem('performance_history_cache', JSON.stringify(data));
       }
       setLoading(false);
     };
@@ -198,7 +209,7 @@ export default function PerformancePage() {
     setCurrentPage(1);
   }, [searchTerm, dateFrom, dateTo]);
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
         <Activity size={32} className="text-blue-500 animate-spin" />

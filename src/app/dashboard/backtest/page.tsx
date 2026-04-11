@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard'; // Added AccessGuard
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -12,7 +11,6 @@ import {
 } from 'lucide-react';
 
 export default function BacktestPage() {
-  const { loading: authLoading } = useAuth(); 
   const [isSimulating, setIsSimulating] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [equityCurve, setEquityCurve] = useState<number[]>([]);
@@ -25,6 +23,32 @@ export default function BacktestPage() {
   const [riskPercent, setRiskPercent] = useState(1);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  useEffect(() => {
+    // Load cached inputs and results to instantly restore the last backtest
+    const cachedInputs = sessionStorage.getItem('backtest_inputs_cache');
+    const cachedResults = sessionStorage.getItem('backtest_results_cache');
+
+    if (cachedInputs) {
+      try {
+        const inputs = JSON.parse(cachedInputs);
+        setSelectedSymbol(inputs.selectedSymbol || 'ALL');
+        setRrRatio(inputs.rrRatio || 3);
+        setAccountSize(inputs.accountSize || 100000);
+        setRiskPercent(inputs.riskPercent || 1);
+        setStartDate(inputs.startDate || '');
+        setEndDate(inputs.endDate || '');
+      } catch (e) {}
+    }
+
+    if (cachedResults) {
+      try {
+        const res = JSON.parse(cachedResults);
+        setResults(res.results);
+        setEquityCurve(res.equityCurve || []);
+      } catch (e) {}
+    }
+  }, []);
 
   const runSimulation = async () => {
     setIsSimulating(true);
@@ -62,8 +86,7 @@ export default function BacktestPage() {
 
         const riskAmount = accountSize * (riskPercent / 100);
         
-        setEquityCurve(curve);
-        setResults({
+        const generatedResults = {
           winRate: ((wins + partials) / data.length * 100).toFixed(1),
           profitFactor: ((wins * rrRatio + partials * 0.5) / Math.abs(losses || 1)).toFixed(2),
           totalSignals: data.length,
@@ -72,20 +95,24 @@ export default function BacktestPage() {
           cashProfit: (runningR * riskAmount).toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
           wins, losses, partials,
           avgTrade: (runningR / data.length).toFixed(2)
-        });
+        };
+
+        setEquityCurve(curve);
+        setResults(generatedResults);
+
+        // Cache the latest simulation so it survives a refresh
+        sessionStorage.setItem('backtest_inputs_cache', JSON.stringify({
+          selectedSymbol, rrRatio, accountSize, riskPercent, startDate, endDate
+        }));
+        sessionStorage.setItem('backtest_results_cache', JSON.stringify({
+          results: generatedResults,
+          equityCurve: curve
+        }));
       }
       setIsSimulating(false);
     }, 1200);
   };
 
-  // Auth Loading State
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
-        <Activity size={32} className="text-blue-500 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <AccessGuard requiredTier={2} tierName="Pro / Yearly">

@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard'; // Added AccessGuard
 import { Compass, Shield, Activity, Radio } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function RadarPage() {
-  const { loading: authLoading } = useAuth(); 
   const [liveSignals, setLiveSignals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [livePrices, setLivePrices] = useState<{ [key: string]: number }>({});
@@ -19,7 +17,7 @@ export default function RadarPage() {
     
     // Metal: OANDA
     if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) {
-      return { category: 'METAL', provider: 'OANDA', clean: upper };
+      return { category: 'METALS', provider: 'OANDA', clean: upper };
     }
     // Indices: CAPITALCOM
     if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) {
@@ -35,6 +33,17 @@ export default function RadarPage() {
   };
 
   useEffect(() => {
+    // 1. Optimistic Cache Load: Instantly show previous radar data
+    const cached = sessionStorage.getItem('radar_signals_cache');
+    if (cached) {
+      try {
+        setLiveSignals(JSON.parse(cached));
+        setIsLoading(false); // Instantly hide loader
+      } catch (e) {}
+    } else {
+      setIsLoading(true);
+    }
+
     fetchRadarData();
 
     // Heartbeat logic
@@ -87,7 +96,7 @@ export default function RadarPage() {
         let finnhubSymbol = clean;
         if (category === 'FOREX') finnhubSymbol = `OANDA:${clean.replace(/(USD|JPY|GBP|AUD|NZD|EUR|CHF)/, '$1_').replace(/_$/, '')}`; 
         if (category === 'FOREX' && provider === 'FOREXCOM') finnhubSymbol = `FX:${clean}`;
-        if (category === 'METAL') finnhubSymbol = `OANDA:${clean.replace('USD', '_USD')}`;
+        if (category === 'METALS') finnhubSymbol = `OANDA:${clean.replace('USD', '_USD')}`;
         if (category === 'INDICES') finnhubSymbol = `${provider}:${clean}`;
 
         try {
@@ -105,7 +114,6 @@ export default function RadarPage() {
   }, [liveSignals]);
 
   const fetchRadarData = async () => {
-    setIsLoading(true);
     const { data, error } = await supabase
       .from('signals')
       .select('*')
@@ -113,7 +121,10 @@ export default function RadarPage() {
       .limit(10);
     
     if (error) console.error("Radar Fetch Error:", error.message);
-    if (data) setLiveSignals(data);
+    if (data) {
+      setLiveSignals(data);
+      sessionStorage.setItem('radar_signals_cache', JSON.stringify(data));
+    }
     setIsLoading(false);
   };
 
@@ -154,7 +165,7 @@ export default function RadarPage() {
   const highProbabilitySignals = liveSignals.filter(signal => getConfidence(signal).label === 'PRIME');
 
 
-  if (authLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
         <Activity size={32} className="text-blue-500 animate-spin" />

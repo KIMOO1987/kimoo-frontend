@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard';
 import SignalChart from '@/components/SignalChart';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -114,7 +113,6 @@ const SignalModal = ({ signal, onClose }: { signal: any, onClose: () => void }) 
 };
 
 export default function SignalHistoryPage() {
-  const { loading: authLoading } = useAuth(); 
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -126,6 +124,17 @@ export default function SignalHistoryPage() {
   const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
+    // 1. Optimistic Cache Load: Instantly show previous history
+    const cached = sessionStorage.getItem('history_signals_cache');
+    if (cached) {
+      try {
+        setHistory(JSON.parse(cached));
+        setLoading(false); // Instantly hide the loader
+      } catch (e) {}
+    } else {
+      setLoading(true);
+    }
+
     const fetchHistory = async () => {
       const { data } = await supabase
         .from('signals')
@@ -133,7 +142,11 @@ export default function SignalHistoryPage() {
         .in('status', ['SL', 'TP2', 'TP1 + SL (BE)']) 
         .order('created_at', { ascending: false });
 
-      if (data) setHistory(data);
+      if (data) {
+        setHistory(data);
+        // 2. Save the fresh data to cache for the next refresh
+        sessionStorage.setItem('history_signals_cache', JSON.stringify(data));
+      }
       setLoading(false);
     };
 
@@ -164,14 +177,6 @@ export default function SignalHistoryPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, dateFrom, dateTo]);
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
-        <Activity size={32} className="text-blue-500 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <AccessGuard requiredTier={1} tierName="Active Member">

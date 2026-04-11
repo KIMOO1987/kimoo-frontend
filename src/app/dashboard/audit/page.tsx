@@ -32,8 +32,21 @@ export default function SymbolAudit() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPerformance = async () => {
+    // 1. Optimistic Cache Load: Instantly show previous audit data
+    const cachedStats = sessionStorage.getItem('audit_stats_cache');
+    const cachedGlobal = sessionStorage.getItem('audit_global_cache');
+    
+    if (cachedStats && cachedGlobal) {
+      try {
+        setStats(JSON.parse(cachedStats));
+        setGlobalData(JSON.parse(cachedGlobal));
+        setLoading(false); // Instantly hide loader
+      } catch (e) {}
+    } else {
       setLoading(true);
+    }
+
+    const fetchPerformance = async () => {
       const { data, error } = await supabase.from('signals').select('*');
 
       if (data) {
@@ -84,11 +97,17 @@ export default function SymbolAudit() {
           winRate: Number(((item.wins / (item.wins + item.losses || 1)) * 100).toFixed(1))
         })).sort((a: any, b: any) => b.totalRR - a.totalRR);
 
-        setStats(formatted);
-        setGlobalData({ 
+        const globalObj = { 
           winRate: gTotal > 0 ? Number(((gWins / gTotal) * 100).toFixed(1)) : 0, 
           total: gTotal 
-        });
+        };
+
+        setStats(formatted);
+        setGlobalData(globalObj);
+        
+        // 2. Save the fresh data to cache for the next refresh
+        sessionStorage.setItem('audit_stats_cache', JSON.stringify(formatted));
+        sessionStorage.setItem('audit_global_cache', JSON.stringify(globalObj));
       }
       setLoading(false);
     };
