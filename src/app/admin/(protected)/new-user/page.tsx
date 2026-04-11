@@ -226,7 +226,6 @@ function SelectField({ label, value, options, onChange }: any) {
         />
         {options.map((o: any) => (
           <option key={o} value={o} className="bg-[#05070a]">{o.toString().toUpperCase()}</option>
-        ))}
       </select>
     </div>
   );
