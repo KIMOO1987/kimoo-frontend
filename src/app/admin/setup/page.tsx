@@ -75,26 +75,33 @@ function SetupContent() {
   }, [token, router]);
 
   return (
-    <div className="min-h-screen bg-[#05070a] flex items-center justify-center p-6 text-white font-sans">
-      <div className="w-full max-w-md bg-white/[0.02] border border-white/5 p-10 rounded-[40px] text-center shadow-2xl">
+    <div className="relative min-h-screen bg-[#030407] flex items-center justify-center p-4 md:p-6 text-white font-sans overflow-hidden">
+      
+      {/* Ambient Glowing Backgrounds */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-indigo-600/10 blur-[120px] rounded-full mix-blend-screen" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] p-10 md:p-12 rounded-[2.5rem] text-center shadow-[0_0_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
         
         {status === 'verifying' && (
           <div className="space-y-6">
-            <Loader2 className="animate-spin mx-auto text-blue-500" size={40} />
+            <Loader2 className="animate-spin mx-auto text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.5)]" size={48} />
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{message}</p>
           </div>
         )}
 
         {status === 'error' && (
           <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-            <div className="bg-red-500/10 p-4 rounded-full w-fit mx-auto border border-red-500/20">
-              <AlertCircle className="text-red-500" size={32} />
+            <div className="bg-red-500/10 p-5 rounded-3xl w-fit mx-auto border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+              <AlertCircle className="text-red-400" size={32} />
             </div>
-            <h2 className="text-xl font-black italic uppercase italic">Access <span className="text-red-500">Denied</span></h2>
-            <p className="text-xs text-zinc-500 font-bold leading-relaxed px-4">{message}</p>
+            <h2 className="text-2xl font-black tracking-tighter uppercase italic mb-3">Access <span className="text-red-400 drop-shadow-md">Denied</span></h2>
+            <p className="text-xs text-zinc-400 font-bold leading-relaxed px-4">{message}</p>
             <button 
               onClick={() => router.push('/login')}
-              className="w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+              className="w-full mt-8 py-4 bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] hover:text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all text-zinc-400"
             >
               Back to Login
             </button>
@@ -103,16 +110,16 @@ function SetupContent() {
 
         {status === 'success' && (
           <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-            <div className="bg-green-500/10 p-4 rounded-full w-fit mx-auto border border-green-500/20">
-              <ShieldCheck className="text-green-500" size={32} />
+            <div className="bg-emerald-500/10 p-5 rounded-3xl w-fit mx-auto border border-emerald-500/20 shadow-[0_0_20px_rgba(52,211,153,0.2)]">
+              <ShieldCheck className="text-emerald-400" size={32} />
             </div>
-            <h2 className="text-xl font-black italic uppercase">Access <span className="text-green-500">Granted</span></h2>
-            <p className="text-xs text-zinc-500 font-bold leading-relaxed px-4">{message}</p>
+            <h2 className="text-2xl font-black tracking-tighter uppercase italic mb-3">Access <span className="text-emerald-400 drop-shadow-md">Granted</span></h2>
+            <p className="text-xs text-zinc-400 font-bold leading-relaxed px-4">{message}</p>
             <button 
               onClick={() => window.location.href = '/admin/plans'}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+              className="w-full mt-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 border border-blue-500/30 hover:from-blue-500 hover:to-indigo-500 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] flex items-center justify-center gap-3 text-white active:scale-95"
             >
-              Enter Console <ArrowRight size={14} />
+              Enter Console <ArrowRight size={16} className="text-blue-200" />
             </button>
           </div>
         )}
