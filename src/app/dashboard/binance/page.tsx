@@ -39,7 +39,25 @@ export default function BinanceDashboard() {
   }, []);
 
   const fetchBotData = async () => {
-    setLoading(true);
+    // Optimistic Cache Load (Stale-While-Revalidate) to skip loading screen
+    const cached = localStorage.getItem('binance_data_cache');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setUserId(parsed.userId);
+        setBotConfig(parsed.data);
+        setDailyRisk(parsed.data.daily_risk_wallet || 1000);
+        setRiskPercent(parsed.data.risk_percentage || 1.0);
+        setMinRR(parsed.data.rr || 1.2);
+        setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
+        setApiKey(parsed.data.api_key || '');
+        setEnvironment(parsed.data.environment || 'testnet');
+        setLoading(false); // Instantly hide initialization screen
+      } catch (e) {}
+    } else {
+      setLoading(true);
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUserId(user.id);
@@ -53,6 +71,9 @@ export default function BinanceDashboard() {
         setApiKey(data.api_key || '');
         // NEW: Load Environment from DB
         setEnvironment(data.environment || 'testnet');
+        
+        // Update cache silently in the background for next refresh
+        localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, data }));
       }
     }
     setLoading(false);
@@ -168,7 +189,7 @@ export default function BinanceDashboard() {
             <div className="flex items-center gap-3">
               <img src="/binance-logo.png" alt="Binance" className="w-8 h-8 object-contain" />
               <h1 className="text-xl md:text-2xl font-bold text-yellow-500 tracking-tighter italic">
-                  Binance {environment === 'live' ? 'Live' : 'Testnet'} Terminal
+                   {environment === 'live' ? 'Live' : 'Testnet'} Terminal
               </h1>
             </div>
             <p className="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-bold mt-2">Kimoo Pro Secure Engine v2.0</p>
