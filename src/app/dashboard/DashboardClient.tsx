@@ -4,9 +4,13 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import {
   TrendingUp, Zap, Star, Activity, BarChart3, Target, Layers,
-  ShieldCheck, Clock, Wallet, MessageSquare, Play, RotateCcw,
-  CheckCircle2, XCircle, MinusCircle, Percent, Save, Mail, TrendingDown
+  Wallet, CheckCircle2, XCircle, MinusCircle, Percent, Save, Mail, TrendingDown,
+  Info, AlertCircle
 } from 'lucide-react';
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip,
+  PieChart, Pie, Cell
+} from 'recharts';
 
 interface DashboardClientProps {
   tier: number; 
@@ -21,6 +25,9 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   const [timeframe, setTimeframe] = useState('all');
   const [assetClass, setAssetClass] = useState('ALL');
   const [isSaving, setIsSaving] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [recentSignals, setRecentSignals] = useState<any[]>([]);
   
   const [realStats, setRealStats] = useState({
     total: 0,
@@ -34,6 +41,12 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
     mostTraded: "---",
     highWRPair: "---",
     maxDrawdown: "0.00R",
+    profitFactor: "0.00",
+    expectancy: "0.00R",
+    winStreak: 0,
+    lossStreak: 0,
+    longWR: "0%",
+    shortWR: "0%"
   });
 
   // --- TIER DISPLAY LOGIC ---
@@ -126,8 +139,14 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
         .order('created_at', { ascending: true })
         .limit(10000); 
         
-      if (error) throw error;
-      if (!allSignals || allSignals.length === 0) return;
+      if (error) {
+        setIsInitialLoad(false);
+        throw error;
+      }
+      if (!allSignals || allSignals.length === 0) {
+        setIsInitialLoad(false);
+        return;
+      }
 
       const now = new Date();
       const signals = allSignals.filter(s => {
@@ -165,27 +184,62 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
       let runningR = 0; 
       let peakR = 0;
       let maxDrawdown = 0;
+      
+      let grossProfit = 0;
+      let grossLoss = 0;
+      let longWins = 0, longTotal = 0;
+      let shortWins = 0, shortTotal = 0;
+      let currentWinStreak = 0, maxWinStreak = 0;
+      let currentLossStreak = 0, maxLossStreak = 0;
+
+      const newChartData: any[] = [];
 
       const riskAmountUSD = accountSize * (riskValue / 100); 
       const pairMap: Record<string, { symbol: string, count: number, profit: number, wins: number, losses: number, be: number, closed: number }> = {};
 
-      signals.forEach(s => {
+      signals.forEach((s, index) => {
         const sym = s.symbol?.toUpperCase() || "---";
+        const side = s.side?.toUpperCase() || "BUY";
         if (!pairMap[sym]) pairMap[sym] = { symbol: sym, count: 0, profit: 0, wins: 0, losses: 0, be: 0, closed: 0 };
         pairMap[sym].count += 1;
 
         const signalRR = calculateActualSignalRR(s); 
         const status = s.status?.toUpperCase() || "";
 
-        if (signalRR > 0 && status !== 'TP1 + SL (BE)') {
-          totalWinsCount++;
-          pairMap[sym].wins++;
-        } else if (signalRR < 0) {
-          totalLossesCount++;
-          pairMap[sym].losses++;
-        } else if (status === 'BE' || status === 'TP1 + SL (BE)') {
-          totalBECount++;
-          pairMap[sym].be++;
+        const isWin = signalRR > 0 && status !== 'TP1 + SL (BE)';
+        const isLoss = signalRR < 0;
+        const isBE = status === 'BE' || status === 'TP1 + SL (BE)';
+        const isClosed = isWin || isLoss || isBE;
+
+        if (isClosed) {
+            if (side === 'BUY' || side === 'LONG') { 
+                longTotal++; 
+                if (isWin) longWins++; 
+            } else { 
+                shortTotal++; 
+                if (isWin) shortWins++; 
+            }
+        }
+
+        if (isWin) {
+            grossProfit += signalRR;
+            totalWinsCount++;
+            pairMap[sym].wins++;
+            currentWinStreak++;
+            currentLossStreak = 0;
+            if (currentWinStreak > maxWinStreak) maxWinStreak = currentWinStreak;
+        } else if (isLoss) {
+            grossLoss += Math.abs(signalRR);
+            totalLossesCount++;
+            pairMap[sym].losses++;
+            currentLossStreak++;
+            currentWinStreak = 0;
+            if (currentLossStreak > maxLossStreak) maxLossStreak = currentLossStreak;
+        } else if (isBE) {
+            totalBECount++;
+            pairMap[sym].be++;
+            currentWinStreak = 0;
+            currentLossStreak = 0;
         }
         
         runningR += signalRR;
@@ -196,6 +250,14 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
         if (runningR > peakR) { peakR = runningR; }
         const currentDrawdown = peakR - runningR;
         if (currentDrawdown > maxDrawdown) { maxDrawdown = currentDrawdown; }
+        
+        // Populate Chart Data
+        newChartData.push({
+            name: `T${index + 1}`,
+            date: new Date(s.created_at || s.timestamp).toLocaleDateString(),
+            rr: parseFloat(runningR.toFixed(2)),
+            tradeR: signalRR
+        });
       });
 
       const sortedByProfit = Object.entries(pairMap).sort((a, b) => b[1].profit - a[1].profit);
@@ -207,6 +269,12 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
       const highWRPairObj = Object.values(pairMap)
         .filter(p => (p.wins + p.losses) >= 2)
         .sort((a, b) => (b.wins / (b.wins + b.losses || 1)) - (a.wins / (a.wins + a.losses || 1)))[0];
+
+      const profitFactorValue = grossLoss === 0 ? (grossProfit > 0 ? 99.9 : 0) : (grossProfit / grossLoss);
+      const expectancyValue = decidedWandL > 0 ? (totalRRCount / decidedWandL) : 0;
+      const longWR = longTotal > 0 ? ((longWins / longTotal) * 100).toFixed(1) + "%" : "0%";
+      const shortWR = shortTotal > 0 ? ((shortWins / shortTotal) * 100).toFixed(1) + "%" : "0%";
+      const recent = [...signals].reverse().slice(0, 5);
 
       setRealStats({
         total: (timeframe === 'all' && assetClass === 'ALL') ? (totalCount || signals.length) : signals.length,
@@ -223,8 +291,19 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
         mostTraded: sortedByTraded[0]?.[0] || "---",
         highWRPair: highWRPairObj?.symbol || "---",
         maxDrawdown: maxDrawdown.toFixed(2) + "R", 
+        profitFactor: profitFactorValue.toFixed(2),
+        expectancy: `${expectancyValue >= 0 ? '+' : ''}${expectancyValue.toFixed(2)}R`,
+        winStreak: maxWinStreak,
+        lossStreak: maxLossStreak,
+        longWR: longWR,
+        shortWR: shortWR
       });
-    } catch (err) { console.error("Sync Error:", err); }
+      
+      setChartData(newChartData);
+      setRecentSignals(recent);
+    } catch (err) { console.error("Sync Error:", err); } finally {
+        setIsInitialLoad(false);
+    }
   }
 
   return (
@@ -399,19 +478,120 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
           </div>
         </div>
 
-        {/* Modern Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-12">
-          <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
-          <StatCard label="Total Wins" value={realStats.totalWins} icon={<CheckCircle2 size={18}/>} color="text-emerald-400" />
-          <StatCard label="Total Losses" value={realStats.totalLosses} icon={<XCircle size={18}/>} color="text-red-500" />
-          <StatCard label="Total BE" value={realStats.totalBE} icon={<MinusCircle size={18}/>} color="text-zinc-400" />
-          <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
-          <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
-          <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Star size={18}/>} color="text-emerald-500" />
-          <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="CRT Alpha Pair" />
-          <StatCard label="Highest Win Rate" value={realStats.highWRPair} icon={<Target size={18}/>} color="text-blue-400" />
-          <StatCard label="Max Drawdown" value={realStats.maxDrawdown} icon={<TrendingDown size={18}/>} color="text-red-500" />
-        </div>
+        {/* PREMIUM DATA VISUALIZATION & STATS */}
+        {isInitialLoad ? (
+          <div className="w-full flex flex-col items-center justify-center py-20 border border-white/[0.05] rounded-[2.5rem] bg-white/[0.02] animate-pulse mb-12">
+            <Activity size={40} className="text-zinc-700 mb-4" />
+            <p className="text-xs font-black uppercase tracking-widest text-zinc-600">Loading Intelligence...</p>
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="w-full flex flex-col items-center justify-center py-32 border border-dashed border-white/[0.1] rounded-[2.5rem] bg-white/[0.01] mb-12">
+            <AlertCircle size={48} className="text-zinc-600 mb-6" />
+            <h3 className="text-2xl font-black italic tracking-tighter uppercase text-white mb-2">No Intelligence Found</h3>
+            <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Try adjusting your filters or timeframe.</p>
+          </div>
+        ) : (
+          <>
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                {/* Equity Curve */}
+                <div className="lg:col-span-2 bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2.5rem] shadow-2xl">
+                    <h3 className="text-xl font-black italic tracking-tighter uppercase text-white mb-6">Cumulative Equity Curve</h3>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorRR" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <XAxis dataKey="name" hide />
+                                <YAxis stroke="#52525b" fontSize={10} tickFormatter={(val) => `${val}R`} />
+                                <RechartsTooltip 
+                                    contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '1rem', color: '#fff', fontSize: '12px' }}
+                                    itemStyle={{ color: '#60a5fa', fontWeight: 'bold' }}
+                                />
+                                <Area type="monotone" dataKey="rr" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRR)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+                
+                {/* Donut Chart */}
+                <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2.5rem] shadow-2xl flex flex-col">
+                    <h3 className="text-xl font-black italic tracking-tighter uppercase text-white mb-6">Win/Loss Split</h3>
+                    <div className="flex-1 flex items-center justify-center">
+                        <ResponsiveContainer width="100%" height={250}>
+                            <PieChart>
+                                <Pie
+                                    data={[
+                                        { name: 'Wins', value: realStats.totalWins },
+                                        { name: 'Losses', value: realStats.totalLosses },
+                                        { name: 'Break Even', value: realStats.totalBE }
+                                    ]}
+                                    cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none"
+                                >
+                                    <Cell fill="#34d399" />
+                                    <Cell fill="#ef4444" />
+                                    <Cell fill="#52525b" />
+                                </Pie>
+                                <RechartsTooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '1rem', color: '#fff', fontSize: '12px' }}/>
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* Modern Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 mb-8">
+              <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
+              <StatCard label="Profit Factor" value={realStats.profitFactor} icon={<Activity size={18}/>} color="text-blue-400" tooltip="Gross Profit / Gross Loss. >1.5 is Excellent." />
+              <StatCard label="Expectancy" value={realStats.expectancy} icon={<Star size={18}/>} color="text-indigo-400" tooltip="Average R per trade (Wins & Losses combined)." />
+              <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Wallet size={18}/>} color="text-emerald-500" />
+              <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-amber-400" />
+              
+              <StatCard label="Total Signals" value={realStats.total} icon={<Layers size={18}/>} />
+              <StatCard label="Wins / Losses / BE" value={`${realStats.totalWins} / ${realStats.totalLosses} / ${realStats.totalBE}`} icon={<Target size={18}/>} />
+              <StatCard label="Max Drawdown" value={realStats.maxDrawdown} icon={<TrendingDown size={18}/>} color="text-red-500" tooltip="Largest peak-to-trough drop in R." />
+              <StatCard label="Long vs Short WR" value={`${realStats.longWR} / ${realStats.shortWR}`} icon={<BarChart3 size={18}/>} tooltip="Win Rate for Buy vs Sell signals." />
+              <StatCard label="Max Win Streak" value={`${realStats.winStreak} Trades`} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
+            </div>
+
+            {/* Recent Activity Feed */}
+            <div className="w-full mb-12 bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] rounded-[2.5rem] p-6 md:p-10 shadow-2xl">
+              <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+                <h3 className="text-xl font-black italic tracking-tighter uppercase text-white">Recent Signals</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-white/5 text-[10px] uppercase tracking-widest text-zinc-500">
+                      <th className="pb-3 font-bold">Asset</th>
+                      <th className="pb-3 font-bold">Side</th>
+                      <th className="pb-3 font-bold">Status</th>
+                      <th className="pb-3 font-bold">Net R:R</th>
+                      <th className="pb-3 font-bold">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentSignals.map((s, i) => (
+                      <tr key={s.id || i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
+                        <td className="py-4 font-black italic tracking-tight text-white">{s.symbol}</td>
+                        <td className={`py-4 font-black text-[11px] uppercase tracking-widest ${s.side === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>{s.side}</td>
+                        <td className="py-4 text-[11px] font-bold tracking-widest text-zinc-400">{s.status}</td>
+                        <td className={`py-4 font-mono font-black ${calculateActualSignalRR(s) > 0 ? 'text-emerald-400' : calculateActualSignalRR(s) < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
+                          {calculateActualSignalRR(s) > 0 ? '+' : ''}{calculateActualSignalRR(s).toFixed(2)}R
+                        </td>
+                        <td className="py-4 text-xs text-zinc-500 font-mono">{new Date(s.created_at || s.timestamp).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="w-full border-t border-white/[0.05] pt-16 mb-20 relative z-10">
           <h2 className="text-2xl md:text-6xl font-black text-white mb-8 md:mb-12 tracking-tighter italic uppercase leading-tight">
@@ -430,12 +610,22 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   );
 }
 
-function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
+function StatCard({ label, value, icon, sub, color = "text-white", tooltip }: any) {
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-5 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl">
       <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="relative z-10 flex justify-between items-start mb-6">
-        <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
+        <div className="flex items-center gap-2">
+            <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
+            {tooltip && (
+                <div className="group/tooltip relative cursor-help">
+                    <Info size={12} className="text-zinc-600 hover:text-white transition-colors" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-zinc-900 border border-white/10 rounded-lg text-[10px] text-zinc-400 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl text-center">
+                        {tooltip}
+                    </div>
+                </div>
+            )}
+        </div>
         <div className={`p-2 rounded-xl bg-white/[0.03] border border-white/[0.05] ${color} group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
           {icon}
         </div>
