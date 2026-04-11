@@ -111,8 +111,7 @@ export default function CTraderDashboard() {
   return (
     <div className="p-4 md:p-8 lg:ml-72 bg-[#05070a] min-h-screen text-zinc-400">
       <div className="flex justify-between items-center border-b border-white/5 pb-6 mb-8">
-        <h1 className="text-2xl font-red text-white italic">c</h1>
-        <h1 className="text-2xl font-black text-white italic">Trader Cloud Bridge</h1>
+        <h1 className="text-2xl font-black text-white italic">cTrader Cloud Bridge</h1>
         <div className="px-4 py-2 bg-black/40 rounded-full border border-white/5 text-[10px] font-black">
           {status.toUpperCase()}
         </div>
