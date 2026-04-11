@@ -165,223 +165,236 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
   };
 
   return (
-    <div className="p-4 md:p-8 lg:ml-72 space-y-6 md:space-y-10 overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <h2 className="text-3xl font-black tracking-tighter italic text-white uppercase leading-none">Account <span className="text-blue-500">Identity</span></h2>
-          <p className="text-zinc-600 text-[9px] font-bold uppercase tracking-[0.3em] mt-2">Personal Management & Billing Details</p>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">
-          <ShieldCheck size={12} className="text-blue-500" />
-          <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">Verified Profile</span>
-        </div>
+    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+      
+      {/* Ambient Glowing Backgrounds */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[150px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[150px] rounded-full mix-blend-screen" />
       </div>
 
-      {/* NEW: PLAN STATUS ROW (Synced with Dashboard) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="crt-card p-5 md:p-6 border-white/5 bg-white/[0.02] flex items-center gap-4">
-          <Star className="text-yellow-500" size={24} />
+      <div className="max-w-[1700px] mx-auto relative z-10 space-y-6 md:space-y-10">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-6">
           <div>
-            <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Current Plan</span>
-            <span className="text-xl font-black italic uppercase text-white">
-               {initialData?.plan_type || (tier === 3 ? 'ULTIMATE' : tier === 2 ? 'PRO' : 'ALPHA')}
-            </span>
-          </div>
-        </div>
-        <div className="crt-card p-5 md:p-6 border-white/5 bg-white/[0.02] flex items-center gap-4">
-          <Clock className="text-indigo-500" size={24} />
-          <div>
-            <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Validity Status</span>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-xl font-black italic uppercase ${tier > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                {tier > 0 ? 'ACTIVE' : 'EXPIRED'}
-              </span>
-              {tier > 0 && <span className="text-zinc-600 font-bold text-[10px]">({daysLeft} DAYS)</span>}
-            </div>
-          </div>
-        </div>
-        <div className="crt-card p-5 md:p-6 border-white/5 bg-white/[0.02] flex items-center gap-4">
-          <Fingerprint className="text-blue-500" size={24} />
-          <div>
-            <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Account ID</span>
-            <span className="text-xs font-mono font-bold text-white">
-               #{initialData?.id?.slice(0, 8).toUpperCase() || 'KMO-XXXX'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-7 space-y-6">
-          <div className="crt-card p-5 md:p-8 border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
-            <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-6">
-              <h3 className="text-[11px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-                <User size={14} className="text-blue-500" /> Personal Information
-              </h3>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Member Since</p>
-                  <p className="text-[10px] font-bold text-white italic">{memberSince}</p>
-                </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleAvatarUpload}
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  disabled={avatarLoading}
-                />
-                <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
-                  {avatarLoading ? (
-                    <div className="w-12 h-12 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center overflow-hidden animate-pulse">
-                      <Activity size={20} className="text-blue-500" />
-                    </div>
-                  ) : avatarUrl ? (
-                    <img src={avatarUrl} alt="User Avatar" className="w-12 h-12 rounded-full object-cover border border-white/10" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center overflow-hidden">
-                      <User size={20} className="text-zinc-600" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Camera size={12} className="text-white"/></div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Full Name</label>
-                <div className="relative">
-                  <input className="crt-input w-full pl-10" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
-                  <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Registered Email</label>
-                <div className="relative opacity-60">
-                  <input className="crt-input w-full pl-10 cursor-not-allowed bg-white/5" value={formData.email} readOnly />
-                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Country</label>
-                  <div className="relative">
-                    <input className="crt-input w-full pl-10" value={formData.country} onChange={(e) => setFormData({...formData, country: e.target.value})} />
-                    <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Billing Address</label>
-                  <div className="relative">
-                    <input className="crt-input w-full pl-10" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
-                    <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
-                  </div>
-                </div>
-              </div>
-
-              {message && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`p-4 rounded-xl flex items-center gap-3 border ${message.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
-                  {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                  <span className="text-[10px] font-black uppercase tracking-widest">{message.text}</span>
-                </motion.div>
-              )}
-
-              <button onClick={handleUpdateProfile} disabled={loading} className="w-full mt-4 py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-3">
-                {loading ? <RefreshCcw size={14} className="animate-spin" /> : <Save size={14} />}
-                {loading ? 'Processing Sync...' : 'Save Identity Changes'}
-              </button>
-            </div>
-          </div>
-
-          <div className="crt-card p-6 border-blue-500/20 bg-blue-500/[0.02]">
-            <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mb-4">Security Notice</h4>
-            <p className="text-[11px] leading-relaxed text-zinc-400 font-medium italic">
-              Identity details are verified for billing and localization.
+            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+              Account<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Identity</span>
+            </h1>
+            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
+              • PERSONAL MANAGEMENT & BILLING DETAILS •
             </p>
           </div>
+          <div className="flex items-center gap-3 px-5 py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+            <ShieldCheck size={16} className="text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]" />
+            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Verified Profile</span>
+          </div>
         </div>
-
-        <div className="lg:col-span-5 space-y-6">
-          {/* Password Change Section */}
-          <div className="crt-card p-5 md:p-8 border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
-            <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2">
-              <Lock size={14} className="text-red-500" /> Security Credentials
-            </h3>
-            
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Old Password</label>
-                <div className="relative">
-                  <input type="password" placeholder="••••••••" className="crt-input w-full pl-10" value={passwordData.oldPassword} onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})} />
-                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">New Password</label>
-                <div className="relative">
-                  <input type="password" placeholder="••••••••" className="crt-input w-full pl-10" value={passwordData.newPassword} onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})} />
-                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Re-enter Password</label>
-                <div className="relative">
-                  <input type="password" placeholder="••••••••" className="crt-input w-full pl-10" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})} />
-                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-700" />
-                </div>
+        {/* NEW: PLAN STATUS ROW (Synced with Dashboard) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+          <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center gap-6">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] text-yellow-400 group-hover:scale-110 transition-transform duration-300 shadow-lg"><Star size={28} /></div>
+            <div>
+              <span className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1.5">Current Plan</span>
+              <span className="text-2xl md:text-3xl font-black italic tracking-tighter uppercase text-white drop-shadow-md">
+                 {initialData?.plan_type || (tier === 3 ? 'ULTIMATE' : tier === 2 ? 'PRO' : 'ALPHA')}
+              </span>
+            </div>
+          </div>
+          <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center gap-6">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] text-indigo-400 group-hover:scale-110 transition-transform duration-300 shadow-lg"><Clock size={28} /></div>
+            <div>
+              <span className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1.5">Validity Status</span>
+              <div className="flex items-baseline gap-3">
+                <span className={`text-2xl md:text-3xl font-black italic tracking-tighter uppercase drop-shadow-md ${tier > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {tier > 0 ? 'ACTIVE' : 'EXPIRED'}
+                </span>
+                {tier > 0 && <span className="text-zinc-400 font-bold text-[11px] tracking-widest">({daysLeft} DAYS)</span>}
               </div>
             </div>
+          </div>
+          <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center gap-6">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] text-blue-400 group-hover:scale-110 transition-transform duration-300 shadow-lg"><Fingerprint size={28} /></div>
+            <div>
+              <span className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1.5">Account ID</span>
+              <span className="text-xl md:text-2xl font-mono font-black text-white italic drop-shadow-md tracking-tighter">
+                 #{initialData?.id?.slice(0, 8).toUpperCase() || 'KMO-XXXX'}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+          <div className="lg:col-span-7 space-y-6 md:space-y-8">
+            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-10 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
+              <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-8">
+                <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-3">
+                  <User size={16} className="text-blue-400" /> Personal Information
+                </h3>
+                <div className="flex items-center gap-5">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Member Since</p>
+                    <p className="text-xs font-black text-white italic">{memberSince}</p>
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleAvatarUpload}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    disabled={avatarLoading}
+                  />
+                  <div className="relative group cursor-pointer shadow-[0_0_15px_rgba(0,0,0,0.5)] rounded-full" onClick={handleAvatarClick}>
+                    {avatarLoading ? (
+                      <div className="w-14 h-14 rounded-full bg-white/[0.05] border border-blue-500/50 flex items-center justify-center overflow-hidden animate-pulse shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+                        <Activity size={20} className="text-blue-400" />
+                      </div>
+                    ) : avatarUrl ? (
+                      <img src={avatarUrl} alt="User Avatar" className="w-14 h-14 rounded-full object-cover border-2 border-white/10 group-hover:border-blue-500/50 transition-colors" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center overflow-hidden group-hover:border-blue-500/50 transition-colors">
+                        <User size={24} className="text-zinc-400 group-hover:text-blue-400 transition-colors" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"><Camera size={16} className="text-white"/></div>
+                  </div>
+                </div>
+              <div className="space-y-6">
+                <div className="space-y-2.5">
+                  <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Full Name</label>
+                  <div className="relative">
+                    <input className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono font-bold text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
+                    <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  </div>
+                </div>
+                <div className="space-y-2.5">
+                  <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Registered Email</label>
+                  <div className="relative opacity-60 cursor-not-allowed">
+                    <input className="w-full bg-white/[0.02] border border-white/[0.05] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-zinc-400 outline-none pointer-events-none" value={formData.email} readOnly />
+                    <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2.5">
+                    <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Country</label>
+                    <div className="relative">
+                      <input className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all" value={formData.country} onChange={(e) => setFormData({...formData, country: e.target.value})} />
+                      <Globe size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    </div>
+                  </div>
+                  <div className="space-y-2.5">
+                    <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Billing Address</label>
+                    <div className="relative">
+                      <input className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+                      <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    </div>
+                  </div>
+                </div>
 
-            <button onClick={handlePasswordChange} disabled={passwordLoading} className="w-full mt-8 py-4 bg-zinc-800 hover:bg-red-900/20 border border-white/5 hover:border-red-500/50 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-3 group">
-              {passwordLoading ? <RefreshCcw size={14} className="animate-spin" /> : <Lock size={14} className="group-hover:text-red-500" />}
-              {passwordLoading ? 'Rotating Keys...' : 'Update Credentials'}
-            </button>
+                {message && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`p-4 rounded-xl flex items-center gap-3 border shadow-lg ${message.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                    {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                    <span className="text-[10px] font-black uppercase tracking-widest">{message.text}</span>
+                  </motion.div>
+                )}
+
+                <button onClick={handleUpdateProfile} disabled={loading} className={`w-full mt-8 py-4 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 active:scale-95 flex items-center justify-center gap-3 ${
+                    loading ? 'bg-white/[0.05] border border-white/5 text-zinc-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)]'
+                }`}>
+                  {loading ? <RefreshCcw size={16} className="animate-spin text-zinc-400" /> : <Save size={16} className="text-blue-200" />}
+                  {loading ? 'Processing Sync...' : 'Save Identity Changes'}
+                </button>
+              </div>
+            </div>
+            <div className="p-6 md:p-8 rounded-[2rem] bg-gradient-to-r from-blue-500/[0.05] to-transparent border border-blue-500/10 shadow-[0_0_30px_rgba(59,130,246,0.05)]">
+              <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /> Security Notice
+              </h4>
+              <p className="text-xs leading-relaxed text-zinc-400 font-bold">
+                Identity details are verified strictly for localized billing requirements and advanced security protocols. Ensure accuracy to prevent access revocation.
+              </p>
+            </div>
           </div>
 
-          <div className="crt-card p-8 border-white/5 bg-white/[0.01]">
-            <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-              <Zap size={14} className="text-yellow-500" /> Current Privileges
-            </h4>
-            <div className="space-y-4">
-              {tierFeatures.map((feat, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <CheckCircle2 size={14} className="text-emerald-500" />
-                  <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-tight">{feat}</span>
+          <div className="lg:col-span-5 space-y-6 md:space-y-8">
+            {/* Password Change Section */}
+            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-10 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
+              <h3 className="text-xs font-black text-white uppercase tracking-widest mb-8 flex items-center gap-3">
+                <Lock size={16} className="text-red-400" /> Security Credentials
+              </h3>
+              
+              <div className="space-y-6">
+                <div className="space-y-2.5">
+                  <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Old Password</label>
+                  <div className="relative">
+                    <input type="password" placeholder="••••••••" className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-white outline-none focus:border-red-500/50 hover:border-white/20 transition-all" value={passwordData.oldPassword} onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})} />
+                    <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  </div>
                 </div>
-              ))}
-            </div>
-            
-            <div className="mt-10 pt-8 border-t border-white/5">
-              <h4 className="text-[10px] font-black text-red-500/50 uppercase tracking-[0.3em] mb-4">Danger Zone</h4>
-              <button className="w-full py-4 border border-red-900/20 hover:bg-red-900/10 text-red-500/60 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-3">
-                <Trash2 size={14} /> Request Account Deletion
+                <div className="space-y-2.5">
+                  <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">New Password</label>
+                  <div className="relative">
+                    <input type="password" placeholder="••••••••" className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-white outline-none focus:border-red-500/50 hover:border-white/20 transition-all" value={passwordData.newPassword} onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})} />
+                    <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  </div>
+                </div>
+                <div className="space-y-2.5">
+                  <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Re-enter Password</label>
+                  <div className="relative">
+                    <input type="password" placeholder="••••••••" className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-white outline-none focus:border-red-500/50 hover:border-white/20 transition-all" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})} />
+                    <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  </div>
+                </div>
+              </div>
+              <button onClick={handlePasswordChange} disabled={passwordLoading} className={`w-full mt-8 py-4 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 active:scale-95 flex items-center justify-center gap-3 group ${
+                  passwordLoading ? 'bg-white/[0.05] border border-white/5 text-zinc-500 cursor-not-allowed' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.08] hover:border-red-500/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.2)]'
+              }`}>
+                {passwordLoading ? <RefreshCcw size={16} className="animate-spin text-zinc-400" /> : <Lock size={16} className="group-hover:text-red-400 transition-colors" />}
+                {passwordLoading ? 'Rotating Keys...' : 'Update Credentials'}
               </button>
             </div>
-          </div>
 
-          <div className="crt-card p-6 border-white/5 bg-black/20">
-            <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em] mb-4 italic">Security Logs</h4>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-[9px] font-bold text-zinc-700 uppercase">Last Security Rotation</span>
-                <span className="text-[9px] font-black text-zinc-500 uppercase">NEVER</span>
+            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-10 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
+              <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-8 flex items-center gap-3">
+                <Zap size={16} className="text-amber-400" /> Current Privileges
+              </h4>
+              <div className="space-y-5">
+                {tierFeatures.map((feat, i) => (
+                  <div key={i} className="flex items-center gap-4 bg-white/[0.01] p-3 rounded-xl border border-white/5">
+                    <CheckCircle2 size={18} className="text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)] shrink-0" />
+                    <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{feat}</span>
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between">
-                <span className="text-[9px] font-bold text-zinc-700 uppercase">Current Session</span>
-                <span className="text-[9px] font-black text-green-500 uppercase">Active</span>
+              
+              <div className="mt-10 pt-8 border-t border-white/5">
+                <h4 className="text-[10px] font-black text-red-500/60 uppercase tracking-widest mb-4 flex items-center gap-2"><AlertCircle size={14}/> Danger Zone</h4>
+                <button className="w-full py-4 border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all flex items-center justify-center gap-3 hover:shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                  <Trash2 size={16} /> Request Account Deletion
+                </button>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[9px] font-bold text-zinc-600 uppercase">Role</span>
-                <span className="text-[9px] font-black text-white uppercase italic">{initialData?.role || 'User'}</span>
+            </div>
+
+            <div className="bg-gradient-to-br from-white/[0.02] to-transparent border border-white/[0.05] p-6 md:p-8 rounded-[2rem]">
+              <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-6 italic flex items-center gap-2"><Activity size={14}/> Security Logs</h4>
+              <div className="space-y-5">
+                <div className="flex justify-between items-center border-b border-white/[0.02] pb-3">
+                  <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Last Security Rotation</span>
+                  <span className="text-[9px] font-black text-zinc-400 uppercase font-mono">NEVER</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-white/[0.02] pb-3">
+                  <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Current Session</span>
+                  <span className="text-[9px] font-black text-emerald-400 uppercase font-mono drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">ACTIVE</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Clearance Level</span>
+                  <span className="text-[10px] font-black text-white uppercase italic tracking-widest">{initialData?.role || 'User'}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
