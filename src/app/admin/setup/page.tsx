@@ -3,16 +3,6 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Loader2, ShieldCheck, AlertCircle, ArrowRight } from 'lucide-react';
-import { useOptimisticAuth } from '@/hooks/useOptimisticAuth';
-
-export default function SomeOtherPage() {
-  // Just drop this one line in!
-  const { user, loading } = useOptimisticAuth('some_page_auth_cache');
-
-  if (loading) return <div>Loading...</div>; // Will be skipped if cached!
-
-  return <div>Welcome back, {user?.id}</div>;
-}
 
 function SetupContent() {
   const searchParams = useSearchParams();
