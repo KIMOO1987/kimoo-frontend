@@ -258,6 +258,8 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"><Camera size={16} className="text-white"/></div>
                   </div>
                 </div>
+              </div>
+
               <div className="space-y-6">
                 <div className="space-y-2.5">
                   <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Full Name</label>
@@ -394,7 +396,6 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }
