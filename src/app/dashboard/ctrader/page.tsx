@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Terminal, Copy, Power, Activity, ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
+import TradeHistory from '@/components/TradeHistory';
 
 export default function CTraderDashboard() {
   const [status, setStatus] = useState<'stopped' | 'running'>('stopped');
@@ -154,6 +155,18 @@ export default function CTraderDashboard() {
               {logs.map((log, i) => <div key={i} className="text-zinc-500">{log}</div>)}
             </div>
           </div>
+        </div>
+      </div>
+      {/* TRADE HISTORY TABLE */}
+      <div className="bg-zinc-900/20 border border-zinc-800 rounded-2xl min-h-[300px] shadow-2xl backdrop-blur-md overflow-hidden">
+        <div className="p-4 border-b border-zinc-800 bg-[#05070a]/40">
+            <span className="text-[10px] font-black tracking-widest text-zinc-300 flex items-center gap-2 uppercase">
+              <span className="h-2 w-2 bg-blue-500 rounded-full"></span>
+              Global Signal History
+            </span>
+        </div>
+        <div className="p-2 overflow-x-auto">
+            <TradeHistory />
         </div>
       </div>
     </div>
