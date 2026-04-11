@@ -165,10 +165,13 @@ export default function BinanceDashboard() {
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-yellow-500/30 pb-6 mb-8 gap-4">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-yellow-500 tracking-tighter uppercase italic">
-                Binance {environment === 'live' ? 'Live' : 'Testnet'} Terminal
-            </h1>
-            <p className="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-bold">Kimoo Pro Secure Engine v2.0</p>
+            <div className="flex items-center gap-3">
+              <img src="/binance-logo.png" alt="Binance" className="w-8 h-8 object-contain" />
+              <h1 className="text-xl md:text-2xl font-bold text-yellow-500 tracking-tighter italic">
+                   {environment === 'live' ? 'Live' : 'Testnet'} Terminal
+              </h1>
+            </div>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-bold mt-2">Kimoo Pro Secure Engine v2.0</p>
           </div>
           
           <div className="w-full md:w-auto">
