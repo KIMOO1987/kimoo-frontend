@@ -83,14 +83,17 @@ export default function AdminMobileNav({ userRole }: { userRole: string }) {
             initial={{ x: '-100%' }} 
             animate={{ x: 0 }} 
             exit={{ x: '-100%' }} 
-            className="fixed inset-0 z-[1000] bg-[#05070a] flex flex-col p-8 w-full h-full"
+            className="fixed inset-0 z-[1000] bg-[#030407] flex flex-col p-8 w-full h-full"
           >
-            <div className="flex justify-between items-center mb-10 shrink-0">
+            {/* Subtle background glow */}
+            <div className="absolute top-0 left-0 w-full h-64 bg-blue-600/10 blur-[120px] pointer-events-none" />
+            
+            <div className="flex justify-between items-center mb-10 shrink-0 relative z-10">
               <div>
-                <h1 className="text-2xl font-black text-white italic tracking-tighter">
-                  KIMOO <span className="text-blue-500">(+Console)</span>
+                <h1 className="text-2xl font-black text-white italic tracking-tighter drop-shadow-md">
+                  KIMOO<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">CONSOLE</span>
                 </h1>
-                <div className="flex items-center gap-1.5 mt-2 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md w-fit">
+                <div className="flex items-center gap-1.5 mt-3 px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md w-fit shadow-[0_0_10px_rgba(59,130,246,0.1)]">
                   <ShieldCheck size={10} className="text-blue-400" />
                   <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">{userRole} Access</span>
                 </div>
@@ -100,27 +103,29 @@ export default function AdminMobileNav({ userRole }: { userRole: string }) {
               </button>
             </div>
 
-            <nav className="flex-1 overflow-y-auto space-y-10 no-scrollbar pb-20">
+            <nav className="flex-1 overflow-y-auto space-y-10 no-scrollbar pb-20 relative z-10">
               {adminMenuGroups.map((group) => {
                 const visibleItems = group.items.filter(item => item.roles.includes(userRole));
                 if (visibleItems.length === 0) return null;
 
                 return (
                   <div key={group.label}>
-                    <p className="text-[10px] font-black text-zinc-700 tracking-[0.2em] mb-4 px-2 uppercase">{group.label}</p>
-                    <div className="space-y-2">
+                    <p className="text-[9px] font-black text-zinc-600 tracking-[0.25em] mb-4 px-3 uppercase">{group.label}</p>
+                    <div className="space-y-1.5">
                       {visibleItems.map((item) => {
                         const isActive = pathname === item.path;
                         return (
                           <Link key={item.path} href={item.path} onClick={() => setIsOpen(false)}>
-                            <div className={`flex items-center justify-between p-4 rounded-2xl transition-all border cursor-pointer ${
-                              isActive ? 'bg-blue-600 text-white border-blue-400/20 shadow-lg' : 'text-zinc-400 bg-white/[0.02] border-transparent'
+                            <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 border cursor-pointer ${
+                              isActive 
+                                ? 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
+                                : 'text-zinc-500 bg-white/[0.02] border-white/[0.05] hover:text-zinc-200 hover:bg-white/[0.04]'
                             }`}>
                               <div className="flex items-center gap-4">
-                                <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                                <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                                 <span className="font-bold text-sm tracking-tight">{item.name}</span>
                               </div>
-                              {isActive && <div className="w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_8px_white]" />}
+                              {isActive && <div className="w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_5px_rgba(96,165,250,0.8)]" />}
                             </div>
                           </Link>
                         );
