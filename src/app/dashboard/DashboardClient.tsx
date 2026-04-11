@@ -584,7 +584,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                       <th className="pb-3 font-bold">Net R:R</th>
                       <th className="pb-3 font-bold">T.F.</th>
                       <th className="pb-3 font-bold text-center">Grade</th>
-                      <th className="pb-3 font-bold text-right pr-6">Date</th>
+                      <th className="pb-3 font-bold text-center">Date</th>
                       <th className="pb-3 font-bold text-center">Action</th>
                     </tr>
                   </thead>
