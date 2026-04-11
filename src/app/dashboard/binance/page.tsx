@@ -82,6 +82,22 @@ export default function BinanceDashboard() {
   useEffect(() => {
     if (!userId) return;
 
+    // Fetch historical logs on initial load so the terminal isn't empty
+    const fetchRecentLogs = async () => {
+      const { data } = await supabase
+        .from('binance_bot_logs')
+        .select('message, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(30);
+        
+      if (data) {
+        const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
+        setLogs(history);
+      }
+    };
+    fetchRecentLogs();
+
     const logChannel = supabase
       .channel(`private-logs-${userId}`)
       .on('postgres_changes', 
