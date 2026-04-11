@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import {
-  TrendingUp, Zap, Star, Activity, BarChart3, Target, 
+  TrendingUp, Zap, Star, Activity, BarChart3, Target, Layers,
   ShieldCheck, Clock, Wallet, MessageSquare, Play, RotateCcw,
   CheckCircle2, XCircle, MinusCircle, Percent, Save, Mail, TrendingDown
 } from 'lucide-react';
@@ -19,6 +19,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   const [riskValue, setRiskValue] = useState(userProfile?.risk_value || 1.0); 
   const [rewardValue, setRewardValue] = useState(userProfile?.reward_value || 2.0); 
   const [timeframe, setTimeframe] = useState('all');
+  const [assetClass, setAssetClass] = useState('ALL');
   const [isSaving, setIsSaving] = useState(false);
   
   const [realStats, setRealStats] = useState({
@@ -62,7 +63,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
     fetchData(); 
     const interval = setInterval(fetchData, 30000); 
     return () => clearInterval(interval);
-  }, [accountSize, riskValue, rewardValue, timeframe]);
+  }, [accountSize, riskValue, rewardValue, timeframe, assetClass]);
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
@@ -100,6 +101,17 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
     return 0; 
   };
 
+  // --- SYMBOL CATEGORY HELPER ---
+  const getSymbolCategory = (symbol: string) => {
+    if (!symbol) return 'CRYPTO';
+    const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) return 'METALS';
+    if (['US100', 'US30', 'US500'].includes(upper)) return 'INDICES';
+    const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY'];
+    if (forexPairs.includes(upper)) return 'FOREX';
+    return 'CRYPTO';
+  };
+
   // --- MAIN DATA FETCH & PROCESS ---
   async function fetchData() {
     try {
@@ -119,22 +131,26 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
 
       const now = new Date();
       const signals = allSignals.filter(s => {
-        if (timeframe === 'all') return true;
-        const signalDate = new Date(s.created_at || s.timestamp);
-        const diffInDays = (now.getTime() - signalDate.getTime()) / (1000 * 60 * 60 * 24);
-        
-        switch (timeframe) {
-          case 'daily': return diffInDays <= 1;
-          case 'weekly': return diffInDays <= 7;
-          case 'monthly': return diffInDays <= 30;
-          case 'yearly': return diffInDays <= 365;
-          default: return true;
+        // 1. Asset Class Filter
+        if (assetClass !== 'ALL' && getSymbolCategory(s.symbol) !== assetClass) {
+          return false;
         }
+        
+        // 2. Timeframe Filter
+        if (timeframe !== 'all') {
+          const signalDate = new Date(s.created_at || s.timestamp);
+          const diffInDays = (now.getTime() - signalDate.getTime()) / (1000 * 60 * 60 * 24);
+          if (timeframe === 'daily' && diffInDays > 1) return false;
+          if (timeframe === 'weekly' && diffInDays > 7) return false;
+          if (timeframe === 'monthly' && diffInDays > 30) return false;
+          if (timeframe === 'yearly' && diffInDays > 365) return false;
+        }
+        return true;
       });
 
       if (signals.length === 0) {
         setRealStats({
-          total: totalCount || 0, totalWins: 0, totalLosses: 0, totalBE: 0,
+          total: (timeframe === 'all' && assetClass === 'ALL') ? (totalCount || 0) : 0, totalWins: 0, totalLosses: 0, totalBE: 0,
           winRate: "0%", totalRR: "0.00R", profitUSD: "$0.00",
           mostProfitable: "---", mostTraded: "---", highWRPair: "---",
           maxDrawdown: "0.00R",
@@ -193,7 +209,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
         .sort((a, b) => (b.wins / (b.wins + b.losses || 1)) - (a.wins / (a.wins + a.losses || 1)))[0];
 
       setRealStats({
-        total: timeframe === 'all' ? (totalCount || signals.length) : signals.length,
+        total: (timeframe === 'all' && assetClass === 'ALL') ? (totalCount || signals.length) : signals.length,
         totalWins: totalWinsCount,
         totalLosses: totalLossesCount,
         totalBE: totalBECount,
@@ -272,7 +288,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
               
               <div className="flex items-center gap-3">
                 <Wallet size={18} className="text-emerald-400 shrink-0" />
@@ -339,6 +355,26 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                       <option value="weekly" className="bg-[#05070a]">Weekly</option>
                       <option value="monthly" className="bg-[#05070a]">Monthly</option>
                       <option value="yearly" className="bg-[#05070a]">Yearly</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Layers size={18} className="text-purple-400 shrink-0" />
+                <div className="flex flex-col w-full">
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5">Asset Class</span>
+                  <div className="flex items-center bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 hover:border-white/20 transition-all">
+                    <select 
+                      value={assetClass} 
+                      onChange={(e) => setAssetClass(e.target.value)}
+                      className="bg-transparent text-white font-black text-lg outline-none cursor-pointer hover:text-purple-400 appearance-none w-full"
+                    >
+                      <option value="ALL" className="bg-[#05070a]">All Assets</option>
+                      <option value="CRYPTO" className="bg-[#05070a]">Crypto</option>
+                      <option value="FOREX" className="bg-[#05070a]">Forex</option>
+                      <option value="INDICES" className="bg-[#05070a]">Indices</option>
+                      <option value="METALS" className="bg-[#05070a]">Metals</option>
                     </select>
                   </div>
                 </div>
