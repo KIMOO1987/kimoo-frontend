@@ -544,16 +544,22 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
             </div>
 
             {/* Modern Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 mb-8 md:mb-12">
+              {/* Original Essential Stats */}
+              <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
+              <StatCard label="Total Wins" value={realStats.totalWins} icon={<CheckCircle2 size={18}/>} color="text-emerald-400" />
+              <StatCard label="Total Losses" value={realStats.totalLosses} icon={<XCircle size={18}/>} color="text-red-500" />
+              <StatCard label="Total BE" value={realStats.totalBE} icon={<MinusCircle size={18}/>} color="text-zinc-400" />
               <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
-              <StatCard label="Profit Factor" value={realStats.profitFactor} icon={<Activity size={18}/>} color="text-blue-400" tooltip="Gross Profit / Gross Loss. >1.5 is Excellent." />
-              <StatCard label="Expectancy" value={realStats.expectancy} icon={<Star size={18}/>} color="text-indigo-400" tooltip="Average R per trade (Wins & Losses combined)." />
+              <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
               <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Wallet size={18}/>} color="text-emerald-500" />
-              <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-amber-400" />
-              
-              <StatCard label="Total Signals" value={realStats.total} icon={<Layers size={18}/>} />
-              <StatCard label="Wins / Losses / BE" value={`${realStats.totalWins} / ${realStats.totalLosses} / ${realStats.totalBE}`} icon={<Target size={18}/>} />
+              <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="CRT Alpha Pair" />
+              <StatCard label="Highest Win Rate" value={realStats.highWRPair} icon={<Target size={18}/>} color="text-blue-400" />
               <StatCard label="Max Drawdown" value={realStats.maxDrawdown} icon={<TrendingDown size={18}/>} color="text-red-500" tooltip="Largest peak-to-trough drop in R." />
+              
+              {/* Advanced Pro Metrics */}
+              <StatCard label="Profit Factor" value={realStats.profitFactor} icon={<Star size={18}/>} color="text-blue-400" tooltip="Gross Profit / Gross Loss. >1.5 is Excellent." />
+              <StatCard label="Expectancy" value={realStats.expectancy} icon={<Layers size={18}/>} color="text-indigo-400" tooltip="Average R per trade (Wins & Losses combined)." />
               <StatCard label="Long vs Short WR" value={`${realStats.longWR} / ${realStats.shortWR}`} icon={<BarChart3 size={18}/>} tooltip="Win Rate for Buy vs Sell signals." />
               <StatCard label="Max Win Streak" value={`${realStats.winStreak} Trades`} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
             </div>
