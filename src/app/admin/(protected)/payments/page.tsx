@@ -224,7 +224,6 @@ export default function AdminPayments() {
                   {searchQuery ? "No results match your search" : "All payments validated."}
                 </p>
             </div>
-              </p>
           ) : (
             <div className="grid gap-6">
               {filteredRequests.map((req) => {
