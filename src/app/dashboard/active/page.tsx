@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AccessGuard from '@/components/AccessGuard'; // Switched to AccessGuard
 import { 
   Clock, Activity, Zap, ArrowUpRight, TrendingUp, 
-  TrendingDown, Layout, Target, Shield 
+  TrendingDown, Layout, Target, Shield, AlertCircle
 } from 'lucide-react';
 
 export default function ActiveSignalsPage() {
@@ -171,133 +171,156 @@ export default function ActiveSignalsPage() {
   };
 
   return (
-    <AccessGuard requiredTier={1} tierName="Alpha">
-      <div className="p-4 md:p-7 max-w-7xl mx-auto space-y-6 md:space-y-8">
+    <AccessGuard requiredTier={1} tierName="PRO">
+      <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
         
-        {/* Header Section */}
-        <div className="mb-8 md:mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-          <div>
-            <h2 className="text-2xl md:text-4xl font-black tracking-tighter italic text-white uppercase">
-              Active <span className="text-blue-500 text-3xl not-italic">Signals</span>
-            </h2>
-            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.4em] mt-2 italic">
-              Streaming Live KIMOO CRT Chart Analytics
-            </p>
-          </div>
-          <div className="flex items-center gap-3 bg-blue-500/5 border border-blue-500/10 px-5 py-2.5 rounded-2xl">
-            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">
-              Institutional Flow Active
-            </span>
-          </div>
+        {/* Ambient Glowing Backgrounds */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[150px] rounded-full mix-blend-screen" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[150px] rounded-full mix-blend-screen" />
         </div>
 
-        {/* Signals Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          <AnimatePresence mode="popLayout">
-            {activeSignals.length > 0 ? (
-              activeSignals.map((signal) => (
-                <motion.div
-                  key={signal.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="bg-[#0a0a0a] border border-white/5 rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 hover:border-blue-500/30 transition-all group relative overflow-hidden flex flex-col justify-between min-h-[450px]"
-                >
-                  <div className={`absolute -top-24 -right-24 w-48 h-48 blur-[100px] opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity ${
-                    signal.side === 'BUY' ? 'bg-green-500' : 'bg-red-500'
-                  }`} />
+        <div className="max-w-[1700px] mx-auto relative z-10 space-y-6 md:space-y-8">
+          
+          {/* Header Section */}
+          <div className="mb-8 md:mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div>
+              <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+                Active<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Intelligence</span>
+              </h1>
+              <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
+                • LIVE CRT MARKET EXPOSURE •
+              </p>
+            </div>
+            <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/20 px-5 py-2.5 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+              <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shadow-[0_0_10px_rgba(96,165,250,0.8)]" />
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                Institutional Flow Active
+              </span>
+            </div>
+          </div>
 
-                  <div>
-                    <div className="flex justify-between items-start mb-8">
-                      <div>
-                        <h3 className="text-2xl font-black text-white tracking-tighter italic uppercase">{signal.symbol}</h3>
-                        <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-1">
-                          {signal.strategy || 'KIMOO CRT PRO'} • {signal.tf_alignment || '5M'}
-                        </p>
-                      </div>
-                      <div className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase flex items-center gap-2 ${
-                        signal.side === 'BUY' ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
-                      }`}>
-                        {signal.side === 'BUY' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                        {signal.side}
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 mb-8">
-                      <TradeDataRow icon={<Activity size={12} className="text-blue-500"/>} label="Status" value={getDisplayStatus(signal.status)} valueClass="text-blue-400 animate-pulse" />
-                      
-                      {/* Dynamic Trade RR - Logic Synced with History Page */}
-                      <TradeDataRow 
-                        icon={<TrendingUp size={12} className="text-blue-400"/>} 
-                        label="Trade R:R" 
-                        value={getDynamicRR(signal)} 
-                        valueClass="text-blue-400" 
-                      />
-
-                      <TradeDataRow icon={<Zap size={12}/>} label="Entry Region" value={Number(signal.entry_price || 0).toFixed(5)} />
-                      
-                      {/* TP-1 with Final RR */}
-                      <TradeDataRow 
-                        icon={<Target size={12} className="text-green-500"/>} 
-                        label="TP-1 (EQ)" 
-                        value={`${Number(signal.tp || 0).toFixed(5)} (${calculateTargetRR(signal.tp, signal.entry_price, signal.sl)})`} 
-                        valueClass="text-green-500" 
-                      />
-
-                      {/* TP-2 with Final RR */}
-                      <TradeDataRow 
-                        icon={<Zap size={12} className="text-yellow-500"/>} 
-                        label="TP-2 (TARGET)" 
-                        value={signal.tp_secondary ? `${Number(signal.tp_secondary).toFixed(5)} (${calculateTargetRR(signal.tp_secondary, signal.entry_price, signal.sl)})` : 'N/A'} 
-                        valueClass="text-yellow-500" 
-                      />
-
-                      {/* Confluences Row */}
-                      <TradeDataRow 
-                        icon={<Layout size={12} className="text-zinc-500"/>} 
-                        label="Confluences" 
-                        value={signal.confluences || 'Institutional Bias Confirmed'} 
-                        valueClass="text-zinc-400 text-xs italic" 
-                      />
-
-                      {/* Live Realtime RR */}
-                      {(() => {
-                        const liveRRValue = calculateLiveRR(signal, livePrices);
-                        return <TradeDataRow
-                          icon={<Activity size={12} className="text-blue-500"/>}
-                          label="Live R:R"
-                          value={liveRRValue}
-                          valueClass={parseFloat(liveRRValue) >= 0 ? "text-green-400" : "text-red-400"}
-                        />;
-                      })()}
-                      <TradeDataRow icon={<Shield size={12} className="text-red-500"/>} label="Invalidation" value={Number(signal.sl || 0).toFixed(5)} valueClass="text-red-500" />
-                      
-                      <div className="flex justify-between items-center py-3 border-t border-white/5 mt-4">
-                        <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Signal Age</span>
-                        <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase flex items-center gap-2">
-                          <Clock size={12} /> {getTimeAgo(signal.created_at)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={() => handleViewSetup(signal.symbol)}
-                    className="w-full bg-white text-black py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl shadow-black/20"
+          {/* Signals Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
+            <AnimatePresence mode="popLayout">
+              {activeSignals.length > 0 ? (
+                activeSignals.map((signal) => (
+                  <motion.div
+                    key={signal.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2.5rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-500 group shadow-2xl flex flex-col justify-between min-h-[500px]"
                   >
-                    <Layout size={16} /> Open Live Setup <ArrowUpRight size={16} />
-                  </button>
-                </motion.div>
-              ))
-            ) : !loadingSignals && (
-              <motion.div className="col-span-full py-20 md:py-32 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-3xl md:rounded-[3rem] bg-white/[0.01]">
-                <Activity size={48} className="text-zinc-800 mb-6 animate-pulse" />
-                <p className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.5em]">Awaiting Order Block Displacement...</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    {/* Internal Ambient Glow */}
+                    <div className={`absolute -top-24 -right-24 w-64 h-64 blur-[120px] opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity duration-700 ${
+                      signal.side === 'BUY' ? 'bg-emerald-500' : 'bg-red-500'
+                    }`} />
+
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-8 border-b border-white/5 pb-6">
+                        <div>
+                          <h3 className="text-3xl font-black text-white tracking-tighter italic uppercase drop-shadow-md">{signal.symbol}</h3>
+                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2 flex items-center gap-2">
+                            {signal.strategy || 'KIMOO CRT PRO'} • {signal.tf_alignment || '5M'}
+                          </p>
+                        </div>
+                        
+                        <div className={`px-4 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg ${
+                          signal.side === 'BUY' 
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.2)]' 
+                            : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+                        }`}>
+                          {signal.side === 'BUY' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                          {signal.side}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 mb-8">
+                        <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-4 mb-4 flex justify-between items-center group-hover:border-white/[0.1] transition-colors">
+                          <div className="flex items-center gap-3 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                              <Activity size={14} className="text-blue-400 animate-pulse"/> Status
+                          </div>
+                          <span className="text-xs font-black uppercase tracking-widest text-blue-400">{getDisplayStatus(signal.status)}</span>
+                        </div>
+
+                        <TradeDataRow icon={<TrendingUp size={12} className="text-indigo-400"/>} label="Trade R:R" value={getDynamicRR(signal)} valueClass="text-indigo-400" />
+                        <TradeDataRow icon={<Zap size={12} className="text-amber-400"/>} label="Entry Region" value={Number(signal.entry_price || 0).toFixed(5)} />
+                        <TradeDataRow icon={<Shield size={12} className="text-red-400"/>} label="Invalidation" value={Number(signal.sl || 0).toFixed(5)} valueClass="text-red-400" />
+                        
+                        <div className="my-2 border-t border-white/[0.05]" />
+
+                        <TradeDataRow 
+                          icon={<Target size={12} className="text-emerald-400"/>} 
+                          label="TP-1 (EQ)" 
+                          value={`${Number(signal.tp || 0).toFixed(5)} (${calculateTargetRR(signal.tp, signal.entry_price, signal.sl)})`} 
+                          valueClass="text-emerald-400" 
+                        />
+
+                        <TradeDataRow 
+                          icon={<Zap size={12} className="text-yellow-500"/>} 
+                          label="TP-2 (TARGET)" 
+                          value={signal.tp_secondary ? `${Number(signal.tp_secondary).toFixed(5)} (${calculateTargetRR(signal.tp_secondary, signal.entry_price, signal.sl)})` : '---'} 
+                          valueClass="text-yellow-500" 
+                        />
+
+                        <div className="my-2 border-t border-white/[0.05]" />
+
+                        <TradeDataRow 
+                          icon={<Layout size={12} className="text-zinc-500"/>} 
+                          label="Confluences" 
+                          value={signal.confluences || 'Institutional Bias Confirmed'} 
+                          valueClass="text-zinc-400 text-[11px] italic" 
+                        />
+
+                        {/* Live Realtime RR */}
+                        {(() => {
+                          const liveRRValue = calculateLiveRR(signal, livePrices);
+                          const isProfit = parseFloat(liveRRValue) >= 0;
+                          return (
+                            <div className={`mt-4 p-4 rounded-2xl border flex justify-between items-center transition-colors duration-500 ${isProfit ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                              <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                                <Activity size={14} className={isProfit ? 'text-emerald-400' : 'text-red-400'} /> Live PnL
+                              </div>
+                              <span className={`text-lg font-black font-mono tracking-tight drop-shadow-md ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>{liveRRValue}</span>
+                            </div>
+                          );
+                        })()}
+                        
+                        <div className="flex justify-between items-center pt-4 mt-2">
+                          <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Time Elapsed</span>
+                          <span className="text-[10px] font-mono text-zinc-400 font-black uppercase flex items-center gap-2 bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/5">
+                            <Clock size={12} /> {getTimeAgo(signal.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => handleViewSetup(signal.symbol)}
+                      className="relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn mt-4"
+                    >
+                      <Layout size={16} className="text-blue-200 group-hover/btn:text-white transition-colors" /> 
+                      Open Live Setup 
+                      <ArrowUpRight size={16} className="text-blue-200 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
+                    </button>
+                  </motion.div>
+                ))
+              ) : loadingSignals ? (
+                <div className="col-span-full w-full flex flex-col items-center justify-center py-32 border border-white/[0.05] rounded-[2.5rem] bg-white/[0.02] animate-pulse">
+                  <Activity size={40} className="text-zinc-700 mb-4" />
+                  <p className="text-xs font-black uppercase tracking-widest text-zinc-600">Syncing Live Market Data...</p>
+                </div>
+              ) : !loadingSignals && (
+                <div className="col-span-full w-full flex flex-col items-center justify-center py-40 border border-dashed border-white/[0.1] rounded-[2.5rem] bg-white/[0.01]">
+                  <AlertCircle size={48} className="text-zinc-700 mb-6" />
+                  <h3 className="text-2xl font-black italic tracking-tighter uppercase text-white mb-2">No Active Intelligence</h3>
+                  <p className="text-sm font-bold text-zinc-600 uppercase tracking-widest">Awaiting Order Block Displacement...</p>
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </AccessGuard>
@@ -307,9 +330,9 @@ export default function ActiveSignalsPage() {
 // --- HELPERS ---
 function TradeDataRow({ icon, label, value, valueClass = "text-white" }: any) {
   return (
-    <div className="flex justify-between items-center py-2.5 border-b border-white/5">
-      <div className="flex items-center gap-3 text-[10px] font-bold text-zinc-500 uppercase tracking-tight">
-        {icon} <span>{label}:</span>
+    <div className="flex justify-between items-center py-2.5 hover:bg-white/[0.02] rounded-lg px-2 -mx-2 transition-colors">
+      <div className="flex items-center gap-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+        {icon} <span>{label}</span>
       </div>
       <span className={`text-sm font-mono font-black ${valueClass}`}>{value}</span>
     </div>
