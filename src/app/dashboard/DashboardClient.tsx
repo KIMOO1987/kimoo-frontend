@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import {
   TrendingUp, Zap, Star, Activity, BarChart3, Target, Layers,
   Wallet, CheckCircle2, XCircle, MinusCircle, Percent, Save, Mail, TrendingDown,
-  Info, AlertCircle
+  Info, AlertCircle, ChevronRight
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip,
@@ -492,8 +492,29 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
           </div>
         ) : (
           <>
+            {/* Modern Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 mb-8">
+              {/* Original Essential Stats */}
+              <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
+              <StatCard label="Total Wins" value={realStats.totalWins} icon={<CheckCircle2 size={18}/>} color="text-emerald-400" />
+              <StatCard label="Total Losses" value={realStats.totalLosses} icon={<XCircle size={18}/>} color="text-red-500" />
+              <StatCard label="Total BE" value={realStats.totalBE} icon={<MinusCircle size={18}/>} color="text-zinc-400" />
+              <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
+              <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
+              <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Wallet size={18}/>} color="text-emerald-500" />
+              <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="CRT Alpha Pair" />
+              <StatCard label="Highest Win Rate" value={realStats.highWRPair} icon={<Target size={18}/>} color="text-blue-400" />
+              <StatCard label="Max Drawdown" value={realStats.maxDrawdown} icon={<TrendingDown size={18}/>} color="text-red-500" tooltip="Largest peak-to-trough drop in R." />
+              
+              {/* Advanced Pro Metrics */}
+              <StatCard label="Profit Factor" value={realStats.profitFactor} icon={<Star size={18}/>} color="text-blue-400" tooltip="Gross Profit / Gross Loss. >1.5 is Excellent." />
+              <StatCard label="Expectancy" value={realStats.expectancy} icon={<Layers size={18}/>} color="text-indigo-400" tooltip="Average R per trade (Wins & Losses combined)." />
+              <StatCard label="Long vs Short WR" value={`${realStats.longWR} / ${realStats.shortWR}`} icon={<BarChart3 size={18}/>} tooltip="Win Rate for Buy vs Sell signals." />
+              <StatCard label="Max Win Streak" value={`${realStats.winStreak} Trades`} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
+            </div>
+
             {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 md:mb-12">
                 {/* Equity Curve */}
                 <div className="lg:col-span-2 bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2.5rem] shadow-2xl">
                     <h3 className="text-xl font-black italic tracking-tighter uppercase text-white mb-6">Cumulative Equity Curve</h3>
@@ -536,32 +557,14 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                                     <Cell fill="#ef4444" />
                                     <Cell fill="#52525b" />
                                 </Pie>
-                                <RechartsTooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '1rem', color: '#fff', fontSize: '12px' }}/>
+                                <RechartsTooltip 
+                                    contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '1rem', color: '#fff', fontSize: '12px' }}
+                                    itemStyle={{ color: '#e4e4e7', fontWeight: 'bold' }}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
-            </div>
-
-            {/* Modern Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 mb-8 md:mb-12">
-              {/* Original Essential Stats */}
-              <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
-              <StatCard label="Total Wins" value={realStats.totalWins} icon={<CheckCircle2 size={18}/>} color="text-emerald-400" />
-              <StatCard label="Total Losses" value={realStats.totalLosses} icon={<XCircle size={18}/>} color="text-red-500" />
-              <StatCard label="Total BE" value={realStats.totalBE} icon={<MinusCircle size={18}/>} color="text-zinc-400" />
-              <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
-              <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
-              <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Wallet size={18}/>} color="text-emerald-500" />
-              <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="CRT Alpha Pair" />
-              <StatCard label="Highest Win Rate" value={realStats.highWRPair} icon={<Target size={18}/>} color="text-blue-400" />
-              <StatCard label="Max Drawdown" value={realStats.maxDrawdown} icon={<TrendingDown size={18}/>} color="text-red-500" tooltip="Largest peak-to-trough drop in R." />
-              
-              {/* Advanced Pro Metrics */}
-              <StatCard label="Profit Factor" value={realStats.profitFactor} icon={<Star size={18}/>} color="text-blue-400" tooltip="Gross Profit / Gross Loss. >1.5 is Excellent." />
-              <StatCard label="Expectancy" value={realStats.expectancy} icon={<Layers size={18}/>} color="text-indigo-400" tooltip="Average R per trade (Wins & Losses combined)." />
-              <StatCard label="Long vs Short WR" value={`${realStats.longWR} / ${realStats.shortWR}`} icon={<BarChart3 size={18}/>} tooltip="Win Rate for Buy vs Sell signals." />
-              <StatCard label="Max Win Streak" value={`${realStats.winStreak} Trades`} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
             </div>
 
             {/* Recent Activity Feed */}
@@ -570,14 +573,16 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                 <h3 className="text-xl font-black italic tracking-tighter uppercase text-white">Recent Signals</h3>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[600px]">
+                <table className="w-full text-left border-collapse min-w-[800px]">
                   <thead>
                     <tr className="border-b border-white/5 text-[10px] uppercase tracking-widest text-zinc-500">
                       <th className="pb-3 font-bold">Asset</th>
                       <th className="pb-3 font-bold">Side</th>
+                      <th className="pb-3 font-bold">Entry Price</th>
                       <th className="pb-3 font-bold">Status</th>
                       <th className="pb-3 font-bold">Net R:R</th>
-                      <th className="pb-3 font-bold">Date</th>
+                      <th className="pb-3 font-bold text-right pr-6">Date</th>
+                      <th className="pb-3 font-bold text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -585,11 +590,17 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                       <tr key={s.id || i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
                         <td className="py-4 font-black italic tracking-tight text-white">{s.symbol}</td>
                         <td className={`py-4 font-black text-[11px] uppercase tracking-widest ${s.side === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>{s.side}</td>
+                        <td className="py-4 text-[11px] font-bold text-zinc-400 font-mono">{Number(s.entry_price || 0).toFixed(5)}</td>
                         <td className="py-4 text-[11px] font-bold tracking-widest text-zinc-400">{s.status}</td>
                         <td className={`py-4 font-mono font-black ${calculateActualSignalRR(s) > 0 ? 'text-emerald-400' : calculateActualSignalRR(s) < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
                           {calculateActualSignalRR(s) > 0 ? '+' : ''}{calculateActualSignalRR(s).toFixed(2)}R
                         </td>
-                        <td className="py-4 text-xs text-zinc-500 font-mono">{new Date(s.created_at || s.timestamp).toLocaleString()}</td>
+                        <td className="py-4 text-xs text-zinc-500 font-mono text-right pr-6">{new Date(s.created_at || s.timestamp).toLocaleString()}</td>
+                        <td className="py-4 text-center">
+                          <button className="text-zinc-500 hover:text-white transition-colors p-2 rounded-xl hover:bg-white/[0.05] inline-flex items-center justify-center">
+                            <ChevronRight size={16} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -598,19 +609,6 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
             </div>
           </>
         )}
-
-        <div className="w-full border-t border-white/[0.05] pt-16 mb-20 relative z-10">
-          <h2 className="text-2xl md:text-6xl font-black text-white mb-8 md:mb-12 tracking-tighter italic uppercase leading-tight">
-            Institutional <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">CRT Intelligence.</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
-            <FeatureItem icon={<Activity size={24}/>} title="Real-Time Trade Intelligence" desc="Track every active position with precision—monitor live R:R evolution, dynamic exit flow, and instantly review your latest closed trades." />
-            <FeatureItem icon={<BarChart3 size={24}/>} title="Audit-Grade Analytics" desc="Dissect symbol performance across multiple timeframes with precision—identify strengths and high-probability opportunities." />
-            <FeatureItem icon={<Target size={24}/>} title="Radar Technology" desc="Instantly detect symbol clustering and timing inefficiencies—pinpoint where smart money is aligning." />
-            <FeatureItem icon={<TrendingUp size={24}/>} title="Exclusive Indicator Access" desc="Unlock a full suite of advanced indicators—reserved for Premium users seeking precision and edge." />
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -638,20 +636,6 @@ function StatCard({ label, value, icon, sub, color = "text-white", tooltip }: an
       </div>
       <p className={`relative z-10 text-2xl md:text-3xl font-black tracking-tight drop-shadow-md ${color}`}>{value}</p>
       {sub && <p className="relative z-10 text-[8px] font-bold text-zinc-600 mt-2 uppercase tracking-widest">{sub}</p>}
-    </div>
-  );
-}
-
-function FeatureItem({ icon, title, desc }: any) {
-  return (
-    <div className="flex gap-5 p-8 rounded-[2.5rem] bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.05] hover:border-blue-500/30 hover:bg-white/[0.05] transition-all duration-500 group shadow-2xl">
-      <div className="text-blue-500 shrink-0 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 group-hover:scale-110 group-hover:bg-blue-500/20 transition-all duration-300 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
-        {icon}
-      </div>
-      <div>
-        <h4 className="text-white font-black uppercase text-xl tracking-tight mb-2 drop-shadow-sm">{title}</h4>
-        <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">{desc}</p>
-      </div>
     </div>
   );
 }
