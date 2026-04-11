@@ -1,5 +1,6 @@
 "use client";
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import {
@@ -581,6 +582,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                       <th className="pb-3 font-bold">Entry Price</th>
                       <th className="pb-3 font-bold">Status</th>
                       <th className="pb-3 font-bold">Net R:R</th>
+                      <th className="pb-3 font-bold">T.F.</th>
+                      <th className="pb-3 font-bold text-center">Grade</th>
                       <th className="pb-3 font-bold text-right pr-6">Date</th>
                       <th className="pb-3 font-bold text-center">Action</th>
                     </tr>
@@ -595,11 +598,21 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                         <td className={`py-4 font-mono font-black ${calculateActualSignalRR(s) > 0 ? 'text-emerald-400' : calculateActualSignalRR(s) < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
                           {calculateActualSignalRR(s) > 0 ? '+' : ''}{calculateActualSignalRR(s).toFixed(2)}R
                         </td>
+                        <td className="py-4 text-[11px] font-bold text-zinc-500 font-mono">{s.tf_alignment || '5M'}</td>
+                        <td className="py-4 text-center">
+                          <span className={`px-2.5 py-1 border rounded-md text-[9px] font-black uppercase tracking-widest ${
+                            s.grade === 'A+' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 
+                            s.grade === 'A++' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 
+                            'bg-white/[0.05] border-white/10 text-zinc-400'
+                          }`}>
+                            {s.grade || 'A'}
+                          </span>
+                        </td>
                         <td className="py-4 text-xs text-zinc-500 font-mono text-right pr-6">{new Date(s.created_at || s.timestamp).toLocaleString()}</td>
                         <td className="py-4 text-center">
-                          <button className="text-zinc-500 hover:text-white transition-colors p-2 rounded-xl hover:bg-white/[0.05] inline-flex items-center justify-center">
+                          <Link href="/dashboard/history" className="text-zinc-500 hover:text-white transition-colors p-2 rounded-xl hover:bg-white/[0.05] inline-flex items-center justify-center">
                             <ChevronRight size={16} />
-                          </button>
+                          </Link>
                         </td>
                       </tr>
                     ))}
