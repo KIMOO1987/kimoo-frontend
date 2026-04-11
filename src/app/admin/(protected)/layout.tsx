@@ -34,13 +34,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   if (loading) return (
-    <div className="h-screen bg-[#05070a] flex items-center justify-center">
-      <Loader2 className="animate-spin text-blue-500" />
+    <div className="min-h-screen flex items-center justify-center bg-[#030407]">
+      <div className="flex flex-col items-center justify-center space-y-6">
+        <Loader2 className="animate-spin mx-auto text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.5)]" size={48} />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Verifying Clearance...</p>
+      </div>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen bg-[#05070a] overflow-x-hidden">
+    <div className="flex min-h-screen bg-[#030407] overflow-x-hidden">
       <AdminSidebar userRole={role || 'user'} />
       <main className="flex-1 lg:ml-72 overflow-y-auto">
         {children}
