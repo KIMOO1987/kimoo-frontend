@@ -18,9 +18,27 @@ export default function CTraderDashboard() {
   );
 
   useEffect(() => {
+    // 1. Restore the bridge running status so it survives page refreshes
+    const savedStatus = localStorage.getItem('ctrader_bridge_status');
+    if (savedStatus === 'running') {
+      setStatus('running');
+    }
+
     async function initializeBridge() {
       try {
-        setLoading(true);
+        // 2. Optimistic Cache Load (Stale-While-Revalidate) to skip loading screen
+        const cached = localStorage.getItem('ctrader_data_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            setUserTier(parsed.tier);
+            setBotToken(parsed.botToken);
+            setLoading(false); // Instantly hide initialization screen
+          } catch (e) {}
+        } else {
+          setLoading(true);
+        }
+
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError || !user) {
@@ -54,7 +72,14 @@ export default function CTraderDashboard() {
           data = newData;
         }
 
-        if (data) setBotToken(data.bot_token);
+        if (data) {
+          setBotToken(data.bot_token);
+          // Update cache silently in the background for the next refresh
+          localStorage.setItem('ctrader_data_cache', JSON.stringify({
+            tier: profile?.tier || 0,
+            botToken: data.bot_token
+          }));
+        }
       } catch (err) {
         console.error("Bridge Init Error:", err);
         setError("Failed to initialize secure bridge.");
@@ -83,6 +108,8 @@ export default function CTraderDashboard() {
 
       if (res.ok) {
         setStatus(action === 'start' ? 'running' : 'stopped');
+        // Save the status to localStorage so it survives page refreshes
+        localStorage.setItem('ctrader_bridge_status', action === 'start' ? 'running' : 'stopped');
         addLog(`cTrader Bridge: ${action === 'start' ? 'ACTIVE & LISTENING' : 'OFFLINE'}.`);
       } else {
         addLog(`Error: Server responded with status ${res.status}`);
