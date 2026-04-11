@@ -25,6 +25,7 @@ export default function BinanceDashboard() {
   // Settings & Credentials State
   const [dailyRisk, setDailyRisk] = useState(1000);
   const [riskPercent, setRiskPercent] = useState(1.0);
+    const [minRR, setMinRR] = useState(1.2);
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [isBotEnabled, setIsBotEnabled] = useState(true);
@@ -47,6 +48,7 @@ export default function BinanceDashboard() {
         setBotConfig(data);
         setDailyRisk(data.daily_risk_wallet || 1000);
         setRiskPercent(data.risk_percentage || 1.0);
+        setMinRR(data.rr || 1.2);
         setIsBotEnabled(data.is_bot_enabled ?? true);
         setApiKey(data.api_key || '');
         // NEW: Load Environment from DB
@@ -104,6 +106,7 @@ export default function BinanceDashboard() {
     const updates: any = { 
         daily_risk_wallet: dailyRisk, 
         risk_percentage: riskPercent,
+        rr: minRR,
         is_bot_enabled: isBotEnabled,
         api_key: apiKey,
         api_secret: encryptedSecret,
@@ -220,6 +223,16 @@ export default function BinanceDashboard() {
                         step="0.1" 
                         value={riskPercent} 
                         onChange={(e) => setRiskPercent(Number(e.target.value))} 
+                        className="w-full bg-[#05070a] border border-zinc-800 p-3 rounded-lg text-xs focus:border-yellow-500/50 outline-none"
+                      />
+                  </div>
+                  <div className="col-span-2">
+                      <label className="text-[9px] text-zinc-600 uppercase font-black block mb-1.5 ml-1">Min RR (Risk/Reward)</label>
+                      <input 
+                        type="number" 
+                        step="0.1" 
+                        value={minRR} 
+                        onChange={(e) => setMinRR(Number(e.target.value))} 
                         className="w-full bg-[#05070a] border border-zinc-800 p-3 rounded-lg text-xs focus:border-yellow-500/50 outline-none"
                       />
                   </div>
