@@ -314,11 +314,11 @@ export default function BinanceDashboard() {
               <div className="p-4 border-b border-zinc-800 bg-[#05070a]/40">
                   <span className="text-[10px] font-black tracking-widest text-zinc-300 flex items-center gap-2 uppercase">
                     <span className="h-2 w-2 bg-blue-500 rounded-full"></span>
-                    Global Signal History
+                    Global Signal History (Crypto)
                   </span>
               </div>
               <div className="p-2 overflow-x-auto">
-                  <TradeHistory />
+                  <TradeHistory category="CRYPTO" />
               </div>
             </div>
 
