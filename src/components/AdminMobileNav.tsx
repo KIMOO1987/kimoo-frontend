@@ -136,9 +136,9 @@ export default function AdminMobileNav({ userRole }: { userRole: string }) {
               })}
             </nav>
 
-            <div className="mt-auto pt-6 border-t border-white/5 bg-[#05070a] shrink-0">
-              <button onClick={handleLogout} className="flex items-center gap-3 w-full p-4 text-zinc-500 hover:text-red-500 transition-colors font-black uppercase text-[10px] tracking-widest">
-                <LogOut size={18} /> Terminate Session
+            <div className="mt-auto pt-6 border-t border-white/5 shrink-0 relative z-10">
+              <button onClick={handleLogout} className="flex items-center justify-center gap-3 px-4 py-4 text-zinc-500 bg-white/[0.01] hover:bg-red-500/10 border border-transparent hover:border-red-500/20 hover:text-red-400 transition-all rounded-xl w-full group hover:shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                <LogOut size={16} className="group-hover:scale-110 transition-transform" />
               </button>
             </div>
           </motion.div>
