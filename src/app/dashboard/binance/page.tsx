@@ -238,7 +238,6 @@ export default function BinanceDashboard() {
             <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
               • Binance {environment === 'live' ? 'LIVE' : 'TESTNET'} EXECUTION ENGINE •
             </p>
-            </h1>
           </div>
           
           <div className="flex items-center gap-3 px-5 py-2.5 bg-white/[0.02] border border-white/[0.05] rounded-xl backdrop-blur-md shadow-xl">
