@@ -85,23 +85,15 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
 
   // --- STATS CALCULATION HELPER ---
   const calculateActualSignalRR = (signal: any): number => {
-    const entry = Number(signal.entry_price || 0);
-    const sl = Number(signal.sl || 0);
-    const tp = Number(signal.tp || 0);
-    const tpSecondary = Number(signal.tp_secondary || 0);
-    const risk = Math.abs(entry - sl);
-
-    if (!risk) return 0; 
-
     const status = signal.status?.toUpperCase();
 
+    // Project performance based on user's Risk/Reward profile
     if (['WIN', 'TP2'].includes(status)) {
-      const actualTp = tpSecondary || tp;
-      if (actualTp) return Math.abs(actualTp - entry) / risk;
+      return rewardValue; 
     } else if (['TP1', 'TP1 + SL (BE)'].includes(status)) {
-      if (tp) return Math.abs(tp - entry) / risk;
+      return rewardValue * 0.5; // Project half the reward for partial wins
     } else if (status === 'SL' || status === 'LOSS') {
-      return -1; 
+      return -1; // Assuming 1R risk
     } else if (status === 'BE') {
       return 0; 
     }
@@ -220,177 +212,158 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   }
 
   return (
-    <div className="p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#05070a] min-h-screen text-white font-sans overflow-x-hidden">
-      <div className="max-w-[1700px] mx-auto">
+    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+      
+      {/* Ambient Glowing Backgrounds */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[150px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[150px] rounded-full mix-blend-screen" />
+      </div>
+
+      <div className="max-w-[1700px] mx-auto relative z-10">
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 md:mb-12">
           <div>
             <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
-              Client<span className="text-blue-500">Dashboard</span>
+              Client<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Dashboard</span>
             </h1>
-            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold mt-3 leading-none italic">
+            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
               • KIMOO CRT ENGINE PRO •
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col mb-6 md:mb-10 p-5 md:p-10 rounded-3xl md:rounded-[2.5rem] bg-white/[0.02] border border-white/5 backdrop-blur-md gap-6 md:gap-8 shadow-2xl">
+        {/* Premium Settings & Profile Card */}
+        <div className="flex flex-col mb-6 md:mb-10 p-6 md:p-10 rounded-[2.5rem] bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] backdrop-blur-2xl shadow-[0_0_80px_rgba(0,0,0,0.4)] gap-8">
           <div className="w-full">
-            <div className="flex flex-wrap items-center gap-4 mb-2">
-              <h2 className="text-[7vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/5 pb-8 mb-8">
+              <div>
+                <div className="flex flex-wrap items-center gap-4 mb-3">
+                  <h2 className="text-[7vw] md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
                   {userProfile?.full_name || 'TRADER'}
-              </h2>
-              <span className={`text-white text-[10px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit shadow-lg transition-colors ${
-                  tier >= 2 || userProfile?.role === 'admin' 
-                  ? 'bg-blue-600 shadow-blue-500/20' 
-                  : 'bg-zinc-700 shadow-black/10'
-              }`}>
+                  </h2>
+                  <span className={`text-white text-[10px] font-black px-4 py-1.5 rounded-lg uppercase tracking-widest h-fit border transition-all ${
+                      tier >= 2 || userProfile?.role === 'admin' 
+                      ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
+                      : 'bg-zinc-800/50 border-zinc-700/50 text-zinc-400'
+                  }`}>
                   {getTierDisplay()}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 mb-6 md:mb-10 text-zinc-500">
-              <Mail size={14} className="text-blue-500" />
-              <span className="text-[10px] md:text-[11px] font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase font-mono truncate">
-                {userProfile?.email || 'OFFLINE'}
-              </span>
-            </div>
-            
-            <div className="space-y-8 md:space-y-10">
-              <div className="flex flex-wrap gap-y-6 gap-x-8 md:gap-x-12 border-b border-white/5 pb-8 md:pb-10">
-                <div className="flex items-center gap-3">
-                  <Star size={18} className="text-yellow-500 shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1 italic">Plan Type</span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-black text-xl italic uppercase tracking-tight text-white">
-                        {userProfile?.plan_type?.toUpperCase() || (tier === 3 ? 'ULTIMATE' : tier === 2 ? 'PRO' : tier === 1 ? 'ALPHA' : 'FREE')}
-                      </span>
-                    </div>
-                  </div>
+                  </span>
                 </div>
-              
-                <div className="flex items-center gap-3">
-                  <Clock size={18} className="text-indigo-500 shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1 italic">Plan Validity</span>
-                    <div className="flex flex-wrap items-baseline gap-2">
-                        <span className={`font-black text-xl italic uppercase tracking-tight ${tier > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                          {tier > 0 ? 'ACTIVE' : 'EXPIRED'}
-                        </span>
-                        {tier > 0 && (
-                          <span className="text-zinc-600 font-bold text-[10px] uppercase">
-                            ({daysLeft} REMAINING DAYS)
-                          </span>
-                        )}
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2 text-zinc-500">
+                  <Mail size={14} className="text-indigo-400" />
+                  <span className="text-[10px] md:text-[11px] font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase font-mono truncate">
+                    {userProfile?.email || 'OFFLINE'}
+                  </span>
                 </div>
+              </div>
 
+              <div className="flex items-center gap-6 mt-6 md:mt-0">
                 <div className="flex items-center gap-3">
                   <div className="relative shrink-0">
-                    <Activity size={18} className="text-emerald-500" />
-                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <Activity size={20} className="text-emerald-400" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1 italic">Engine Status</span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-black text-xl italic uppercase tracking-tight text-emerald-500">ONLINE</span>
-                    </div>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Status</span>
+                    <span className="font-black text-lg uppercase tracking-tight text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">ONLINE</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              
+              <div className="flex items-center gap-3">
+                <Wallet size={18} className="text-emerald-400 shrink-0" />
+                <div className="flex flex-col w-full">
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5">Account Size</span>
+                  <div className="flex items-center bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 focus-within:border-emerald-500/50 focus-within:bg-white/[0.05] transition-all hover:border-white/20">
+                    <span className="text-emerald-500/70 font-black text-sm mr-2">$</span>
+                    <input 
+                      type="number" 
+                      value={accountSize} 
+                      onChange={(e) => setAccountSize(Number(e.target.value))} 
+                      className="bg-transparent text-white font-black text-lg w-full outline-none" 
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-end gap-y-6 gap-x-8 md:gap-x-12">
-                <div className="flex items-center gap-3">
-                  <Wallet size={18} className="text-emerald-500 shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Account</span>
-                    <div className="flex items-center border-b border-white/10 pb-0.5">
-                      <span className="text-white font-black text-xl mr-1">$</span>
-                      <input 
-                        type="number" 
-                        value={accountSize} 
-                        onChange={(e) => setAccountSize(Number(e.target.value))} 
-                        className="bg-transparent text-white font-black text-xl w-28 md:w-32 outline-none focus:text-emerald-400" 
-                      />
-                    </div>
+              <div className="flex items-center gap-3">
+                <Percent size={18} className="text-red-400 shrink-0" />
+                <div className="flex flex-col w-full">
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5">Risk per SL</span>
+                  <div className="flex items-center bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 focus-within:border-red-500/50 focus-within:bg-white/[0.05] transition-all hover:border-white/20">
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      value={riskValue} 
+                      onChange={(e) => setRiskValue(Number(e.target.value))} 
+                      className="bg-transparent text-white font-black text-lg w-full outline-none text-center" 
+                    />
+                    <span className="text-red-500/70 font-black text-sm ml-2">R</span>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Percent size={18} className="text-red-500 shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Risk per SL</span>
-                    <div className="flex items-center border-b border-white/10 pb-0.5">
-                      <input 
-                        type="number" 
-                        step="0.1"
-                        value={riskValue} 
-                        onChange={(e) => setRiskValue(Number(e.target.value))} 
-                        className="bg-transparent text-white font-black text-xl w-14 outline-none focus:text-red-400 text-center" 
-                      />
-                      <span className="text-zinc-500 font-black text-xl ml-1">R</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <TrendingUp size={18} className="text-blue-500 shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Reward per TP</span>
-                    <div className="flex items-center border-b border-white/10 pb-0.5">
-                      <input 
-                        type="number" 
-                        step="0.1"
-                        value={rewardValue} 
-                        onChange={(e) => setRewardValue(Number(e.target.value))} 
-                        className="bg-transparent text-white font-black text-xl w-14 outline-none focus:text-blue-400 text-center" 
-                      />
-                      <span className="text-zinc-500 font-black text-xl ml-1">R</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <BarChart3 size={18} className="text-blue-400 shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Result Scope</span>
-                    <div className="flex items-center border-b border-white/10 pb-0.5">
-                      <select 
-                        value={timeframe} 
-                        onChange={(e) => setTimeframe(e.target.value)}
-                        className="bg-transparent text-white font-black text-xl outline-none cursor-pointer hover:text-blue-400 appearance-none pr-4"
-                      >
-                        <option value="all" className="bg-[#05070a]">All Time</option>
-                        <option value="daily" className="bg-[#05070a]">Daily</option>
-                        <option value="weekly" className="bg-[#05070a]">Weekly</option>
-                        <option value="monthly" className="bg-[#05070a]">Monthly</option>
-                        <option value="yearly" className="bg-[#05070a]">Yearly</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-end pb-1">
-                  <button
-                    onClick={handleSaveSettings}
-                    disabled={isSaving}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${
-                      isSaving 
-                        ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
-                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
-                    }`}
-                  >
-                    <Save size={14} className={isSaving ? 'animate-spin' : ''} />
-                    {isSaving ? 'Saving...' : 'Save Settings'}
-                  </button>
                 </div>
               </div>
+
+              <div className="flex items-center gap-3">
+                <TrendingUp size={18} className="text-blue-400 shrink-0" />
+                <div className="flex flex-col w-full">
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5">Reward per TP</span>
+                  <div className="flex items-center bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 focus-within:border-blue-500/50 focus-within:bg-white/[0.05] transition-all hover:border-white/20">
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      value={rewardValue} 
+                      onChange={(e) => setRewardValue(Number(e.target.value))} 
+                      className="bg-transparent text-white font-black text-lg w-full outline-none text-center" 
+                    />
+                    <span className="text-blue-500/70 font-black text-sm ml-2">R</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <BarChart3 size={18} className="text-indigo-400 shrink-0" />
+                <div className="flex flex-col w-full">
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5">Result Scope</span>
+                  <div className="flex items-center bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 hover:border-white/20 transition-all">
+                    <select 
+                      value={timeframe} 
+                      onChange={(e) => setTimeframe(e.target.value)}
+                      className="bg-transparent text-white font-black text-lg outline-none cursor-pointer hover:text-indigo-400 appearance-none w-full"
+                    >
+                      <option value="all" className="bg-[#05070a]">All Time</option>
+                      <option value="daily" className="bg-[#05070a]">Daily</option>
+                      <option value="weekly" className="bg-[#05070a]">Weekly</option>
+                      <option value="monthly" className="bg-[#05070a]">Monthly</option>
+                      <option value="yearly" className="bg-[#05070a]">Yearly</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-end h-full">
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
+                  className={`flex w-full items-center justify-center gap-2 px-6 py-4 md:py-0 md:h-[50px] rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-95 ${
+                    isSaving 
+                      ? 'bg-white/[0.05] text-zinc-500 cursor-not-allowed border border-white/5' 
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)]'
+                  }`}
+                >
+                  <Save size={16} className={isSaving ? 'animate-spin' : ''} />
+                  {isSaving ? 'Saving...' : 'Save Config'}
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
 
+        {/* Modern Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-12">
           <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
           <StatCard label="Total Wins" value={realStats.totalWins} icon={<CheckCircle2 size={18}/>} color="text-emerald-400" />
@@ -404,7 +377,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
           <StatCard label="Max Drawdown" value={realStats.maxDrawdown} icon={<TrendingDown size={18}/>} color="text-red-500" />
         </div>
 
-        <div className="w-full border-t border-white/5 pt-16 mb-20">
+        <div className="w-full border-t border-white/[0.05] pt-16 mb-20 relative z-10">
           <h2 className="text-2xl md:text-6xl font-black text-white mb-8 md:mb-12 tracking-tighter italic uppercase leading-tight">
             Institutional <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">CRT Intelligence.</span>
@@ -423,24 +396,29 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
 
 function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
   return (
-    <div className="bg-white/[0.02] border border-white/5 p-4 md:p-8 rounded-3xl md:rounded-[2rem] shadow-xl hover:bg-white/[0.04] transition-all">
-      <div className="flex justify-between items-center mb-4">
-        <p className="text-[9px] md:text-[10px] font-black text-zinc-600 uppercase tracking-widest italic">{label}</p>
-        <div className="text-zinc-700">{icon}</div>
+    <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-5 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl">
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="relative z-10 flex justify-between items-start mb-6">
+        <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
+        <div className={`p-2 rounded-xl bg-white/[0.03] border border-white/[0.05] ${color} group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+          {icon}
+        </div>
       </div>
-      <p className={`text-xl md:text-3xl font-black italic tracking-tighter ${color}`}>{value}</p>
-      {sub && <p className="text-[8px] font-bold text-zinc-800 mt-2 uppercase tracking-widest">{sub}</p>}
+      <p className={`relative z-10 text-2xl md:text-3xl font-black tracking-tight drop-shadow-md ${color}`}>{value}</p>
+      {sub && <p className="relative z-10 text-[8px] font-bold text-zinc-600 mt-2 uppercase tracking-widest">{sub}</p>}
     </div>
   );
 }
 
 function FeatureItem({ icon, title, desc }: any) {
   return (
-    <div className="flex gap-4 p-6 rounded-3xl bg-white/[0.01] border border-white/5 hover:border-blue-500/20 transition-all group">
-      <div className="text-blue-500 shrink-0 group-hover:scale-110 transition-transform">{icon}</div>
+    <div className="flex gap-5 p-8 rounded-[2.5rem] bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.05] hover:border-blue-500/30 hover:bg-white/[0.05] transition-all duration-500 group shadow-2xl">
+      <div className="text-blue-500 shrink-0 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 group-hover:scale-110 group-hover:bg-blue-500/20 transition-all duration-300 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+        {icon}
+      </div>
       <div>
-        <h4 className="text-white font-black uppercase italic text-lg tracking-tighter">{title}</h4>
-        <p className="text-zinc-500 text-xs md:text-sm leading-relaxed">{desc}</p>
+        <h4 className="text-white font-black uppercase text-xl tracking-tight mb-2 drop-shadow-sm">{title}</h4>
+        <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">{desc}</p>
       </div>
     </div>
   );
