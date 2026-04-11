@@ -67,12 +67,6 @@ export default function BinanceDashboard() {
 
     const channel = supabase
       .channel('guardian-sync')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'signals' }, 
-        (payload) => {
-          addLog(`🚀 NEW SIGNAL: ${payload.new.symbol} ${payload.new.side} @ ${payload.new.entry_price}`);
-        }
-      )
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'binance_auth' },
         (payload) => {
@@ -83,6 +77,23 @@ export default function BinanceDashboard() {
 
     return () => { supabase.removeChannel(channel); }
   }, [addLog]);
+
+  // NEW: Dedicated listener for User's Private Bot Logs
+  useEffect(() => {
+    if (!userId) return;
+
+    const logChannel = supabase
+      .channel(`private-logs-${userId}`)
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'binance_bot_logs', filter: `user_id=eq.${userId}` }, 
+        (payload) => {
+          addLog(payload.new.message);
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(logChannel); }
+  }, [userId, addLog, supabase]);
 
   const saveAllSettings = async () => {
     if (!botConfig) return;
