@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import CryptoJS from 'crypto-js';
-import { ShieldAlert, Terminal, Settings2, ShieldCheck, Activity, Wallet, Percent, Target, Lock, Save } from 'lucide-react';
+import { ShieldAlert, Terminal, Settings2, ShieldCheck, Activity, Wallet, Percent, Target, Lock, Save, ChevronDown } from 'lucide-react';
 
 // Internal Components
 import BotStatus from '@/components/BotStatus';
@@ -40,6 +40,16 @@ export default function BinanceDashboard() {
   const [allowGood, setAllowGood] = useState(true);
   const [allowNormal, setAllowNormal] = useState(false);
 
+  // NEW: Symbol Filter
+  const POPULAR_SYMBOLS = [
+    'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 
+    'TAOUSDT', 'ADAUSDT', 'DOGEUSDT','AVAXUSDT', 'DOTUSDT',
+    'NEARUSDT','LTCUSDT', 'TRXUSDT', 'LINKUSDT', 'BCHUSDT',
+    'ATOMUSDT', 'UNIUSDT','APTUSDT', 'INJUSDT', 'OPUSDT'
+  ];
+  const [allowedSymbols, setAllowedSymbols] = useState<string[]>(POPULAR_SYMBOLS);
+  const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
+
   // NEW: Environment State (Testnet vs Live)
   const [environment, setEnvironment] = useState<'testnet' | 'live'>('testnet');
 
@@ -64,6 +74,7 @@ export default function BinanceDashboard() {
           setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
           setApiKey(parsed.data.api_key || '');
           setEnvironment(parsed.data.environment || 'testnet');
+          setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
           setAllowAPlusPlus(parsed.data.allow_aplusplus ?? true);
           setAllowAPlus(parsed.data.allow_aplus ?? true);
           setAllowGood(parsed.data.allow_good ?? true);
@@ -102,6 +113,7 @@ export default function BinanceDashboard() {
       setIsBotEnabled(data.is_bot_enabled ?? true);
       setApiKey(data.api_key || '');
       setEnvironment(data.environment || 'testnet');
+      setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
       setAllowAPlusPlus(data.allow_aplusplus ?? true);
       setAllowAPlus(data.allow_aplus ?? true);
       setAllowGood(data.allow_good ?? true);
@@ -204,6 +216,7 @@ export default function BinanceDashboard() {
         api_secret: encryptedSecret,
         // NEW: Sync environment to DB
         environment: environment,
+        allowed_symbols: allowedSymbols,
         allow_aplusplus: allowAPlusPlus,
         allow_aplus: allowAPlus,
         allow_good: allowGood,
@@ -394,6 +407,44 @@ export default function BinanceDashboard() {
                     <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-yellow-400">Normal Setup</span>
                   </label>
                 </div>
+              </div>
+
+              {/* ALLOWED SYMBOLS */}
+              <div className="relative">
+                <h3 className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-3">
+                  <Activity size={10} /> Allowed Symbols Filter
+                </h3>
+                <div 
+                  className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white flex justify-between items-center cursor-pointer hover:border-white/20 transition-all"
+                  onClick={() => setIsSymbolDropdownOpen(!isSymbolDropdownOpen)}
+                >
+                  <span className="font-black tracking-widest uppercase text-[10px]">
+                    {allowedSymbols.length === POPULAR_SYMBOLS.length ? 'ALL SYMBOLS SELECTED' : `${allowedSymbols.length} SYMBOLS SELECTED`}
+                  </span>
+                  <ChevronDown size={14} className={`transition-transform ${isSymbolDropdownOpen ? 'rotate-180' : ''}`} />
+                </div>
+                
+                {isSymbolDropdownOpen && (
+                  <div className="absolute z-50 top-[100%] left-0 w-full mt-2 bg-[#0a0a0a] border border-white/[0.08] rounded-xl shadow-2xl p-3 max-h-[250px] overflow-y-auto flex flex-col gap-1">
+                    <div className="flex gap-2 mb-2 pb-2 border-b border-white/[0.05]">
+                      <button onClick={() => setAllowedSymbols(POPULAR_SYMBOLS)} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-white font-bold tracking-widest transition-all">ALL</button>
+                      <button onClick={() => setAllowedSymbols([])} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-white font-bold tracking-widest transition-all">NONE</button>
+                    </div>
+                    {POPULAR_SYMBOLS.map(sym => (
+                      <label key={sym} className="flex items-center gap-3 cursor-pointer group hover:bg-white/[0.02] p-2 rounded-lg transition-all border border-transparent hover:border-white/[0.05]">
+                        <input 
+                          type="checkbox" 
+                          checked={allowedSymbols.includes(sym)}
+                          onChange={() => {
+                            setAllowedSymbols(prev => prev.includes(sym) ? prev.filter(s => s !== sym) : [...prev, sym]);
+                          }}
+                          className="accent-yellow-500 w-4 h-4 cursor-pointer"
+                        />
+                        <span className="text-[10px] uppercase font-black tracking-widest text-zinc-300 group-hover:text-yellow-400">{sym}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <button 
