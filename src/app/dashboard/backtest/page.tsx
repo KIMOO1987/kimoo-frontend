@@ -191,6 +191,13 @@ export default function BacktestPage() {
                   <option value="NEARUSDT">NEARUSDT</option>
                   <option value="LTCUSDT">LTCUSDT</option>
                   <option value="TRXUSDT">TRXUSDT</option>
+                  <option value="LINKUSDT">LINKUSDT</option>
+                  <option value="BCHUSDT">BCHUSDT</option>
+                  <option value="ATOMUSDT">ATOMUSDT</option>
+                  <option value="UNIUSDT">UNIUSDT</option>
+                  <option value="APTUSDT">APTUSDT</option>
+                  <option value="INJUSDT">INJUSDT</option>
+                  <option value="OPUSDT">OPUSDT</option>
                 </select>
               </div>
 
