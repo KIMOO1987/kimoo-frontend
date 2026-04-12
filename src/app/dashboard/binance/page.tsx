@@ -24,7 +24,7 @@ export default function BinanceDashboard() {
   const [userTier, setUserTier] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
-  const endOfLogsRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<HTMLDivElement>(null);
   
   // Settings & Credentials State
   const [dailyRisk, setDailyRisk] = useState(1000);
@@ -168,7 +168,12 @@ export default function BinanceDashboard() {
   }, [userId, addLog, supabase]);
 
   useEffect(() => {
-    endOfLogsRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (terminalRef.current) {
+      terminalRef.current.scrollTo({
+        top: terminalRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [logs]);
 
   const saveAllSettings = async () => {
@@ -420,7 +425,7 @@ export default function BinanceDashboard() {
                 </span>
               </div>
               
-              <div className="p-6 md:p-8 overflow-y-auto flex-1 font-mono text-[11px] md:text-[13px] leading-relaxed space-y-3 relative z-10 scroll-smooth">
+              <div ref={terminalRef} className="p-6 md:p-8 overflow-y-auto flex-1 font-mono text-[11px] md:text-[13px] leading-relaxed space-y-3 relative z-10 scroll-smooth">
                 {logs.length === 0 && (
                   <div className="flex items-center justify-center h-full flex-col text-zinc-600 gap-4 opacity-50">
                     <Activity size={32} className="animate-pulse" />
@@ -446,7 +451,6 @@ export default function BinanceDashboard() {
                     </div>
                   );
                 })}
-                <div ref={endOfLogsRef} />
               </div>
             </div>
 
