@@ -427,20 +427,25 @@ export default function BinanceDashboard() {
                     <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Data Stream...</span>
                   </div>
                 )}
-                {logs.map((log, i) => (
-                  <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-yellow-500/5 border-l-2 border-yellow-500 pl-3 py-1' : ''}`}>
-                    <span className="text-zinc-600 shrink-0 select-none">{log.split('] ')[0]}]</span>
-                    <span className={`shrink-0 font-bold select-none ${environment === 'live' ? 'text-red-400' : 'text-yellow-500'}`}>ENGINE:</span>
-                    <span className={`break-words ${
-                      log.includes('❌') ? 'text-red-400' : 
-                      log.includes('🚀') ? 'text-yellow-300 font-bold' : 
-                      log.includes('✅') ? 'text-emerald-400' : 
-                      'text-zinc-300'
-                    }`}>
-                      {log.split('] ')[1]}
-                    </span>
-                  </div>
-                ))}
+                {logs.map((log, i) => {
+                  const firstBracket = log.indexOf(']');
+                  const timeStr = log.substring(0, firstBracket + 1);
+                  const msgStr = log.substring(firstBracket + 2);
+                  return (
+                    <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-yellow-500/5 border-l-2 border-yellow-500 pl-3 py-1' : ''}`}>
+                      <span className="text-zinc-600 shrink-0 select-none">{timeStr}</span>
+                      <span className={`shrink-0 font-bold select-none ${environment === 'live' ? 'text-red-400' : 'text-yellow-500'}`}>ENGINE:</span>
+                      <span className={`break-words ${
+                        log.includes('❌') ? 'text-red-400' : 
+                        log.includes('🚀') ? 'text-yellow-300 font-bold' : 
+                        log.includes('✅') ? 'text-emerald-400' : 
+                        'text-zinc-300'
+                      }`}>
+                        {msgStr}
+                      </span>
+                    </div>
+                  );
+                })}
                 <div ref={endOfLogsRef} />
               </div>
             </div>
