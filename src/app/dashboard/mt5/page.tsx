@@ -7,7 +7,7 @@ import { Terminal, Power, Settings2, Server, Activity, ShieldCheck } from 'lucid
 export default function MT5Dashboard() {
   const [status, setStatus] = useState('stopped');
   const [logs, setLogs] = useState<{time: string, msg: string}[]>([]);
-  const endOfLogsRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<HTMLDivElement>(null);
 
   const addLog = (msg: string) => {
     setLogs((prev) => [...prev, { time: new Date().toLocaleTimeString(), msg }].slice(-100));
@@ -29,7 +29,12 @@ export default function MT5Dashboard() {
 
   // Auto-scroll terminal to bottom when new logs arrive
   useEffect(() => {
-    endOfLogsRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (terminalRef.current) {
+      terminalRef.current.scrollTo({
+        top: terminalRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [logs]);
 
   return (
@@ -135,7 +140,7 @@ export default function MT5Dashboard() {
                   </div>
                 </div>
 
-                <div className="p-6 md:p-8 overflow-y-auto flex-1 font-mono text-[11px] md:text-[13px] leading-relaxed space-y-3 relative z-10 scroll-smooth">
+                <div ref={terminalRef} className="p-6 md:p-8 overflow-y-auto flex-1 font-mono text-[11px] md:text-[13px] leading-relaxed space-y-3 relative z-10 scroll-smooth">
                   {logs.length === 0 ? (
                     <div className="flex items-center justify-center h-full flex-col text-zinc-600 gap-4 opacity-50">
                       <Activity size={32} className="animate-pulse" />
@@ -150,7 +155,6 @@ export default function MT5Dashboard() {
                       </div>
                     ))
                   )}
-                  <div ref={endOfLogsRef} />
                 </div>
               </div>
             </div>
