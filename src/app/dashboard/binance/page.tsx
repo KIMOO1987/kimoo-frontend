@@ -34,11 +34,10 @@ export default function BinanceDashboard() {
   const [apiSecret, setApiSecret] = useState('');
   const [isBotEnabled, setIsBotEnabled] = useState(true);
   
-    // NEW: Grade Filters
-  const [allowAPlusPlus, setAllowAPlusPlus] = useState(true);
-  const [allowAPlus, setAllowAPlus] = useState(true);
-  const [allowGood, setAllowGood] = useState(true);
-  const [allowNormal, setAllowNormal] = useState(false);
+  // NEW: Grade Filters (Dropdown style)
+  const AVAILABLE_GRADES = ['A++', 'A+', 'GOOD', 'NORMAL'];
+  const [allowedGrades, setAllowedGrades] = useState<string[]>(['A++', 'A+', 'GOOD']);
+  const [isGradeDropdownOpen, setIsGradeDropdownOpen] = useState(false);
 
   // NEW: Symbol Filter
   const POPULAR_SYMBOLS = [
@@ -75,10 +74,12 @@ export default function BinanceDashboard() {
           setApiKey(parsed.data.api_key || '');
           setEnvironment(parsed.data.environment || 'testnet');
           setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
-          setAllowAPlusPlus(parsed.data.allow_aplusplus ?? true);
-          setAllowAPlus(parsed.data.allow_aplus ?? true);
-          setAllowGood(parsed.data.allow_good ?? true);
-          setAllowNormal(parsed.data.allow_normal ?? false);
+          const parsedGrades = [];
+          if (parsed.data.allow_aplusplus ?? true) parsedGrades.push('A++');
+          if (parsed.data.allow_aplus ?? true) parsedGrades.push('A+');
+          if (parsed.data.allow_good ?? true) parsedGrades.push('GOOD');
+          if (parsed.data.allow_normal ?? false) parsedGrades.push('NORMAL');
+          setAllowedGrades(parsedGrades);
         }
         setLoading(false); // Instantly hide initialization screen
       } catch (e) {}
@@ -114,10 +115,12 @@ export default function BinanceDashboard() {
       setApiKey(data.api_key || '');
       setEnvironment(data.environment || 'testnet');
       setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
-      setAllowAPlusPlus(data.allow_aplusplus ?? true);
-      setAllowAPlus(data.allow_aplus ?? true);
-      setAllowGood(data.allow_good ?? true);
-      setAllowNormal(data.allow_normal ?? false);
+      const dbGrades = [];
+      if (data.allow_aplusplus ?? true) dbGrades.push('A++');
+      if (data.allow_aplus ?? true) dbGrades.push('A+');
+      if (data.allow_good ?? true) dbGrades.push('GOOD');
+      if (data.allow_normal ?? false) dbGrades.push('NORMAL');
+      setAllowedGrades(dbGrades);
       
       sessionStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data }));
     } else {
@@ -217,10 +220,10 @@ export default function BinanceDashboard() {
         // NEW: Sync environment to DB
         environment: environment,
         allowed_symbols: allowedSymbols,
-        allow_aplusplus: allowAPlusPlus,
-        allow_aplus: allowAPlus,
-        allow_good: allowGood,
-        allow_normal: allowNormal,
+        allow_aplusplus: allowedGrades.includes('A++'),
+        allow_aplus: allowedGrades.includes('A+'),
+        allow_good: allowedGrades.includes('GOOD'),
+        allow_normal: allowedGrades.includes('NORMAL'),
         updated_at: new Date().toISOString()
     };
 
@@ -385,28 +388,41 @@ export default function BinanceDashboard() {
               </div>
 
               {/* SETUP FILTERS */}
-              <div>
+              <div className="relative">
                 <h3 className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-3">
                   <ShieldCheck size={10} /> Setup Filters
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer group bg-white/[0.02] p-3 rounded-lg border border-white/[0.05] hover:border-yellow-500/30 transition-all">
-                    <input type="checkbox" checked={allowAPlusPlus} onChange={() => setAllowAPlusPlus(!allowAPlusPlus)} className="accent-yellow-500 w-4 h-4" />
-                    <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-yellow-400">A++ Setup</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer group bg-white/[0.02] p-3 rounded-lg border border-white/[0.05] hover:border-yellow-500/30 transition-all">
-                    <input type="checkbox" checked={allowAPlus} onChange={() => setAllowAPlus(!allowAPlus)} className="accent-yellow-500 w-4 h-4" />
-                    <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-yellow-400">A+ Setup</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer group bg-white/[0.02] p-3 rounded-lg border border-white/[0.05] hover:border-yellow-500/30 transition-all">
-                    <input type="checkbox" checked={allowGood} onChange={() => setAllowGood(!allowGood)} className="accent-yellow-500 w-4 h-4" />
-                    <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-yellow-400">Good Setup</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer group bg-white/[0.02] p-3 rounded-lg border border-white/[0.05] hover:border-yellow-500/30 transition-all">
-                    <input type="checkbox" checked={allowNormal} onChange={() => setAllowNormal(!allowNormal)} className="accent-yellow-500 w-4 h-4" />
-                    <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-yellow-400">Normal Setup</span>
-                  </label>
+                <div 
+                  className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white flex justify-between items-center cursor-pointer hover:border-white/20 transition-all"
+                  onClick={() => setIsGradeDropdownOpen(!isGradeDropdownOpen)}
+                >
+                  <span className="font-black tracking-widest uppercase text-[10px]">
+                    {allowedGrades.length === AVAILABLE_GRADES.length ? 'ALL GRADES SELECTED' : `${allowedGrades.length} GRADES SELECTED`}
+                  </span>
+                  <ChevronDown size={14} className={`transition-transform ${isGradeDropdownOpen ? 'rotate-180' : ''}`} />
                 </div>
+                
+                {isGradeDropdownOpen && (
+                  <div className="absolute z-50 top-[100%] left-0 w-full mt-2 bg-[#0a0a0a] border border-white/[0.08] rounded-xl shadow-2xl p-3 max-h-[250px] overflow-y-auto flex flex-col gap-1">
+                    <div className="flex gap-2 mb-2 pb-2 border-b border-white/[0.05]">
+                      <button onClick={() => setAllowedGrades(AVAILABLE_GRADES)} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-white font-bold tracking-widest transition-all">ALL</button>
+                      <button onClick={() => setAllowedGrades([])} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-white font-bold tracking-widest transition-all">NONE</button>
+                    </div>
+                    {AVAILABLE_GRADES.map(grade => (
+                      <label key={grade} className="flex items-center gap-3 cursor-pointer group hover:bg-white/[0.02] p-2 rounded-lg transition-all border border-transparent hover:border-white/[0.05]">
+                        <input 
+                          type="checkbox" 
+                          checked={allowedGrades.includes(grade)}
+                          onChange={() => {
+                            setAllowedGrades(prev => prev.includes(grade) ? prev.filter(g => g !== grade) : [...prev, grade]);
+                          }}
+                          className="accent-yellow-500 w-4 h-4 cursor-pointer"
+                        />
+                        <span className="text-[10px] uppercase font-black tracking-widest text-zinc-300 group-hover:text-yellow-400">{grade} Setup</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* ALLOWED SYMBOLS */}
