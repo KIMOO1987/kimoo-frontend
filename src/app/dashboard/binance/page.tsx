@@ -34,6 +34,12 @@ export default function BinanceDashboard() {
   const [apiSecret, setApiSecret] = useState('');
   const [isBotEnabled, setIsBotEnabled] = useState(true);
   
+    // NEW: Grade Filters
+  const [allowAPlusPlus, setAllowAPlusPlus] = useState(true);
+  const [allowAPlus, setAllowAPlus] = useState(true);
+  const [allowGood, setAllowGood] = useState(true);
+  const [allowNormal, setAllowNormal] = useState(false);
+
   // NEW: Environment State (Testnet vs Live)
   const [environment, setEnvironment] = useState<'testnet' | 'live'>('testnet');
 
@@ -58,6 +64,10 @@ export default function BinanceDashboard() {
           setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
           setApiKey(parsed.data.api_key || '');
           setEnvironment(parsed.data.environment || 'testnet');
+          setAllowAPlusPlus(parsed.data.allow_aplusplus ?? true);
+          setAllowAPlus(parsed.data.allow_aplus ?? true);
+          setAllowGood(parsed.data.allow_good ?? true);
+          setAllowNormal(parsed.data.allow_normal ?? false);
         }
         setLoading(false); // Instantly hide initialization screen
       } catch (e) {}
@@ -92,6 +102,10 @@ export default function BinanceDashboard() {
       setIsBotEnabled(data.is_bot_enabled ?? true);
       setApiKey(data.api_key || '');
       setEnvironment(data.environment || 'testnet');
+      setAllowAPlusPlus(data.allow_aplusplus ?? true);
+      setAllowAPlus(data.allow_aplus ?? true);
+      setAllowGood(data.allow_good ?? true);
+      setAllowNormal(data.allow_normal ?? false);
       
       sessionStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data }));
     } else {
@@ -185,6 +199,10 @@ export default function BinanceDashboard() {
         api_secret: encryptedSecret,
         // NEW: Sync environment to DB
         environment: environment,
+        allow_aplusplus: allowAPlusPlus,
+        allow_aplus: allowAPlus,
+        allow_good: allowGood,
+        allow_normal: allowNormal,
         updated_at: new Date().toISOString()
     };
 
@@ -346,6 +364,31 @@ export default function BinanceDashboard() {
                         Engine Execution Armed
                       </span>
                   </label>
+              </div>
+
+              {/* SETUP FILTERS */}
+              <div>
+                <h3 className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-3">
+                  <ShieldCheck size={10} /> Setup Filters
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer group bg-white/[0.02] p-3 rounded-lg border border-white/[0.05] hover:border-yellow-500/30 transition-all">
+                    <input type="checkbox" checked={allowAPlusPlus} onChange={() => setAllowAPlusPlus(!allowAPlusPlus)} className="accent-yellow-500 w-4 h-4" />
+                    <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-yellow-400">A++ Setup</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group bg-white/[0.02] p-3 rounded-lg border border-white/[0.05] hover:border-yellow-500/30 transition-all">
+                    <input type="checkbox" checked={allowAPlus} onChange={() => setAllowAPlus(!allowAPlus)} className="accent-yellow-500 w-4 h-4" />
+                    <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-yellow-400">A+ Setup</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group bg-white/[0.02] p-3 rounded-lg border border-white/[0.05] hover:border-yellow-500/30 transition-all">
+                    <input type="checkbox" checked={allowGood} onChange={() => setAllowGood(!allowGood)} className="accent-yellow-500 w-4 h-4" />
+                    <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-yellow-400">Good Setup</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group bg-white/[0.02] p-3 rounded-lg border border-white/[0.05] hover:border-yellow-500/30 transition-all">
+                    <input type="checkbox" checked={allowNormal} onChange={() => setAllowNormal(!allowNormal)} className="accent-yellow-500 w-4 h-4" />
+                    <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-yellow-400">Normal Setup</span>
+                  </label>
+                </div>
               </div>
 
               <button 
