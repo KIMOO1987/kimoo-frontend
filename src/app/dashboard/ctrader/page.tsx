@@ -12,7 +12,7 @@ export default function CTraderDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const endOfLogsRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<HTMLDivElement>(null);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -106,7 +106,12 @@ export default function CTraderDashboard() {
   };
 
   useEffect(() => {
-    endOfLogsRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (terminalRef.current) {
+      terminalRef.current.scrollTo({
+        top: terminalRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [logs]);
 
   const handleControl = async (action: 'start' | 'stop') => {
@@ -273,7 +278,7 @@ export default function CTraderDashboard() {
                 </div>
               </div>
               
-              <div className="p-6 md:p-8 overflow-y-auto flex-1 font-mono text-[11px] md:text-[13px] leading-relaxed space-y-3 relative z-10 scroll-smooth">
+              <div ref={terminalRef} className="p-6 md:p-8 overflow-y-auto flex-1 font-mono text-[11px] md:text-[13px] leading-relaxed space-y-3 relative z-10 scroll-smooth">
                 {logs.length === 0 ? (
                   <div className="flex items-center justify-center h-full flex-col text-zinc-600 gap-4 opacity-50">
                     <Activity size={32} className="animate-pulse" />
@@ -288,7 +293,6 @@ export default function CTraderDashboard() {
                     </div>
                   ))
                 )}
-                <div ref={endOfLogsRef} />
               </div>
             </div>
           </div>
