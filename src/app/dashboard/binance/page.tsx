@@ -175,6 +175,7 @@ export default function BinanceDashboard() {
         .from('binance_bot_logs')
         .select('message, created_at')
         .eq('user_id', userId)
+        .ilike('message', '%CRYPTO%')
         .order('created_at', { ascending: false })
         .limit(30);
         
@@ -190,7 +191,9 @@ export default function BinanceDashboard() {
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'binance_bot_logs', filter: `user_id=eq.${userId}` }, 
         (payload) => {
-          addLog(payload.new.message);
+          if (payload.new.message && payload.new.message.toUpperCase().includes('CRYPTO')) {
+            addLog(payload.new.message);
+          }
         }
       )
       .subscribe();
