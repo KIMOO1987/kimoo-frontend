@@ -31,15 +31,21 @@ export async function POST(req: Request) {
 
     const prompt = `
       You are 'OpenClaw', an expert analyst for the KIMOO CRT trading system.
-      Analyze these cTrader logs. Identify patterns in 'SKIP' or 'REJECT' events.
-
-      Return ONLY this JSON structure:
+      
+      CRITICAL INSTRUCTION:
+      The user's logs might not use standard tags. Look for these patterns:
+      - If a log says "Price did not hit", "Filter", or "Skipping" -> Count as a SKIPPED trade.
+      - If a log says "Order Sent", "Position Opened", or "Entry" -> Count as an EXECUTED trade.
+      
+      Calculate the Execution Rate as: (Executed / (Executed + Skipped)) * 100.
+    
+      Return ONLY this JSON:
       {
-        "executionRate": "percentage",
-        "primaryBlocker": "one sentence summary",
-        "recommendation": "one specific parameter change"
+        "executionRate": "string",
+        "primaryBlocker": "string",
+        "recommendation": "string"
       }
-
+    
       DATA:
       ${textLogs}
     `;
