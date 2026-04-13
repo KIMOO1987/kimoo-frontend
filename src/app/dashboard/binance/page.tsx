@@ -12,10 +12,11 @@ import BotStatus from '@/components/BotStatus';
 const MASTER_ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY;
 
 export default function BinanceDashboard() {
-  const supabase = createBrowserClient(
+  // Wrap in useState to ensure the WebSocket instance survives React re-renders
+  const [supabase] = useState(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  ));
 
   const [loading, setLoading] = useState(true);
   const [botConfig, setBotConfig] = useState<any>(null);
@@ -163,7 +164,7 @@ export default function BinanceDashboard() {
       clearInterval(refreshInterval);
       supabase.removeChannel(channel); 
     }
-  }, [addLog]);
+  }, [addLog, supabase]);
 
   // NEW: Dedicated listener for User's Private Bot Logs
   useEffect(() => {
@@ -179,9 +180,15 @@ export default function BinanceDashboard() {
         .order('created_at', { ascending: false })
         .limit(30);
         
-      if (data) {
+      if (data && data.length > 0) {
         const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
-        setLogs(history.reverse()); // Reverse to make chronological (oldest to newest)
+        setLogs((prev) => {
+          // Merge history safely without wiping realtime logs that arrived during the fetch
+          const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
+          return [...history.reverse(), ...existingRealtime].slice(-100);
+        });
+      } else {
+        setLogs((prev) => prev.length === 0 ? [`[${new Date().toLocaleTimeString()}] SYSTEM: Secure CRYPTO connection established. Awaiting new signals...`] : prev);
       }
     };
     fetchRecentLogs();
@@ -528,7 +535,7 @@ export default function BinanceDashboard() {
                 {logs.length === 0 && (
                   <div className="flex items-center justify-center h-full flex-col text-zinc-600 gap-4 opacity-50">
                     <Activity size={32} className="animate-pulse" />
-                    <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Data Stream...</span>
+                    <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Crypto Stream...</span>
                   </div>
                 )}
                 {logs.map((log, i) => {
