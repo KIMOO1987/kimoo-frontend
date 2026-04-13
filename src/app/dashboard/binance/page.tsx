@@ -26,10 +26,12 @@ export default function BinanceDashboard() {
   const [logs, setLogs] = useState<string[]>([]);
   const terminalRef = useRef<HTMLDivElement>(null);
   
+  
   // Settings & Credentials State
   const [dailyRisk, setDailyRisk] = useState(1000);
   const [riskPercent, setRiskPercent] = useState(1.0);
-    const [minRR, setMinRR] = useState(1.2);
+  const [minRR, setMinRR] = useState(1.2);
+  const [maxConcurrent, setMaxConcurrent] = useState(3);
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [isBotEnabled, setIsBotEnabled] = useState(true);
@@ -70,6 +72,7 @@ export default function BinanceDashboard() {
           setDailyRisk(parsed.data.daily_risk_wallet || 1000);
           setRiskPercent(parsed.data.risk_percentage || 1.0);
           setMinRR(parsed.data.rr || 1.2);
+          setMaxConcurrent(parsed.data.max_concurrent_setups || 3);
           setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
           setApiKey(parsed.data.api_key || '');
           setEnvironment(parsed.data.environment || 'testnet');
@@ -111,6 +114,7 @@ export default function BinanceDashboard() {
       setDailyRisk(data.daily_risk_wallet || 1000);
       setRiskPercent(data.risk_percentage || 1.0);
       setMinRR(data.rr || 1.2);
+      setMaxConcurrent(data.max_concurrent_setups || 3);
       setIsBotEnabled(data.is_bot_enabled ?? true);
       setApiKey(data.api_key || '');
       setEnvironment(data.environment || 'testnet');
@@ -214,6 +218,7 @@ export default function BinanceDashboard() {
         daily_risk_wallet: dailyRisk, 
         risk_percentage: riskPercent,
         rr: minRR,
+        max_concurrent_setups: maxConcurrent,
         is_bot_enabled: isBotEnabled,
         api_key: apiKey,
         api_secret: encryptedSecret,
@@ -361,13 +366,24 @@ export default function BinanceDashboard() {
                         className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-yellow-500/50 hover:border-white/20 transition-all"
                       />
                   </div>
-                  <div className="col-span-2 space-y-2">
+                  <div className="space-y-2">
                       <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Target size={10}/> Min RR (Risk/Reward)</label>
                       <input 
                         type="number" 
                         step="0.1" 
                         value={minRR} 
                         onChange={(e) => setMinRR(Number(e.target.value))} 
+                        className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-yellow-500/50 hover:border-white/20 transition-all"
+                      />
+                  </div>
+                  <div className="space-y-2">
+                      <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Activity size={10}/> Max Concurrent</label>
+                      <input 
+                        type="number" 
+                        min="1"
+                        max="20"
+                        value={maxConcurrent} 
+                        onChange={(e) => setMaxConcurrent(Number(e.target.value))} 
                         className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-yellow-500/50 hover:border-white/20 transition-all"
                       />
                   </div>
