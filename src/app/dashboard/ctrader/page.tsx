@@ -105,11 +105,11 @@ export default function CTraderDashboard() {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-100));
   }, []);
 
-  // Dedicated listener for User's Private cBot Logs
+  // NEW: Dedicated listener for User's Private cBot Logs
   useEffect(() => {
     if (!userId) return;
 
-    // Fetch historical logs on initial load
+    // Fetch historical logs on initial load so the terminal isn't empty
     const fetchRecentLogs = async () => {
       const { data } = await supabase
         .from('cbot_logs')
@@ -197,7 +197,7 @@ export default function CTraderDashboard() {
     );
   }
 
-  const apiBaseUrl = "https://kimoocrt.supabase.co/functions/v1/get-signal";
+  const apiBaseUrl = "https://kimoocrt.vercel.app/api/signals";
   const fullUrl = botToken ? `${apiBaseUrl}?botId=${botToken}` : "Generating Token...";
 
   return (
@@ -268,26 +268,46 @@ export default function CTraderDashboard() {
 
               <div className="mt-8 pt-8 border-t border-white/5">
                 <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Server size={14} className="text-cyan-400" /> Unique Signal URL
+                <label className="block text-[11px] font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Server size={14} className="text-cyan-400" /> Webhook & Cloud Sync
                 </label>
-                <div className="relative group">
-                  <input 
-                    readOnly 
-                    value={fullUrl} 
-                    className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-4 pr-12 py-4 text-[10px] md:text-xs font-mono text-cyan-400 outline-none hover:border-white/20 transition-all cursor-text overflow-hidden text-ellipsis"
-                  />
-                  <button 
-                    onClick={() => {
-                      navigator.clipboard.writeText(fullUrl);
-                      addLog("URL Copied to clipboard.");
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/[0.05] border border-white/[0.05] hover:bg-white/[0.1] hover:text-white rounded-lg transition-all text-zinc-400"
-                  >
-                    <Copy size={14} />
-                  </button>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">Signal URL</label>
+                    <div className="relative">
+                      <input readOnly value={fullUrl} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-lg pl-3 pr-10 py-2.5 text-[10px] font-mono text-cyan-400 outline-none" />
+                      <button onClick={() => { navigator.clipboard.writeText(fullUrl); addLog("URL Copied!"); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/[0.1] rounded text-zinc-400"><Copy size={12} /></button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">User ID</label>
+                    <div className="relative">
+                      <input readOnly value={userId || "Loading..."} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-lg pl-3 pr-10 py-2.5 text-[10px] font-mono text-white outline-none" />
+                      <button onClick={() => { if(userId){ navigator.clipboard.writeText(userId); addLog("User ID Copied!"); } }} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/[0.1] rounded text-zinc-400"><Copy size={12} /></button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">Supabase URL</label>
+                    <div className="relative">
+                      <input readOnly value={process.env.NEXT_PUBLIC_SUPABASE_URL || ""} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-lg pl-3 pr-10 py-2.5 text-[10px] font-mono text-white outline-none" />
+                      <button onClick={() => { navigator.clipboard.writeText(process.env.NEXT_PUBLIC_SUPABASE_URL || ""); addLog("Supabase URL Copied!"); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/[0.1] rounded text-zinc-400"><Copy size={12} /></button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">Supabase Key (Anon)</label>
+                    <div className="relative">
+                      <input readOnly value={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""} type="password" className="w-full bg-white/[0.02] border border-white/[0.08] rounded-lg pl-3 pr-10 py-2.5 text-[10px] font-mono text-white outline-none" />
+                      <button onClick={() => { navigator.clipboard.writeText(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""); addLog("Supabase Key Copied!"); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/[0.1] rounded text-zinc-400"><Copy size={12} /></button>
+                    </div>
+                  </div>
                 </div>
+
                 <p className="mt-5 text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-relaxed">
-                  Paste this endpoint into your <span className="text-white border-b border-white/20 pb-0.5">Kimoo cBot</span> parameters within the cTrader application.
+                  Paste these credentials into your <span className="text-white border-b border-white/20 pb-0.5">Kimoo cBot</span> parameters to enable remote execution and live cloud logging.
                 </p>
               </div>
             </div>
@@ -316,7 +336,7 @@ export default function CTraderDashboard() {
                     <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Core Connection...</span>
                   </div>
                 ) : (
-                {logs.map((log, i) => {
+                  logs.map((log, i) => {
                   const firstBracket = log.indexOf(']');
                   const timeStr = log.substring(0, firstBracket + 1);
                   const msgStr = log.substring(firstBracket + 2);
@@ -334,7 +354,7 @@ export default function CTraderDashboard() {
                       </span>
                     </div>
                   );
-                })}
+                  })
                 )}
               </div>
             </div>
