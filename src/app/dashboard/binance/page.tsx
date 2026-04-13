@@ -56,40 +56,42 @@ export default function BinanceDashboard() {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-100));
   }, []);
 
-  const fetchBotData = async () => {
-    // Optimistic Cache Load (Stale-While-Revalidate) to skip loading screen
-    const cached = localStorage.getItem('binance_data_cache');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        setUserTier(parsed.tier);
-        setUserId(parsed.userId);
-        if (parsed.data) {
-          setBotConfig(parsed.data);
-          setDailyRisk(parsed.data.daily_risk_wallet || 1000);
-          setRiskPercent(parsed.data.risk_percentage || 1.0);
-          setMinRR(parsed.data.rr || 1.2);
-          setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
-          setApiKey(parsed.data.api_key || '');
-          setEnvironment(parsed.data.environment || 'testnet');
-          setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
-          const parsedGrades = [];
-          if (parsed.data.allow_aplusplus ?? true) parsedGrades.push('A++');
-          if (parsed.data.allow_aplus ?? true) parsedGrades.push('A+');
-          if (parsed.data.allow_good ?? true) parsedGrades.push('GOOD');
-          if (parsed.data.allow_normal ?? false) parsedGrades.push('NORMAL');
-          setAllowedGrades(parsedGrades);
-        }
-        setLoading(false); // Instantly hide initialization screen
-      } catch (e) {}
-    } else {
-      setLoading(true);
+  const fetchBotData = async (isSilentRefresh = false) => {
+    if (!isSilentRefresh) {
+      // Optimistic Cache Load (Stale-While-Revalidate) to skip loading screen
+      const cached = sessionStorage.getItem('binance_data_cache');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          setUserTier(parsed.tier);
+          setUserId(parsed.userId);
+          if (parsed.data) {
+            setBotConfig(parsed.data);
+            setDailyRisk(parsed.data.daily_risk_wallet || 1000);
+            setRiskPercent(parsed.data.risk_percentage || 1.0);
+            setMinRR(parsed.data.rr || 1.2);
+            setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
+            setApiKey(parsed.data.api_key || '');
+            setEnvironment(parsed.data.environment || 'testnet');
+            setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
+            const parsedGrades = [];
+            if (parsed.data.allow_aplusplus ?? true) parsedGrades.push('A++');
+            if (parsed.data.allow_aplus ?? true) parsedGrades.push('A+');
+            if (parsed.data.allow_good ?? true) parsedGrades.push('GOOD');
+            if (parsed.data.allow_normal ?? false) parsedGrades.push('NORMAL');
+            setAllowedGrades(parsedGrades);
+          }
+          setLoading(false); // Instantly hide initialization screen
+        } catch (e) {}
+      } else {
+        setLoading(true);
+      }
     }
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      setError("Authentication required. Please log in.");
+      if (!isSilentRefresh) setError("Authentication required. Please log in.");
       setLoading(false);
       return;
     }
@@ -101,25 +103,29 @@ export default function BinanceDashboard() {
       .eq('id', user.id)
       .single();
     
-    setUserTier(profile?.tier || 0);
-    setUserId(user.id);
+    if (!isSilentRefresh) {
+      setUserTier(profile?.tier || 0);
+      setUserId(user.id);
+    }
     
     const { data } = await supabase.from('binance_auth').select('*').eq('user_id', user.id).single();
     if (data) {
       setBotConfig(data);
-      setDailyRisk(data.daily_risk_wallet || 1000);
-      setRiskPercent(data.risk_percentage || 1.0);
-      setMinRR(data.rr || 1.2);
-      setIsBotEnabled(data.is_bot_enabled ?? true);
-      setApiKey(data.api_key || '');
-      setEnvironment(data.environment || 'testnet');
-      setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
-      const dbGrades = [];
-      if (data.allow_aplusplus ?? true) dbGrades.push('A++');
-      if (data.allow_aplus ?? true) dbGrades.push('A+');
-      if (data.allow_good ?? true) dbGrades.push('GOOD');
-      if (data.allow_normal ?? false) dbGrades.push('NORMAL');
-      setAllowedGrades(dbGrades);
+      if (!isSilentRefresh) {
+        setDailyRisk(data.daily_risk_wallet || 1000);
+        setRiskPercent(data.risk_percentage || 1.0);
+        setMinRR(data.rr || 1.2);
+        setIsBotEnabled(data.is_bot_enabled ?? true);
+        setApiKey(data.api_key || '');
+        setEnvironment(data.environment || 'testnet');
+        setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
+        const dbGrades = [];
+        if (data.allow_aplusplus ?? true) dbGrades.push('A++');
+        if (data.allow_aplus ?? true) dbGrades.push('A+');
+        if (data.allow_good ?? true) dbGrades.push('GOOD');
+        if (data.allow_normal ?? false) dbGrades.push('NORMAL');
+        setAllowedGrades(dbGrades);
+      }
       
       sessionStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data }));
     } else {
@@ -135,6 +141,11 @@ export default function BinanceDashboard() {
     }
     fetchBotData();
 
+    // Silent background refresh every 30 seconds
+    const refreshInterval = setInterval(() => {
+      fetchBotData(true);
+    }, 30000);
+
     const channel = supabase
       .channel('guardian-sync')
       .on('postgres_changes',
@@ -145,7 +156,10 @@ export default function BinanceDashboard() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); }
+    return () => { 
+      clearInterval(refreshInterval);
+      supabase.removeChannel(channel); 
+    }
   }, [addLog]);
 
   // NEW: Dedicated listener for User's Private Bot Logs
@@ -180,27 +194,6 @@ export default function BinanceDashboard() {
 
     return () => { supabase.removeChannel(logChannel); }
   }, [userId, addLog, supabase]);
-
-  // Auto-refresh the page and clear caches every 30 seconds
-  useEffect(() => {
-    const refreshInterval = setInterval(async () => {
-      // Clear standard browser caches
-      if ('caches' in window) {
-        try {
-          const cacheKeys = await caches.keys();
-          await Promise.all(cacheKeys.map(key => caches.delete(key)));
-        } catch (e) {
-          console.error("Failed to clear browser caches:", e);
-        }
-      }
-      // Clear optimistic local storage cache
-      localStorage.removeItem('binance_data_cache');
-      sessionStorage.removeItem('binance_data_cache');
-      
-      window.location.reload();
-    }, 30000);
-    return () => clearInterval(refreshInterval);
-  }, []);
 
   useEffect(() => {
     if (terminalRef.current) {
