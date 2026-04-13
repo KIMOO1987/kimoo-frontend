@@ -151,7 +151,7 @@ export default function BinanceDashboard() {
     }, 30000);
 
     const channel = supabase
-      .channel('binance-auth-sync')
+      .channel('guardian-sync')
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'binance_auth' },
         (payload) => {
@@ -176,6 +176,7 @@ export default function BinanceDashboard() {
         .from('binance_bot_logs')
         .select('message, created_at')
         .eq('user_id', userId)
+        .ilike('message', '%CRYPTO%')
         .order('created_at', { ascending: false })
         .limit(30);
         
@@ -187,17 +188,17 @@ export default function BinanceDashboard() {
           return [...history.reverse(), ...existingRealtime].slice(-100);
         });
       } else {
-        setLogs((prev) => prev.length === 0 ? [`[${new Date().toLocaleTimeString()}] SYSTEM: Secure connection established. Awaiting new signals...`] : prev);
+        setLogs((prev) => prev.length === 0 ? [`[${new Date().toLocaleTimeString()}] SYSTEM: Secure CRYPTO connection established. Awaiting new signals...`] : prev);
       }
     };
     fetchRecentLogs();
 
     const logChannel = supabase
-      .channel(`binance-logs-stream-${userId}`)
+      .channel(`private-logs-${userId}`)
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'binance_bot_logs', filter: `user_id=eq.${userId}` }, 
         (payload) => {
-          if (payload.new.message) {
+          if (payload.new.message && payload.new.message.toUpperCase().includes('CRYPTO')) {
             addLog(payload.new.message);
           }
         }
@@ -534,7 +535,7 @@ export default function BinanceDashboard() {
                 {logs.length === 0 && (
                   <div className="flex items-center justify-center h-full flex-col text-zinc-600 gap-4 opacity-50">
                     <Activity size={32} className="animate-pulse" />
-                    <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Data Stream...</span>
+                    <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Crypto Stream...</span>
                   </div>
                 )}
                 {logs.map((log, i) => {
