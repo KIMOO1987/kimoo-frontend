@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Terminal, Copy, Power, Activity, ShieldAlert, Settings2, Server } from 'lucide-react';
+import CBotLogs from '@/components/CBotLogs';
 
 export default function CTraderDashboard() {
   const [status, setStatus] = useState<'stopped' | 'running'>('stopped');
@@ -298,6 +299,12 @@ export default function CTraderDashboard() {
           </div>
 
         </div>
+
+        {userId && (
+          <div className="mt-8">
+             <CBotLogs userId={userId} />
+          </div>
+        )}
       </div>
     </div>
   );
