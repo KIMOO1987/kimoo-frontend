@@ -179,9 +179,11 @@ export default function BinanceDashboard() {
         .order('created_at', { ascending: false })
         .limit(30);
         
-      if (data) {
+      if (data && data.length > 0) {
         const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
         setLogs(history.reverse()); // Reverse to make chronological (oldest to newest)
+      } else {
+        setLogs([`[${new Date().toLocaleTimeString()}] SYSTEM: Secure CRYPTO connection established. Awaiting new signals...`]);
       }
     };
     fetchRecentLogs();
@@ -528,7 +530,7 @@ export default function BinanceDashboard() {
                 {logs.length === 0 && (
                   <div className="flex items-center justify-center h-full flex-col text-zinc-600 gap-4 opacity-50">
                     <Activity size={32} className="animate-pulse" />
-                    <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Data Stream...</span>
+                    <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Crypto Stream...</span>
                   </div>
                 )}
                 {logs.map((log, i) => {
