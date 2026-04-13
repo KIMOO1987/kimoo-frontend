@@ -11,29 +11,30 @@ export default function OpenClawPanel({ logs }: OpenClawPanelProps) {
   const [insights, setInsights] = useState<any>(null);
 
   const runAnalysis = async () => {
-    if (logs.length === 0) return alert("No logs available to analyze.");
-    setLoading(true);
-    
-    try {
-      // Send the last 50 logs to the AI to keep context limits healthy
-      const recentLogs = logs.slice(-50); 
+      // 1. Take a static "Snapshot" of the logs currently in memory
+      const logsSnapshot = [...logs].slice(-50); 
       
-      const res = await fetch('/api/ai/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logs: recentLogs })
-      });
-      
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      
-      setInsights(data);
-    } catch (err: any) {
-      console.error(err);
-      alert("Failed to analyze logs: " + err.message);
-    } finally {
-      setLoading(false);
-    }
+      if (logsSnapshot.length === 0) {
+          alert("Wait for at least one log to appear in the terminal.");
+          return;
+      }
+  
+      setLoading(true);
+      try {
+        const res = await fetch('/api/ai/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logs: logsSnapshot }) // Send the snapshot
+        });
+        
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        setInsights(data);
+      } catch (err: any) {
+        alert("Error: " + err.message);
+      } finally {
+        setLoading(false);
+      }
   };
 
   return (
