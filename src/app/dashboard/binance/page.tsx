@@ -7,7 +7,6 @@ import { ShieldAlert, Terminal, Settings2, ShieldCheck, Activity, Wallet, Percen
 
 // Internal Components
 import BotStatus from '@/components/BotStatus';
-import TradeHistory from '@/components/TradeHistory';
 
 // Pulls from your .env.local file
 const MASTER_ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY;
@@ -26,12 +25,10 @@ export default function BinanceDashboard() {
   const [logs, setLogs] = useState<string[]>([]);
   const terminalRef = useRef<HTMLDivElement>(null);
   
-  
   // Settings & Credentials State
   const [dailyRisk, setDailyRisk] = useState(1000);
   const [riskPercent, setRiskPercent] = useState(1.0);
-  const [minRR, setMinRR] = useState(1.2);
-  const [maxConcurrent, setMaxConcurrent] = useState(3);
+    const [minRR, setMinRR] = useState(1.2);
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [isBotEnabled, setIsBotEnabled] = useState(true);
@@ -72,7 +69,6 @@ export default function BinanceDashboard() {
           setDailyRisk(parsed.data.daily_risk_wallet || 1000);
           setRiskPercent(parsed.data.risk_percentage || 1.0);
           setMinRR(parsed.data.rr || 1.2);
-          setMaxConcurrent(parsed.data.max_concurrent_setups || 3);
           setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
           setApiKey(parsed.data.api_key || '');
           setEnvironment(parsed.data.environment || 'testnet');
@@ -114,7 +110,6 @@ export default function BinanceDashboard() {
       setDailyRisk(data.daily_risk_wallet || 1000);
       setRiskPercent(data.risk_percentage || 1.0);
       setMinRR(data.rr || 1.2);
-      setMaxConcurrent(data.max_concurrent_setups || 3);
       setIsBotEnabled(data.is_bot_enabled ?? true);
       setApiKey(data.api_key || '');
       setEnvironment(data.environment || 'testnet');
@@ -218,7 +213,6 @@ export default function BinanceDashboard() {
         daily_risk_wallet: dailyRisk, 
         risk_percentage: riskPercent,
         rr: minRR,
-        max_concurrent_setups: maxConcurrent,
         is_bot_enabled: isBotEnabled,
         api_key: apiKey,
         api_secret: encryptedSecret,
@@ -366,24 +360,13 @@ export default function BinanceDashboard() {
                         className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-yellow-500/50 hover:border-white/20 transition-all"
                       />
                   </div>
-                  <div className="space-y-2">
+                  <div className="col-span-2 space-y-2">
                       <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Target size={10}/> Min RR (Risk/Reward)</label>
                       <input 
                         type="number" 
                         step="0.1" 
                         value={minRR} 
                         onChange={(e) => setMinRR(Number(e.target.value))} 
-                        className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-yellow-500/50 hover:border-white/20 transition-all"
-                      />
-                  </div>
-                  <div className="space-y-2">
-                      <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Activity size={10}/> Max Concurrent</label>
-                      <input 
-                        type="number" 
-                        min="1"
-                        max="20"
-                        value={maxConcurrent} 
-                        onChange={(e) => setMaxConcurrent(Number(e.target.value))} 
                         className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-yellow-500/50 hover:border-white/20 transition-all"
                       />
                   </div>
@@ -496,7 +479,7 @@ export default function BinanceDashboard() {
           <div className="lg:col-span-8 space-y-6 md:space-y-8 order-1 lg:order-2">
             
             {/* LOG TERMINAL */}
-            <div className="bg-[#020305] border border-white/[0.08] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[500px] relative">
+            <div className="bg-[#020305] border border-white/[0.08] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[600px] lg:h-[calc(100vh-220px)] min-h-[500px] relative">
               <div className="absolute top-0 left-0 w-full h-full bg-yellow-500/5 blur-[100px] pointer-events-none" />
               
               <div className="bg-white/[0.02] border-b border-white/[0.05] px-6 py-4 flex justify-between items-center relative z-10 backdrop-blur-md">
@@ -534,19 +517,6 @@ export default function BinanceDashboard() {
                     </div>
                   );
                 })}
-              </div>
-            </div>
-
-            {/* TRADE HISTORY TABLE */}
-            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] rounded-[2.5rem] shadow-2xl backdrop-blur-md overflow-hidden min-h-[300px]">
-              <div className="p-6 border-b border-white/[0.05] bg-white/[0.02] flex justify-between items-center">
-                <span className="text-[10px] font-black tracking-widest text-zinc-400 flex items-center gap-3 uppercase">
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.8)]" />
-                  Global Signal History (Crypto)
-                </span>
-              </div>
-              <div className="p-4 md:p-6 overflow-x-auto">
-                  <TradeHistory category="CRYPTO" />
               </div>
             </div>
 
