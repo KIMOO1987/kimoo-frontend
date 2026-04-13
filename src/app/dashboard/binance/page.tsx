@@ -61,7 +61,7 @@ export default function BinanceDashboard() {
   const fetchBotData = async (isSilentRefresh = false) => {
     if (!isSilentRefresh) {
       // Optimistic Cache Load (Stale-While-Revalidate) to skip loading screen
-      const cached = sessionStorage.getItem('binance_data_cache');
+      const cached = localStorage.getItem('binance_data_cache');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -131,9 +131,9 @@ export default function BinanceDashboard() {
         setAllowedGrades(dbGrades);
       }
       
-      sessionStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data }));
+      localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data }));
     } else {
-      sessionStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data: null }));
+      localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data: null }));
     }
     setLoading(false);
   };
