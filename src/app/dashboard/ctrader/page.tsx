@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Terminal, Copy, Power, Activity, ShieldAlert, Settings2, Server } from 'lucide-react';
 import CBotLogs from '@/components/CBotLogs';
+import OpenClawPanel from '@/components/OpenClawPanel';
 
 export default function CTraderDashboard() {
   const [status, setStatus] = useState<'stopped' | 'running'>('stopped');
@@ -261,6 +262,9 @@ export default function CTraderDashboard() {
                 </p>
               </div>
             </div>
+
+            {/* OPENCLAW AI INSIGHTS */}
+            <OpenClawPanel logs={logs} />
           </div>
 
           {/* Terminal Output Window */}
