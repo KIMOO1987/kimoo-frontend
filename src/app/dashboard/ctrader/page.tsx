@@ -21,34 +21,36 @@ export default function CTraderDashboard() {
 
   useEffect(() => {
     // 1. Restore the bridge running status so it survives page refreshes
-    const savedStatus = localStorage.getItem('ctrader_bridge_status');
+    const savedStatus = sessionStorage.getItem('ctrader_bridge_status');
     if (savedStatus === 'running') {
       setStatus('running');
     }
 
-    async function initializeBridge() {
+    async function initializeBridge(isSilentRefresh = false) {
       try {
-        // 2. Optimistic Cache Load (Stale-While-Revalidate) to skip loading screen
-        const cached = localStorage.getItem('ctrader_data_cache');
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            setUserTier(parsed.tier);
-            setBotToken(parsed.botToken);
-            setLoading(false); // Instantly hide initialization screen
-          } catch (e) {}
-        } else {
-          setLoading(true);
+        if (!isSilentRefresh) {
+          // 2. Optimistic Cache Load (Stale-While-Revalidate) to skip loading screen
+          const cached = sessionStorage.getItem('ctrader_data_cache');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              setUserTier(parsed.tier);
+              setBotToken(parsed.botToken);
+              setLoading(false); // Instantly hide initialization screen
+            } catch (e) {}
+          } else {
+            setLoading(true);
+          }
         }
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError || !user) {
-          setError("Authentication required. Please log in.");
+          if (!isSilentRefresh) setError("Authentication required. Please log in.");
           setLoading(false);
           return;
         }
-        setUserId(user.id);
+        if (!isSilentRefresh) setUserId(user.id);
 
         // 1. Fetch User Tier (Verify they are Lifetime Pro / Tier 3)
         const { data: profile } = await supabase
@@ -57,7 +59,7 @@ export default function CTraderDashboard() {
           .eq('id', user.id)
           .single();
         
-        setUserTier(profile?.tier || 0);
+        if (!isSilentRefresh) setUserTier(profile?.tier || 0);
 
         // 2. Fetch or Create Bot Token
         let { data, error: tokenError } = await supabase
@@ -76,7 +78,7 @@ export default function CTraderDashboard() {
         }
 
         if (data) {
-          setBotToken(data.bot_token);
+          if (!isSilentRefresh) setBotToken(data.bot_token);
           if (data.is_active) {
             setStatus('running');
             sessionStorage.setItem('ctrader_bridge_status', 'running');
@@ -85,20 +87,27 @@ export default function CTraderDashboard() {
             sessionStorage.setItem('ctrader_bridge_status', 'stopped');
           }
           // Update cache silently in the background for the next refresh
-          localStorage.setItem('ctrader_data_cache', JSON.stringify({
+          sessionStorage.setItem('ctrader_data_cache', JSON.stringify({
             tier: profile?.tier || 0,
             botToken: data.bot_token
           }));
         }
       } catch (err) {
         console.error("Bridge Init Error:", err);
-        setError("Failed to initialize secure bridge.");
+        if (!isSilentRefresh) setError("Failed to initialize secure bridge.");
       } finally {
         setLoading(false);
       }
     }
 
     initializeBridge();
+
+    // Silent background refresh every 30 seconds
+    const refreshInterval = setInterval(() => {
+      initializeBridge(true);
+    }, 30000);
+
+    return () => clearInterval(refreshInterval);
   }, [supabase]);
 
   const addLog = useCallback((msg: string) => {
@@ -158,8 +167,8 @@ export default function CTraderDashboard() {
 
       if (res.ok) {
         setStatus(action === 'start' ? 'running' : 'stopped');
-        // Save the status to localStorage so it survives page refreshes
-        localStorage.setItem('ctrader_bridge_status', action === 'start' ? 'running' : 'stopped');
+        // Save the status to sessionStorage so it survives page refreshes
+        sessionStorage.setItem('ctrader_bridge_status', action === 'start' ? 'running' : 'stopped');
         addLog(`cTrader Bridge: ${action === 'start' ? 'ACTIVE & LISTENING' : 'OFFLINE'}.`);
         
         // Sync the new status to the Supabase Database
