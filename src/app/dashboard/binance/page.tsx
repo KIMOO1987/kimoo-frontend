@@ -181,6 +181,27 @@ export default function BinanceDashboard() {
     return () => { supabase.removeChannel(logChannel); }
   }, [userId, addLog, supabase]);
 
+  // Auto-refresh the page and clear caches every 30 seconds
+  useEffect(() => {
+    const refreshInterval = setInterval(async () => {
+      // Clear standard browser caches
+      if ('caches' in window) {
+        try {
+          const cacheKeys = await caches.keys();
+          await Promise.all(cacheKeys.map(key => caches.delete(key)));
+        } catch (e) {
+          console.error("Failed to clear browser caches:", e);
+        }
+      }
+      // Clear optimistic local storage cache
+      localStorage.removeItem('binance_data_cache');
+      sessionStorage.removeItem('binance_data_cache');
+      
+      window.location.reload();
+    }, 30000);
+    return () => clearInterval(refreshInterval);
+  }, []);
+
   useEffect(() => {
     if (terminalRef.current) {
       terminalRef.current.scrollTo({
