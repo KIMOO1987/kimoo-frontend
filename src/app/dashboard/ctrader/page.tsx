@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Terminal, Copy, Power, Activity, ShieldAlert, Settings2, Server } from 'lucide-react';
 
 export default function CTraderDashboard() {
   const [status, setStatus] = useState<'stopped' | 'running'>('stopped');
-  const [logs, setLogs] = useState<{time: string, msg: string}[]>([]);
+  const [logs, setLogs] = useState<string[]>([]);
   const [userTier, setUserTier] = useState<number | null>(null);
   const [botToken, setBotToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -101,9 +101,40 @@ export default function CTraderDashboard() {
     initializeBridge();
   }, [supabase]);
 
-  const addLog = (msg: string) => {
-    setLogs((prev) => [...prev, { time: new Date().toLocaleTimeString(), msg }].slice(-100));
-  };
+  const addLog = useCallback((msg: string) => {
+    setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-100));
+  }, []);
+
+  // Dedicated listener for User's Private cBot Logs
+  useEffect(() => {
+    if (!userId) return;
+
+    // Fetch historical logs on initial load
+    const fetchRecentLogs = async () => {
+      const { data } = await supabase
+        .from('cbot_logs')
+        .select('message, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(30);
+        
+      if (data) {
+        const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
+        setLogs(history.reverse());
+      }
+    };
+    fetchRecentLogs();
+
+    const logChannel = supabase
+      .channel(`private-cbot-logs-${userId}`)
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'cbot_logs', filter: `user_id=eq.${userId}` }, 
+        (payload) => { addLog(payload.new.message); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(logChannel); }
+  }, [userId, addLog, supabase]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -166,7 +197,7 @@ export default function CTraderDashboard() {
     );
   }
 
-  const apiBaseUrl = "https://kimoocrt.vercel.app/api/signals";
+  const apiBaseUrl = "https://kimoocrt.supabase.co/functions/v1/get-signal";
   const fullUrl = botToken ? `${apiBaseUrl}?botId=${botToken}` : "Generating Token...";
 
   return (
@@ -285,13 +316,25 @@ export default function CTraderDashboard() {
                     <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Core Connection...</span>
                   </div>
                 ) : (
-                  logs.map((log, i) => (
-                    <div key={i} className="flex gap-4">
-                      <span className="text-zinc-600 shrink-0 select-none">[{log.time}]</span>
-                      <span className={`${log.msg.includes('Error') ? 'text-red-400' : 'text-cyan-500'} shrink-0 font-bold select-none`}>BRIDGE:</span>
-                      <span className={`${log.msg.includes('Error') ? 'text-red-300' : 'text-zinc-300'} break-words`}>{log.msg}</span>
+                {logs.map((log, i) => {
+                  const firstBracket = log.indexOf(']');
+                  const timeStr = log.substring(0, firstBracket + 1);
+                  const msgStr = log.substring(firstBracket + 2);
+                  return (
+                    <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-cyan-500/5 border-l-2 border-cyan-500 pl-3 py-1' : ''}`}>
+                      <span className="text-zinc-600 shrink-0 select-none">{timeStr}</span>
+                      <span className="shrink-0 font-bold select-none text-cyan-500">BRIDGE:</span>
+                      <span className={`break-words ${
+                        log.includes('❌') || log.includes('Error') ? 'text-red-400' : 
+                        log.includes('🚀') ? 'text-cyan-300 font-bold' : 
+                        log.includes('✅') ? 'text-emerald-400' : 
+                        'text-zinc-300'
+                      }`}>
+                        {msgStr}
+                      </span>
                     </div>
-                  ))
+                  );
+                })}
                 )}
               </div>
             </div>
