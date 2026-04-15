@@ -161,8 +161,10 @@ const fetchBotData = async (isSilentRefresh = false) => {
       const formattedLogs = dashboardData.logs.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
       
       setLogs((prev) => {
-        const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
-        const finalLogs = [...formattedLogs.reverse(), ...existingRealtime].slice(-100);
+        // 🚨 THE FIX: Array.from(new Set(...)) instantly deletes any duplicate text strings!
+        const uniqueLogs = Array.from(new Set([...formattedLogs.reverse(), ...prev]));
+        const finalLogs = uniqueLogs.slice(-100); // Keep only the last 100
+        
         localStorage.setItem('binance_terminal_logs', JSON.stringify(finalLogs)); 
         return finalLogs;
       });
@@ -201,21 +203,23 @@ const fetchBotData = async (isSilentRefresh = false) => {
   useEffect(() => {
     if (!userId) return;
 
-    const logChannel = supabase
-      .channel(`binance-logs-stream-${userId}`)
+    // 🚨 Notice there is no "fetchRecentLogs" function here anymore, because the RPC does it!
+
+    const logChannel = supabase.channel(`binance-logs-stream-${userId}`)
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'binance_bot_logs', filter: `user_id=eq.${userId}` }, 
         (payload) => {
           if (payload.new.message) {
             setLogs(prev => {
-              const newLogs = [...prev, `[${new Date().toLocaleTimeString()}] ${payload.new.message}`].slice(-100);
-              localStorage.setItem('binance_terminal_logs', JSON.stringify(newLogs)); // Save to cache
+              const newLog = `[${new Date().toLocaleTimeString()}] ${payload.new.message}`;
+              // Use Set here too just in case!
+              const newLogs = Array.from(new Set([...prev, newLog])).slice(-100);
+              localStorage.setItem('binance_terminal_logs', JSON.stringify(newLogs));
               return newLogs;
             });
           }
         }
-      )
-      .subscribe();
+      ).subscribe();
 
     return () => { supabase.removeChannel(logChannel); }
   }, [userId, supabase]);
@@ -388,7 +392,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
                 </div>
 
                 {/* PASSPHRASE (Conditional display for parity) */}
-                {botConfig?.exchange_name === 'okx' && (
+                {botConfig?.exchange_name === 'binance' && (
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> API Passphrase</label>
                     <input 
