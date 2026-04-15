@@ -22,7 +22,6 @@ export default function MEXCDashboard() {
   const [logs, setLogs] = useState<string[]>([]);
   const terminalRef = useRef<HTMLDivElement>(null);
   
-  // Settings State
   const [dailyRisk, setDailyRisk] = useState(1000);
   const [riskPercent, setRiskPercent] = useState(1.0);
   const [minRR, setMinRR] = useState(1.2);
@@ -36,7 +35,8 @@ export default function MEXCDashboard() {
   const [allowedGrades, setAllowedGrades] = useState<string[]>(['A++', 'A+', 'GOOD']);
   const [isGradeDropdownOpen, setIsGradeDropdownOpen] = useState(false);
 
-  const [allowedSymbols, setAllowedSymbols] = useState<string[]>([]);
+  const POPULAR_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'TAOUSDT'];
+  const [allowedSymbols, setAllowedSymbols] = useState<string[]>(POPULAR_SYMBOLS);
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
 
   const addLog = useCallback((msg: string) => {
@@ -44,44 +44,41 @@ export default function MEXCDashboard() {
   }, []);
 
   const fetchBotData = async (isSilentRefresh = false) => {
+    if (!isSilentRefresh) setLoading(true);
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        setError("Authentication required.");
-        setLoading(false);
-        return;
+      setError("Authentication required.");
+      setLoading(false);
+      return;
     }
 
-    if (!isSilentRefresh) {
-        setUserId(user.id);
-        const { data: profile } = await supabase.from('profiles').select('tier').eq('id', user.id).single();
-        setUserTier(profile?.tier || 0);
-    }
+    const { data: profile } = await supabase.from('profiles').select('tier').eq('id', user.id).single();
+    setUserTier(profile?.tier || 0);
+    setUserId(user.id);
 
-    // TARGET: exchange_auth table filtered by mexc
     const { data } = await supabase.from('exchange_auth')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('exchange_name', 'mexc')
-        .single();
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('exchange_name', 'mexc')
+      .single();
 
     if (data) {
       setBotConfig(data);
-      if (!isSilentRefresh) {
-        setDailyRisk(data.daily_risk_wallet || 1000);
-        setRiskPercent(data.risk_percentage || 1.0);
-        setMinRR(data.rr || 1.2);
-        setMaxConcurrent(data.max_concurrent_setups || 3);
-        setIsBotEnabled(data.is_active ?? true);
-        setApiKey(data.api_key || '');
-        setEnvironment(data.environment || 'testnet');
-        setAllowedSymbols(data.allowed_symbols ?? []);
-        const dbGrades = [];
-        if (data.allow_aplusplus ?? true) dbGrades.push('A++');
-        if (data.allow_aplus ?? true) dbGrades.push('A+');
-        if (data.allow_good ?? true) dbGrades.push('GOOD');
-        if (data.allow_normal ?? false) dbGrades.push('NORMAL');
-        setAllowedGrades(dbGrades);
-      }
+      setDailyRisk(data.daily_risk_wallet || 1000);
+      setRiskPercent(data.risk_percentage || 1.0);
+      setMinRR(data.rr || 1.2);
+      setMaxConcurrent(data.max_concurrent_setups || 3);
+      setIsBotEnabled(data.is_bot_enabled ?? true);
+      setApiKey(data.api_key || '');
+      setEnvironment(data.environment || 'testnet');
+      setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
+      const dbGrades = [];
+      if (data.allow_aplusplus ?? true) dbGrades.push('A++');
+      if (data.allow_aplus ?? true) dbGrades.push('A+');
+      if (data.allow_good ?? true) dbGrades.push('GOOD');
+      if (data.allow_normal ?? false) dbGrades.push('NORMAL');
+      setAllowedGrades(dbGrades);
     }
     setLoading(false);
   };
@@ -92,112 +89,100 @@ export default function MEXCDashboard() {
     return () => clearInterval(refreshInterval);
   }, [supabase]);
 
-  // Real-time Logs for MEXC
   useEffect(() => {
     if (!userId) return;
-
-    const logChannel = supabase
-      .channel(`mexc-logs-${userId}`)
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'mexc_bot_logs', filter: `user_id=eq.${userId}` }, 
-        (payload) => addLog(payload.new.message)
-      ).subscribe();
-
+    const logChannel = supabase.channel(`mexc-logs-${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mexc_bot_logs', filter: `user_id=eq.${userId}` }, 
+      (payload) => addLog(payload.new.message)).subscribe();
     return () => { supabase.removeChannel(logChannel); }
-  }, [userId, addLog, supabase]);
+  }, [userId, addLog]);
 
-  const saveSettings = async () => {
-    if (!MASTER_ENCRYPTION_KEY) return addLog("❌ Encryption Key Missing");
-    
-    let encryptedSecret = botConfig?.api_secret || '';
-    if (apiSecret) {
-        encryptedSecret = CryptoJS.AES.encrypt(apiSecret, MASTER_ENCRYPTION_KEY).toString();
+  const saveAllSettings = async () => {
+    if (!botConfig) return;
+    let encryptedSecret = botConfig.api_secret;
+    if (apiSecret && MASTER_ENCRYPTION_KEY) {
+      encryptedSecret = CryptoJS.AES.encrypt(apiSecret, MASTER_ENCRYPTION_KEY).toString();
     }
 
     const updates = {
-        user_id: userId,
-        exchange_name: 'mexc',
-        daily_risk_wallet: dailyRisk,
-        risk_percentage: riskPercent,
-        rr: minRR,
-        max_concurrent_setups: maxConcurrent,
-        is_active: isBotEnabled,
-        api_key: apiKey,
-        api_secret: encryptedSecret,
-        environment: environment,
-        allow_aplusplus: allowedGrades.includes('A++'),
-        allow_aplus: allowedGrades.includes('A+'),
-        allow_good: allowedGrades.includes('GOOD'),
-        allow_normal: allowedGrades.includes('NORMAL'),
+      daily_risk_wallet: dailyRisk,
+      risk_percentage: riskPercent,
+      rr: minRR,
+      max_concurrent_setups: maxConcurrent,
+      is_bot_enabled: isBotEnabled,
+      api_key: apiKey,
+      api_secret: encryptedSecret,
+      environment: environment,
+      allowed_symbols: allowedSymbols,
+      allow_aplusplus: allowedGrades.includes('A++'),
+      allow_aplus: allowedGrades.includes('A+'),
+      allow_good: allowedGrades.includes('GOOD'),
+      allow_normal: allowedGrades.includes('NORMAL'),
+      updated_at: new Date().toISOString()
     };
 
-    const { error } = await supabase.from('exchange_auth').upsert(updates, { onConflict: 'user_id, exchange_name' });
-
-    if (!error) {
-        addLog(`✅ MEXC Configuration Synced to ${environment.toUpperCase()}`);
-        setApiSecret('');
-    } else {
-        addLog(`❌ Save Error: ${error.message}`);
-    }
+    const { error } = await supabase.from('exchange_auth').update(updates).eq('id', botConfig.id);
+    if (!error) { addLog(`✅ MEXC Cloud Synced to ${environment.toUpperCase()}.`); setApiSecret(''); }
   };
 
-  if (loading) return <div className="min-h-screen bg-[#030407] flex items-center justify-center">Loading MEXC Engine...</div>;
+  if (loading) return <div className="min-h-screen bg-[#030407] flex items-center justify-center text-blue-500 font-black">INITIALIZING MEXC ENGINE...</div>;
 
   return (
-    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white">
-      {/* Branding for MEXC (Teal/Blue Accents) */}
-      <div className="max-w-[1700px] mx-auto space-y-8">
+    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 blur-[150px] rounded-full" />
+      </div>
+
+      <div className="max-w-[1700px] mx-auto relative z-10 space-y-8">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-4xl font-black tracking-tighter italic uppercase flex items-center gap-3">
-               <Activity className="text-[#2070f3]" /> MEXC<span className="text-[#2070f3]">Terminal</span>
+            <h1 className="text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase">
+              <img src="/mexc-logo.png" alt="MEXC" className="w-10 h-10 object-contain" />
+              MEXC<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-500">Terminal</span>
             </h1>
-            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-2">• 0% FEE MAKER EXECUTION •</p>
+            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">• 0% FEE MAKER EXECUTION ENGINE •</p>
           </div>
           {userId && <BotStatus userId={userId} />}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Settings Sidebar */}
           <div className="lg:col-span-4 space-y-8">
-            <div className="bg-white/[0.03] border border-white/[0.05] p-8 rounded-[2rem] backdrop-blur-md">
-                <h3 className="text-[11px] font-black text-[#2070f3] uppercase tracking-widest mb-6 flex items-center gap-2"><Lock size={14}/> API Credentials</h3>
-                <div className="space-y-4">
-                    <div className="flex bg-white/[0.05] p-1 rounded-lg">
-                        <button onClick={() => setEnvironment('testnet')} className={`flex-1 py-2 text-[10px] font-black rounded ${environment === 'testnet' ? 'bg-[#2070f3] text-white' : 'text-zinc-500'}`}>TESTNET</button>
-                        <button onClick={() => setEnvironment('live')} className={`flex-1 py-2 text-[10px] font-black rounded ${environment === 'live' ? 'bg-emerald-600 text-white' : 'text-zinc-500'}`}>LIVE</button>
-                    </div>
-                    <input type="text" value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs" placeholder="MEXC API Key" />
-                    <input type="password" value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs" placeholder="MEXC Secret Key" />
+            <div className="bg-white/[0.03] border border-white/[0.05] p-8 rounded-[2.5rem] backdrop-blur-md">
+              <h2 className="text-[11px] font-black text-blue-400 uppercase tracking-widest mb-6 flex items-center gap-3"><ShieldCheck size={16} /> Secure API Vault</h2>
+              <div className="space-y-6">
+                <div className="flex bg-white/[0.02] rounded-xl p-1.5 border border-white/[0.08]">
+                  <button onClick={() => setEnvironment('testnet')} className={`flex-1 py-2.5 text-[10px] font-black rounded-lg transition-all ${environment === 'testnet' ? 'bg-blue-500 text-white' : 'text-zinc-500'}`}>TESTNET</button>
+                  <button onClick={() => setEnvironment('live')} className={`flex-1 py-2.5 text-[10px] font-black rounded-lg transition-all ${environment === 'live' ? 'bg-cyan-600 text-white' : 'text-zinc-500'}`}>LIVE</button>
                 </div>
+                <input type="text" value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs text-white outline-none" placeholder="MEXC API Key..." />
+                <input type="password" value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs text-white outline-none" placeholder="••••••••••••" />
+              </div>
             </div>
 
-            <div className="bg-white/[0.03] border border-white/[0.05] p-8 rounded-[2rem]">
-                <h3 className="text-[11px] font-black text-[#2070f3] uppercase tracking-widest mb-6 flex items-center gap-2"><Target size={14}/> Risk & Filters</h3>
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                    <input type="number" value={dailyRisk} onChange={(e) => setDailyRisk(Number(e.target.value))} className="bg-black/40 border border-white/10 rounded-xl p-3 text-xs" placeholder="Wallet $" />
-                    <input type="number" step="0.1" value={riskPercent} onChange={(e) => setRiskPercent(Number(e.target.value))} className="bg-black/40 border border-white/10 rounded-xl p-3 text-xs" placeholder="Risk %" />
-                </div>
-                <button onClick={saveSettings} className="w-full py-4 bg-[#2070f3] hover:bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20"><Save size={16} className="inline mr-2"/> Save MEXC Settings</button>
+            <div className="bg-white/[0.03] border border-white/[0.05] p-8 rounded-[2.5rem] space-y-6">
+              <h2 className="text-[11px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-3"><Target size={16} /> Risk Strategy</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <input type="number" value={dailyRisk} onChange={(e) => setDailyRisk(Number(e.target.value))} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs text-white" placeholder="Wallet $" />
+                <input type="number" step="0.1" value={riskPercent} onChange={(e) => setRiskPercent(Number(e.target.value))} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs text-white" placeholder="Risk %" />
+              </div>
+              <button onClick={saveAllSettings} className="w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-xl shadow-blue-500/20">SAVE & SYNC MEXC</button>
             </div>
           </div>
 
-          {/* Terminal Area */}
           <div className="lg:col-span-8">
-            <div className="bg-black border border-white/10 rounded-[2.5rem] h-[600px] flex flex-col overflow-hidden shadow-2xl">
-                <div className="bg-white/[0.05] px-6 py-4 border-b border-white/10 flex items-center gap-2">
-                    <Terminal size={14} className="text-[#2070f3]" />
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">MEXC_CLOUD_ENGINE_v4.0</span>
-                </div>
-                <div ref={terminalRef} className="p-8 overflow-y-auto flex-1 font-mono text-xs space-y-2">
-                    {logs.map((log, i) => (
-                        <div key={i} className="flex gap-4">
-                            <span className="text-zinc-600">{log.split(']')[0]}]</span>
-                            <span className="text-blue-400 font-bold">MEXC:</span>
-                            <span className="text-zinc-300">{log.split(']')[1]}</span>
-                        </div>
-                    ))}
-                </div>
+            <div className="bg-[#020305] border border-white/[0.08] rounded-[2.5rem] h-[calc(100vh-220px)] overflow-hidden flex flex-col relative">
+              <div className="bg-white/[0.02] border-b border-white/[0.05] px-6 py-4 flex justify-between items-center backdrop-blur-md">
+                <div className="flex items-center gap-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest"><Terminal size={14} className="text-blue-400" /> MEXC_CLOUD_STREAM</div>
+              </div>
+              <div ref={terminalRef} className="p-8 overflow-y-auto flex-1 font-mono text-[13px] leading-relaxed space-y-3">
+                {logs.map((log, i) => (
+                  <div key={i} className="flex gap-4">
+                    <span className="text-zinc-600">{log.split(']')[0]}]</span>
+                    <span className="text-blue-400 font-bold">MEXC:</span>
+                    <span className="text-zinc-300">{log.split(']')[1]}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
