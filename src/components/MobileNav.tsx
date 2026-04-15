@@ -48,7 +48,10 @@ const menuGroups = [
     items: [
       { name: 'MT5', icon: Terminal, path: '/dashboard/mt5', minTier: 0 },
       { name: 'cTrader', icon: Activity, path: '/dashboard/ctrader', minTier: 0 },
-      { name: 'Binance', icon: Cpu, path: '/dashboard/binance', minTier: 0 },
+      { name: 'Binance', icon: (props: { size?: number }) => <img src="/binance.png" alt="Binance" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/binance', minTier: 3 },
+      { name: 'OKX', icon: (props: { size?: number }) => <img src="/okx.png" alt="OKX" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/okx', minTier: 3 },
+      { name: 'MEXC', icon: (props: { size?: number }) => <img src="/mexc.png" alt="MEXC" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/mexc', minTier: 3 },
+      { name: 'Kraken', icon: (props: { size?: number }) => <img src="/kraken.png" alt="Kraken" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/kraken', minTier: 3 },
     ]
   }
 ];
@@ -64,8 +67,14 @@ export default function MobileNav({ tier, role }: { tier: number; role?: string 
   }, [isOpen]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/login';
+    try {
+      await supabase.auth.signOut();
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+      window.location.href = '/login';
+    } catch (error) {
+      window.location.href = '/login';
+    }
   };
 
   return (
