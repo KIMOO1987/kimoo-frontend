@@ -35,7 +35,12 @@ export default function MEXCDashboard() {
   const [allowedGrades, setAllowedGrades] = useState<string[]>(['A++', 'A+', 'GOOD']);
   const [isGradeDropdownOpen, setIsGradeDropdownOpen] = useState(false);
 
-  const POPULAR_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'TAOUSDT'];
+  const POPULAR_SYMBOLS = [
+  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 
+  'TAOUSDT', 'ADAUSDT', 'DOGEUSDT','AVAXUSDT', 'DOTUSDT',
+  'NEARUSDT','LTCUSDT', 'TRXUSDT', 'LINKUSDT', 'BCHUSDT',
+  'ATOMUSDT', 'UNIUSDT','APTUSDT', 'INJUSDT', 'OPUSDT'
+  ];
   const [allowedSymbols, setAllowedSymbols] = useState<string[]>(POPULAR_SYMBOLS);
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
 
