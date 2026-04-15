@@ -201,7 +201,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
   }, [addLog, supabase]);
 
   // Dedicated listener for OKX Bot Logs
-    useEffect(() => {
+  useEffect(() => {
     if (!userId) return;
 
     // 🚨 Notice there is no "fetchRecentLogs" function here anymore, because the RPC does it!
