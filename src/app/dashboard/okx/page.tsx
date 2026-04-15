@@ -222,9 +222,9 @@ export default function OKXDashboard() {
     }
   }, [logs]);
 
-  const saveAllSettings = async () => {
-    if (!botConfig) return;
-    
+const saveAllSettings = async () => {
+    // 1. Remove the old strict botConfig check. Just ensure we have a User ID and Key.
+    if (!userId) return addLog("❌ Cannot save: User not authenticated.");
     if (!MASTER_ENCRYPTION_KEY) {
         addLog("❌ CANNOT SAVE: Encryption key not configured in .env.local");
         return;
@@ -232,7 +232,8 @@ export default function OKXDashboard() {
 
     addLog("🔒 Encrypting & Syncing Credentials...");
     
-    let encryptedSecret = botConfig.api_secret; 
+    // 2. Keep existing encrypted secret if no new one is provided
+    let encryptedSecret = botConfig?.api_secret || ''; 
     if (apiSecret) {
         try {
             encryptedSecret = CryptoJS.AES.encrypt(apiSecret, MASTER_ENCRYPTION_KEY).toString();
@@ -241,15 +242,18 @@ export default function OKXDashboard() {
         }
     }
 
-    // NEW: Encrypt Passphrase specifically for OKX security
-    let encryptedPass = botConfig.passphrase;
+    // 3. Keep existing encrypted passphrase if no new one is provided
+    let encryptedPass = botConfig?.passphrase || '';
     if (passphrase) {
         try {
             encryptedPass = CryptoJS.AES.encrypt(passphrase, MASTER_ENCRYPTION_KEY).toString();
         } catch (e) {}
     }
 
-    const updates: any = { 
+    // 4. Add user_id and exchange_name to the payload so INSERT works
+    const payload: any = { 
+        user_id: userId,
+        exchange_name: 'okx',
         daily_risk_wallet: dailyRisk, 
         risk_percentage: riskPercent,
         rr: minRR,
@@ -257,7 +261,7 @@ export default function OKXDashboard() {
         is_bot_enabled: isBotEnabled,
         api_key: apiKey,
         api_secret: encryptedSecret,
-        passphrase: encryptedPass, // SAVE ENCRYPTED PASSPHRASE
+        passphrase: encryptedPass, 
         environment: environment,
         allowed_symbols: allowedSymbols,
         allow_aplusplus: allowedGrades.includes('A++'),
@@ -267,14 +271,26 @@ export default function OKXDashboard() {
         updated_at: new Date().toISOString()
     };
 
-    const { error } = await supabase.from('exchange_auth').update(updates).eq('id', botConfig.id);
+    let saveError = null;
 
-    if (!error) {
+    // 5. UPSERT LOGIC: Update if it exists, Insert if it's brand new!
+    if (botConfig && botConfig.id) {
+        // UPDATE EXISTING ROW
+        const { error } = await supabase.from('exchange_auth').update(payload).eq('id', botConfig.id);
+        saveError = error;
+    } else {
+        // INSERT NEW ROW
+        const { data, error } = await supabase.from('exchange_auth').insert([payload]).select().single();
+        saveError = error;
+        if (data) setBotConfig(data); // Save the new row to state
+    }
+
+    if (!saveError) {
         addLog(`✅ OKX System Secured & Cloud Synced to ${environment.toUpperCase()}.`);
         setApiSecret(''); 
-        setPassphrase(''); // Clear plaintext on success
+        setPassphrase(''); // Clear plaintext
     } else {
-        addLog(`❌ Sync Failed: ${error.message}`);
+        addLog(`❌ Sync Failed: ${saveError.message}`);
     }
   };
 
