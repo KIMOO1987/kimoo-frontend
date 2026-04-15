@@ -14,7 +14,7 @@ import {
   UserPlus,
   LayoutDashboard
 } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { createBrowserClient } from '@supabase/ssr';
 
 const adminMenuGroups = [
   {
@@ -49,6 +49,11 @@ export default function AdminMobileNav({ userRole }: { userRole: string }) {
   useEffect(() => { 
     setMounted(true); 
   }, []);
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset';
