@@ -201,7 +201,7 @@ export default function MEXCDashboard() {
   }, [addLog, supabase]);
 
   // Dedicated listener for MEXC Bot Logs
-    useEffect(() => {
+  useEffect(() => {
     if (!userId) return;
 
     // 🚨 Notice there is no "fetchRecentLogs" function here anymore, because the RPC does it!
