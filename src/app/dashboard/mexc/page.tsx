@@ -63,7 +63,7 @@ export default function MEXCDashboard() {
 const fetchBotData = async (isSilentRefresh = false) => {
     // 1. INSTANT OPTIMISTIC UI: Unblock the screen immediately if cache exists
     if (!isSilentRefresh) {
-      const cached = localStorage.getItem('binance_data_cache'); // Change to 'okx' or 'mexc' depending on the page
+      const cached = localStorage.getItem('mexc_data_cache'); // Change to 'mexc' or 'mexc' depending on the page
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -111,7 +111,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
       supabase.from('exchange_auth')
         .select('*')
         .eq('user_id', user.id)
-        .eq('exchange_name', 'binance') // 🚨 CHANGE THIS based on the page (okx, mexc, etc.)
+        .eq('exchange_name', 'mexc') // 🚨 CHANGE THIS based on the page (mexc, mexc, etc.)
         .single()
     ]);
     
@@ -143,9 +143,9 @@ const fetchBotData = async (isSilentRefresh = false) => {
         setAllowedGrades(dbGrades);
       }
       
-      localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data }));
+      localStorage.setItem('mexc_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data }));
     } else {
-      localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data: null }));
+      localStorage.setItem('mexc_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data: null }));
     }
     
     setLoading(false);
@@ -386,7 +386,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
                 </div>
 
                 {/* PASSPHRASE (Conditional display for parity) */}
-                {botConfig?.exchange_name === 'okx' && (
+                {botConfig?.exchange_name === 'mexc' && (
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> API Passphrase</label>
                     <input 
