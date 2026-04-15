@@ -24,7 +24,13 @@ export default function MEXCDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userTier, setUserTier] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cachedLogs = localStorage.getItem('mexc_terminal_logs');
+      if (cachedLogs) return JSON.parse(cachedLogs);
+    }
+    return [];
+  });
   const terminalRef = useRef<HTMLDivElement>(null);
   
   // Settings & Credentials State
@@ -60,10 +66,10 @@ export default function MEXCDashboard() {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-100));
   }, []);
 
-const fetchBotData = async (isSilentRefresh = false) => {
-    // 1. INSTANT OPTIMISTIC UI: Unblock the screen immediately if cache exists
+  const fetchBotData = async (isSilentRefresh = false) => {
     if (!isSilentRefresh) {
-      const cached = localStorage.getItem('mexc_data_cache'); // Change to 'mexc' or 'mexc' depending on the page
+      // Optimistic Cache Load
+      const cached = localStorage.getItem('mexc_data_cache');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -77,10 +83,9 @@ const fetchBotData = async (isSilentRefresh = false) => {
             setMaxConcurrent(parsed.data.max_concurrent_setups || 3);
             setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
             setApiKey(parsed.data.api_key || '');
-            setPassphrase(parsed.data.passphrase || '');
+            setPassphrase(parsed.data.passphrase || ''); // LOAD PASSPHRASE
             setEnvironment(parsed.data.environment || 'testnet');
             setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
-            
             const parsedGrades = [];
             if (parsed.data.allow_aplusplus ?? true) parsedGrades.push('A++');
             if (parsed.data.allow_aplus ?? true) parsedGrades.push('A+');
@@ -88,7 +93,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
             if (parsed.data.allow_normal ?? false) parsedGrades.push('NORMAL');
             setAllowedGrades(parsedGrades);
           }
-          setLoading(false); // 🚀 Screen renders immediately here
+          setLoading(false);
         } catch (e) {}
       } else {
         setLoading(true);
@@ -105,47 +110,61 @@ const fetchBotData = async (isSilentRefresh = false) => {
     }
     const user = session.user;
 
-    // 3. PARALLEL DB FETCHING: Fetch Profile and Exchange Auth at the exact same time
-    const [profileRes, authRes] = await Promise.all([
-      supabase.from('profiles').select('tier').eq('id', user.id).single(),
-      supabase.from('exchange_auth')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('exchange_name', 'mexc') // 🚨 CHANGE THIS based on the page (mexc, mexc, etc.)
-        .single()
-    ]);
-    
+    // 3. ONE SINGLE LIGHTNING FETCH VIA RPC
+    const { data: dashboardData, error: rpcError } = await supabase.rpc('get_dashboard_data', {
+      p_user_id: user.id,
+      p_exchange_name: 'mexc'
+    });
+
+    if (rpcError) {
+      console.error("RPC Error:", rpcError);
+      setLoading(false);
+      return;
+    }
+
+    // 4. DISTRIBUTE THE UNIFIED DATA
     if (!isSilentRefresh) {
-      setUserTier(profileRes.data?.tier || 0);
+      setUserTier(dashboardData.profile?.tier || 0);
       setUserId(user.id);
     }
-    
-    // 4. UPDATE CACHE IN BACKGROUND
-    if (authRes.data) {
-      const data = authRes.data;
-      setBotConfig(data);
+
+    if (dashboardData.config && Object.keys(dashboardData.config).length > 0) {
+      const config = dashboardData.config;
+      setBotConfig(config);
+      
       if (!isSilentRefresh) {
-        setDailyRisk(data.daily_risk_wallet || 1000);
-        setRiskPercent(data.risk_percentage || 1.0);
-        setMinRR(data.rr || 1.2);
-        setMaxConcurrent(data.max_concurrent_setups || 3);
-        setIsBotEnabled(data.is_bot_enabled ?? true);
-        setApiKey(data.api_key || '');
-        setPassphrase(data.passphrase || '');
-        setEnvironment(data.environment || 'testnet');
-        setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
+        setDailyRisk(config.daily_risk_wallet || 1000);
+        setRiskPercent(config.risk_percentage || 1.0);
+        setMinRR(config.rr || 1.2);
+        setMaxConcurrent(config.max_concurrent_setups || 3);
+        setIsBotEnabled(config.is_bot_enabled ?? true);
+        setApiKey(config.api_key || '');
+        setPassphrase(config.passphrase || '');
+        setEnvironment(config.environment || 'testnet');
+        setAllowedSymbols(config.allowed_symbols ?? POPULAR_SYMBOLS);
         
         const dbGrades = [];
-        if (data.allow_aplusplus ?? true) dbGrades.push('A++');
-        if (data.allow_aplus ?? true) dbGrades.push('A+');
-        if (data.allow_good ?? true) dbGrades.push('GOOD');
-        if (data.allow_normal ?? false) dbGrades.push('NORMAL');
+        if (config.allow_aplusplus ?? true) dbGrades.push('A++');
+        if (config.allow_aplus ?? true) dbGrades.push('A+');
+        if (config.allow_good ?? true) dbGrades.push('GOOD');
+        if (config.allow_normal ?? false) dbGrades.push('NORMAL');
         setAllowedGrades(dbGrades);
       }
       
-      localStorage.setItem('mexc_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data }));
-    } else {
-      localStorage.setItem('mexc_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data: null }));
+      // Cache the config
+      localStorage.setItem('mexc_data_cache', JSON.stringify({ userId: user.id, tier: dashboardData.profile?.tier || 0, data: config }));
+    }
+
+    // 5. HYDRATE THE TERMINAL LOGS INSTANTLY
+    if (dashboardData.logs && dashboardData.logs.length > 0) {
+      const formattedLogs = dashboardData.logs.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
+      
+      setLogs((prev) => {
+        const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
+        const finalLogs = [...formattedLogs.reverse(), ...existingRealtime].slice(-100);
+        localStorage.setItem('mexc_terminal_logs', JSON.stringify(finalLogs)); 
+        return finalLogs;
+      });
     }
     
     setLoading(false);
@@ -183,40 +202,22 @@ const fetchBotData = async (isSilentRefresh = false) => {
   useEffect(() => {
     if (!userId) return;
 
-    const fetchRecentLogs = async () => {
-      const { data } = await supabase
-        .from('mexc_bot_logs') 
-        .select('message, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(30);
-        
-      if (data && data.length > 0) {
-        const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
-        setLogs((prev) => {
-          const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
-          return [...history.reverse(), ...existingRealtime].slice(-100);
-        });
-      } else {
-        setLogs((prev) => prev.length === 0 ? [`[${new Date().toLocaleTimeString()}] SYSTEM: MEXC Secure connection established. Awaiting new signals...`] : prev);
-      }
-    };
-    fetchRecentLogs();
-
-    const logChannel = supabase
-      .channel(`mexc-logs-stream-${userId}`)
+    const logChannel = supabase.channel(`mexc-logs-stream-${userId}`)
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'mexc_bot_logs', filter: `user_id=eq.${userId}` }, 
         (payload) => {
           if (payload.new.message) {
-            addLog(payload.new.message);
+            setLogs(prev => {
+              const newLogs = [...prev, `[${new Date().toLocaleTimeString()}] ${payload.new.message}`].slice(-100);
+              localStorage.setItem('mexc_terminal_logs', JSON.stringify(newLogs)); // Save to cache
+              return newLogs;
+            });
           }
         }
-      )
-      .subscribe();
+      ).subscribe();
 
     return () => { supabase.removeChannel(logChannel); }
-  }, [userId, addLog, supabase]);
+  }, [userId, supabase]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -317,7 +318,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-12">
           <div>
             <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
-              <img src="/mexc.png" alt="MEXC" className="w-8 h-8 md:w-10 md:h-10 object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]" />
+              <img src="/mexc-logo.png" alt="MEXC" className="w-8 h-8 md:w-10 md:h-10 object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]" />
               MEXC<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Terminal</span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
@@ -386,7 +387,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
                 </div>
 
                 {/* PASSPHRASE (Conditional display for parity) */}
-                {botConfig?.exchange_name === 'mexc' && (
+                {botConfig?.exchange_name === 'okx' && (
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> API Passphrase</label>
                     <input 
