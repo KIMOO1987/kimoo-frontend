@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { createBrowserClient } from '@supabase/ssr';
 
 const menuGroups = [
   { 
@@ -47,7 +47,7 @@ const menuGroups = [
     label: 'AUTO EXECUATION PLATFORMS',
     items: [
       { name: 'MT5', icon: Terminal, path: '/dashboard/mt5', minTier: 0 },
-      { name: 'cTrader', icon: (props: { size?: number }) => <img src="/ctrader-logo.png" alt="cTrader" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/ctrader', minTier: 3 },
+      { name: 'cTrader', icon: Activity, path: '/dashboard/ctrader', minTier: 0 },
       { name: 'Binance', icon: (props: { size?: number }) => <img src="/binance.png" alt="Binance" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/binance', minTier: 3 },
       { name: 'OKX', icon: (props: { size?: number }) => <img src="/okx.png" alt="OKX" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/okx', minTier: 3 },
       { name: 'MEXC', icon: (props: { size?: number }) => <img src="/mexc.png" alt="MEXC" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/mexc', minTier: 3 },
@@ -60,6 +60,11 @@ export default function MobileNav({ tier, role }: { tier: number; role?: string 
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const isStaff = role === 'admin' || role === 'moderator';
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset';
