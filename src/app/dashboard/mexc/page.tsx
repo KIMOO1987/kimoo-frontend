@@ -33,9 +33,10 @@ export default function MEXCDashboard() {
   const [maxConcurrent, setMaxConcurrent] = useState(3);
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
+  const [passphrase, setPassphrase] = useState(''); // NEW: Unified Passphrase State
   const [isBotEnabled, setIsBotEnabled] = useState(true);
   
-  // Grade Filters (Dropdown style)
+  // Grade Filters
   const AVAILABLE_GRADES = ['A++', 'A+', 'GOOD', 'NORMAL'];
   const [allowedGrades, setAllowedGrades] = useState<string[]>(['A++', 'A+', 'GOOD']);
   const [isGradeDropdownOpen, setIsGradeDropdownOpen] = useState(false);
@@ -60,7 +61,7 @@ export default function MEXCDashboard() {
 
   const fetchBotData = async (isSilentRefresh = false) => {
     if (!isSilentRefresh) {
-      // Optimistic Cache Load (MEXC specific)
+      // Optimistic Cache Load
       const cached = localStorage.getItem('mexc_data_cache');
       if (cached) {
         try {
@@ -75,6 +76,7 @@ export default function MEXCDashboard() {
             setMaxConcurrent(parsed.data.max_concurrent_setups || 3);
             setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
             setApiKey(parsed.data.api_key || '');
+            setPassphrase(parsed.data.passphrase || ''); // LOAD PASSPHRASE
             setEnvironment(parsed.data.environment || 'testnet');
             setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
             const parsedGrades = [];
@@ -99,6 +101,7 @@ export default function MEXCDashboard() {
       return;
     }
 
+    // Fetch User Tier
     const { data: profile } = await supabase
       .from('profiles')
       .select('tier')
@@ -126,6 +129,7 @@ export default function MEXCDashboard() {
         setMaxConcurrent(data.max_concurrent_setups || 3);
         setIsBotEnabled(data.is_bot_enabled ?? true);
         setApiKey(data.api_key || '');
+        setPassphrase(data.passphrase || ''); // SYNC PASSPHRASE
         setEnvironment(data.environment || 'testnet');
         setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
         const dbGrades = [];
@@ -150,6 +154,7 @@ export default function MEXCDashboard() {
     }
     fetchBotData();
 
+    // Silent background refresh
     const refreshInterval = setInterval(() => {
       fetchBotData(true);
     }, 30000);
@@ -157,7 +162,7 @@ export default function MEXCDashboard() {
     const channel = supabase
       .channel('mexc-auth-sync')
       .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'exchange_auth', filter: `exchange_name=eq.mexc` },
+        { event: 'UPDATE', schema: 'public', table: 'exchange_auth', filter: 'exchange_name=eq.mexc' },
         (payload) => {
             setBotConfig(payload.new);
         }
@@ -176,7 +181,7 @@ export default function MEXCDashboard() {
 
     const fetchRecentLogs = async () => {
       const { data } = await supabase
-        .from('mexc_bot_logs') // Target MEXC table
+        .from('mexc_bot_logs') 
         .select('message, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -226,7 +231,7 @@ export default function MEXCDashboard() {
         return;
     }
 
-    addLog("🔒 Encrypting & Syncing MEXC Credentials...");
+    addLog("🔒 Encrypting & Syncing Credentials...");
     
     let encryptedSecret = botConfig.api_secret; 
     if (apiSecret) {
@@ -237,6 +242,14 @@ export default function MEXCDashboard() {
         }
     }
 
+    // NEW: Encrypt Passphrase for unified storage
+    let encryptedPass = botConfig.passphrase;
+    if (passphrase) {
+        try {
+            encryptedPass = CryptoJS.AES.encrypt(passphrase, MASTER_ENCRYPTION_KEY).toString();
+        } catch (e) {}
+    }
+
     const updates: any = { 
         daily_risk_wallet: dailyRisk, 
         risk_percentage: riskPercent,
@@ -245,6 +258,7 @@ export default function MEXCDashboard() {
         is_bot_enabled: isBotEnabled,
         api_key: apiKey,
         api_secret: encryptedSecret,
+        passphrase: encryptedPass, // SAVE ENCRYPTED PASSPHRASE
         environment: environment,
         allowed_symbols: allowedSymbols,
         allow_aplusplus: allowedGrades.includes('A++'),
@@ -259,6 +273,7 @@ export default function MEXCDashboard() {
     if (!error) {
         addLog(`✅ MEXC System Secured & Cloud Synced to ${environment.toUpperCase()}.`);
         setApiSecret(''); 
+        setPassphrase(''); // Clear plaintext
     } else {
         addLog(`❌ Sync Failed: ${error.message}`);
     }
@@ -359,6 +374,20 @@ export default function MEXCDashboard() {
                     placeholder="••••••••••••"
                   />
                 </div>
+
+                {/* PASSPHRASE (Conditional display for parity) */}
+                {botConfig?.exchange_name === 'okx' && (
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> API Passphrase</label>
+                    <input 
+                      type="password" 
+                      value={passphrase} 
+                      onChange={(e) => setPassphrase(e.target.value)} 
+                      className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white outline-none focus:border-white/50" 
+                      placeholder="Passphrase..."
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
