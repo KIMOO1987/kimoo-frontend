@@ -46,9 +46,12 @@ const menuGroups = [
   { 
     label: 'AUTO EXECUATION PLATFORMS',
     items: [
-      { name: 'MT5', icon: Terminal, path: '/dashboard/mt5', minTier: 0 },
-      { name: 'cTrader', icon: Activity, path: '/dashboard/ctrader', minTier: 0 },
-      { name: 'Binance', icon: Cpu, path: '/dashboard/binance', minTier: 0 },
+      { name: 'MT5', icon: Terminal, path: '/dashboard/mt5', minTier: 3 },
+      { name: 'cTrader', icon: Terminal, path: '/dashboard/ctrader', minTier: 3 },
+      { name: 'Binance', icon: Terminal, path: '/dashboard/binance', minTier: 3 },
+      { name: 'Binance', icon: Terminal, path: '/dashboard/okx', minTier: 3 },
+      { name: 'Binance', icon: Terminal, path: '/dashboard/mexc', minTier: 3 },
+      { name: 'Binance', icon: Terminal, path: '/dashboard/kraken', minTier: 3 },
     ]
   }
 ];
