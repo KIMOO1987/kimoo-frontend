@@ -24,7 +24,13 @@ export default function BinanceDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userTier, setUserTier] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cachedLogs = localStorage.getItem('binance_terminal_logs');
+      if (cachedLogs) return JSON.parse(cachedLogs);
+    }
+    return [];
+  });
   const terminalRef = useRef<HTMLDivElement>(null);
   
   // Settings & Credentials State
@@ -37,12 +43,12 @@ export default function BinanceDashboard() {
   const [passphrase, setPassphrase] = useState(''); // NEW: Unified Passphrase State
   const [isBotEnabled, setIsBotEnabled] = useState(true);
   
-  // Grade Filters
+  // NEW: Grade Filters
   const AVAILABLE_GRADES = ['A++', 'A+', 'GOOD', 'NORMAL'];
   const [allowedGrades, setAllowedGrades] = useState<string[]>(['A++', 'A+', 'GOOD']);
   const [isGradeDropdownOpen, setIsGradeDropdownOpen] = useState(false);
 
-  // Symbol Filter
+  // NEW: Symbol Filter
   const POPULAR_SYMBOLS = [
     'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 
     'TAOUSDT', 'ADAUSDT', 'DOGEUSDT','AVAXUSDT', 'DOTUSDT',
@@ -52,7 +58,7 @@ export default function BinanceDashboard() {
   const [allowedSymbols, setAllowedSymbols] = useState<string[]>(POPULAR_SYMBOLS);
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
 
-  // Environment State (Testnet vs Live)
+  // NEW: Environment State (Testnet vs Live)
   const [environment, setEnvironment] = useState<'testnet' | 'live'>('testnet');
 
   // Optimized log handler to prevent unnecessary re-renders
@@ -63,7 +69,7 @@ export default function BinanceDashboard() {
 const fetchBotData = async (isSilentRefresh = false) => {
     // 1. INSTANT OPTIMISTIC UI: Unblock the screen immediately if cache exists
     if (!isSilentRefresh) {
-      const cached = localStorage.getItem('binance_data_cache'); // Change to 'okx' or 'mexc' depending on the page
+      const cached = localStorage.getItem('binance_data_cache');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -105,47 +111,61 @@ const fetchBotData = async (isSilentRefresh = false) => {
     }
     const user = session.user;
 
-    // 3. PARALLEL DB FETCHING: Fetch Profile and Exchange Auth at the exact same time
-    const [profileRes, authRes] = await Promise.all([
-      supabase.from('profiles').select('tier').eq('id', user.id).single(),
-      supabase.from('exchange_auth')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('exchange_name', 'binance') // 🚨 CHANGE THIS based on the page (okx, mexc, etc.)
-        .single()
-    ]);
-    
+    // 3. ONE SINGLE LIGHTNING FETCH VIA RPC
+    const { data: dashboardData, error: rpcError } = await supabase.rpc('get_dashboard_data', {
+      p_user_id: user.id,
+      p_exchange_name: 'binance'
+    });
+
+    if (rpcError) {
+      console.error("RPC Error:", rpcError);
+      setLoading(false);
+      return;
+    }
+
+    // 4. DISTRIBUTE THE UNIFIED DATA
     if (!isSilentRefresh) {
-      setUserTier(profileRes.data?.tier || 0);
+      setUserTier(dashboardData.profile?.tier || 0);
       setUserId(user.id);
     }
-    
-    // 4. UPDATE CACHE IN BACKGROUND
-    if (authRes.data) {
-      const data = authRes.data;
-      setBotConfig(data);
+
+    if (dashboardData.config && Object.keys(dashboardData.config).length > 0) {
+      const config = dashboardData.config;
+      setBotConfig(config);
+      
       if (!isSilentRefresh) {
-        setDailyRisk(data.daily_risk_wallet || 1000);
-        setRiskPercent(data.risk_percentage || 1.0);
-        setMinRR(data.rr || 1.2);
-        setMaxConcurrent(data.max_concurrent_setups || 3);
-        setIsBotEnabled(data.is_bot_enabled ?? true);
-        setApiKey(data.api_key || '');
-        setPassphrase(data.passphrase || '');
-        setEnvironment(data.environment || 'testnet');
-        setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
+        setDailyRisk(config.daily_risk_wallet || 1000);
+        setRiskPercent(config.risk_percentage || 1.0);
+        setMinRR(config.rr || 1.2);
+        setMaxConcurrent(config.max_concurrent_setups || 3);
+        setIsBotEnabled(config.is_bot_enabled ?? true);
+        setApiKey(config.api_key || '');
+        setPassphrase(config.passphrase || '');
+        setEnvironment(config.environment || 'testnet');
+        setAllowedSymbols(config.allowed_symbols ?? POPULAR_SYMBOLS);
         
         const dbGrades = [];
-        if (data.allow_aplusplus ?? true) dbGrades.push('A++');
-        if (data.allow_aplus ?? true) dbGrades.push('A+');
-        if (data.allow_good ?? true) dbGrades.push('GOOD');
-        if (data.allow_normal ?? false) dbGrades.push('NORMAL');
+        if (config.allow_aplusplus ?? true) dbGrades.push('A++');
+        if (config.allow_aplus ?? true) dbGrades.push('A+');
+        if (config.allow_good ?? true) dbGrades.push('GOOD');
+        if (config.allow_normal ?? false) dbGrades.push('NORMAL');
         setAllowedGrades(dbGrades);
       }
       
-      localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data }));
-    } else {
-      localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data: null }));
+      // Cache the config
+      localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: dashboardData.profile?.tier || 0, data: config }));
+    }
+
+    // 5. HYDRATE THE TERMINAL LOGS INSTANTLY
+    if (dashboardData.logs && dashboardData.logs.length > 0) {
+      const formattedLogs = dashboardData.logs.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
+      
+      setLogs((prev) => {
+        const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
+        const finalLogs = [...formattedLogs.reverse(), ...existingRealtime].slice(-100);
+        localStorage.setItem('binance_terminal_logs', JSON.stringify(finalLogs)); 
+        return finalLogs;
+      });
     }
     
     setLoading(false);
@@ -157,7 +177,6 @@ const fetchBotData = async (isSilentRefresh = false) => {
     }
     fetchBotData();
 
-    // Silent background refresh every 30 seconds
     const refreshInterval = setInterval(() => {
       fetchBotData(true);
     }, 30000);
@@ -182,40 +201,24 @@ const fetchBotData = async (isSilentRefresh = false) => {
   useEffect(() => {
     if (!userId) return;
 
-    const fetchRecentLogs = async () => {
-      const { data } = await supabase
-        .from('binance_bot_logs')
-        .select('message, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(30);
-        
-      if (data && data.length > 0) {
-        const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
-        setLogs((prev) => {
-          const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
-          return [...history.reverse(), ...existingRealtime].slice(-100);
-        });
-      } else {
-        setLogs((prev) => prev.length === 0 ? [`[${new Date().toLocaleTimeString()}] SYSTEM: Secure connection established. Awaiting new signals...`] : prev);
-      }
-    };
-    fetchRecentLogs();
-
     const logChannel = supabase
       .channel(`binance-logs-stream-${userId}`)
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'binance_bot_logs', filter: `user_id=eq.${userId}` }, 
         (payload) => {
           if (payload.new.message) {
-            addLog(payload.new.message);
+            setLogs(prev => {
+              const newLogs = [...prev, `[${new Date().toLocaleTimeString()}] ${payload.new.message}`].slice(-100);
+              localStorage.setItem('binance_terminal_logs', JSON.stringify(newLogs)); // Save to cache
+              return newLogs;
+            });
           }
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(logChannel); }
-  }, [userId, addLog, supabase]);
+  }, [userId, supabase]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -234,7 +237,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
         return;
     }
 
-    addLog("🔒 Encrypting & Syncing Credentials...");
+    addLog("🔒 Encrypting & Syncing Binance Credentials...");
     
     let encryptedSecret = botConfig.api_secret; 
     if (apiSecret) {
@@ -274,9 +277,9 @@ const fetchBotData = async (isSilentRefresh = false) => {
     const { error } = await supabase.from('exchange_auth').update(updates).eq('id', botConfig.id);
 
     if (!error) {
-        addLog(`✅ System Secured & Cloud Synced to ${environment.toUpperCase()}.`);
+        addLog(`✅ Binance System Secured & Cloud Synced to ${environment.toUpperCase()}.`);
         setApiSecret(''); 
-        setPassphrase(''); // Clear plaintext on success
+        setPassphrase(''); // Clear plaintext
     } else {
         addLog(`❌ Sync Failed: ${error.message}`);
     }
@@ -286,7 +289,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
     <div className="min-h-screen flex items-center justify-center bg-[#030407]">
       <div className="flex flex-col items-center justify-center py-20 animate-pulse">
         <Activity size={40} className="text-yellow-500 mb-4 animate-spin" />
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-yellow-600">Initializing Guardian Terminal...</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-yellow-600">Initializing Binance Terminal...</p>
       </div>
     </div>
   );
@@ -304,7 +307,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
   return (
     <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden transition-all duration-300">
       
-      {/* Ambient Glowing Backgrounds */}
+      {/* Ambient Glowing Backgrounds - Binance Yellow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-yellow-500/10 blur-[150px] rounded-full mix-blend-screen" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-orange-500/10 blur-[150px] rounded-full mix-blend-screen" />
@@ -316,11 +319,11 @@ const fetchBotData = async (isSilentRefresh = false) => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-12">
           <div>
             <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
-              <img src="/binance-logo.png" alt="Binance" className="w-8 h-8 md:w-10 md:h-10 object-contain drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
+              <img src="/binance.png" alt="Binance" className="w-8 h-8 md:w-10 md:h-10 object-contain drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
               Binance<span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Terminal</span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
-              • Binance {environment === 'live' ? 'LIVE' : 'TESTNET'} EXECUTION ENGINE •
+              • BINANCE {environment === 'live' ? 'LIVE' : 'TESTNET'} EXECUTION ENGINE •
             </p>
           </div>
           
@@ -330,7 +333,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
         </div>
 
         {/* ============================================================ */}
-        {/* PASTE HERE: AUTHENTIC REAL-TIME STATS BAR */}
+        {/* AUTHENTIC REAL-TIME STATS BAR */}
         {/* ============================================================ */}
         {userId && <ExecutionStats userId={userId} exchange="binance" />}
         {/* ============================================================ */}
@@ -345,7 +348,6 @@ const fetchBotData = async (isSilentRefresh = false) => {
                 <ShieldCheck size={16} /> Secure API Vault
               </h2>
               <div className="space-y-6">
-                {/* ENVIRONMENT TOGGLE */}
                 <div>
                   <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-2"><Activity size={10}/> Network Mode</label>
                   <div className="flex bg-white/[0.02] rounded-xl p-1.5 border border-white/[0.08]">
@@ -357,7 +359,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
                     </button>
                     <button 
                       onClick={() => setEnvironment('live')}
-                      className={`flex-1 py-2.5 text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${environment === 'live' ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'text-zinc-500 hover:text-white'}`}
+                      className={`flex-1 py-2.5 text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${environment === 'live' ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,11,0.4)]' : 'text-zinc-500 hover:text-white'}`}
                     >
                       LIVE
                     </button>
@@ -375,7 +377,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> Secret Key (AES)</label>
+                  <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> Private Key (AES)</label>
                   <input 
                     type="password" 
                     value={apiSecret} 
@@ -385,7 +387,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
                   />
                 </div>
 
-                {/* PASSPHRASE (Hidden for Binance, visible for OKX) */}
+                {/* PASSPHRASE (Conditional display for parity) */}
                 {botConfig?.exchange_name === 'okx' && (
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> API Passphrase</label>
@@ -438,7 +440,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
                       />
                   </div>
                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Target size={10}/> Min RR (Risk/Reward)</label>
+                      <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Target size={10}/> Min RR</label>
                       <input 
                         type="number" 
                         step="0.1" 
@@ -492,9 +494,9 @@ const fetchBotData = async (isSilentRefresh = false) => {
                           onChange={() => {
                             setAllowedGrades(prev => prev.includes(grade) ? prev.filter(g => g !== grade) : [...prev, grade]);
                           }}
-                          className="accent-yellow-500 w-4 h-4 cursor-pointer"
+                        className="accent-yellow-500 w-4 h-4 cursor-pointer"
                         />
-                        <span className="text-[10px] uppercase font-black tracking-widest text-zinc-300 group-hover:text-yellow-400">{grade} Setup</span>
+                      <span className="text-[10px] uppercase font-black tracking-widest text-zinc-300 group-hover:text-yellow-400">{grade} Setup</span>
                       </label>
                     ))}
                   </div>
@@ -530,9 +532,9 @@ const fetchBotData = async (isSilentRefresh = false) => {
                           onChange={() => {
                             setAllowedSymbols(prev => prev.includes(sym) ? prev.filter(s => s !== sym) : [...prev, sym]);
                           }}
-                          className="accent-yellow-500 w-4 h-4 cursor-pointer"
+                        className="accent-yellow-500 w-4 h-4 cursor-pointer"
                         />
-                        <span className="text-[10px] uppercase font-black tracking-widest text-zinc-300 group-hover:text-yellow-400">{sym}</span>
+                      <span className="text-[10px] uppercase font-black tracking-widest text-zinc-300 group-hover:text-yellow-400">{sym}</span>
                       </label>
                     ))}
                   </div>
@@ -547,7 +549,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
                     : 'bg-gradient-to-r from-yellow-600 to-orange-500 text-white shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:shadow-[0_0_40px_rgba(234,179,8,0.5)]'
                 }`}
               >
-                <Save size={16} /> SAVE & SYNC {environment.toUpperCase()}
+                <Save size={16} /> SAVE & SYNC BINANCE {environment.toUpperCase()}
               </button>
             </div>
           </div>
@@ -572,7 +574,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
                 {logs.length === 0 && (
                   <div className="flex items-center justify-center h-full flex-col text-zinc-600 gap-4 opacity-50">
                     <Activity size={32} className="animate-pulse" />
-                    <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Data Stream...</span>
+                    <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Binance Data...</span>
                   </div>
                 )}
                 {logs.map((log, i) => {
