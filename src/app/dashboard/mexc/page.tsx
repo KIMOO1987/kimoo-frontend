@@ -60,10 +60,10 @@ export default function MEXCDashboard() {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-100));
   }, []);
 
-  const fetchBotData = async (isSilentRefresh = false) => {
+const fetchBotData = async (isSilentRefresh = false) => {
+    // 1. INSTANT OPTIMISTIC UI: Unblock the screen immediately if cache exists
     if (!isSilentRefresh) {
-      // Optimistic Cache Load
-      const cached = localStorage.getItem('mexc_data_cache');
+      const cached = localStorage.getItem('binance_data_cache'); // Change to 'okx' or 'mexc' depending on the page
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -77,9 +77,10 @@ export default function MEXCDashboard() {
             setMaxConcurrent(parsed.data.max_concurrent_setups || 3);
             setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
             setApiKey(parsed.data.api_key || '');
-            setPassphrase(parsed.data.passphrase || ''); // LOAD PASSPHRASE
+            setPassphrase(parsed.data.passphrase || '');
             setEnvironment(parsed.data.environment || 'testnet');
             setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
+            
             const parsedGrades = [];
             if (parsed.data.allow_aplusplus ?? true) parsedGrades.push('A++');
             if (parsed.data.allow_aplus ?? true) parsedGrades.push('A+');
@@ -87,41 +88,41 @@ export default function MEXCDashboard() {
             if (parsed.data.allow_normal ?? false) parsedGrades.push('NORMAL');
             setAllowedGrades(parsedGrades);
           }
-          setLoading(false);
+          setLoading(false); // 🚀 Screen renders immediately here
         } catch (e) {}
       } else {
         setLoading(true);
       }
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // 2. LIGHTNING AUTH: Read local JWT session instead of forcing a server ping
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
     
-    if (authError || !user) {
+    if (authError || !session?.user) {
       if (!isSilentRefresh) setError("Authentication required. Please log in.");
       setLoading(false);
       return;
     }
+    const user = session.user;
 
-    // Fetch User Tier
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('tier')
-      .eq('id', user.id)
-      .single();
+    // 3. PARALLEL DB FETCHING: Fetch Profile and Exchange Auth at the exact same time
+    const [profileRes, authRes] = await Promise.all([
+      supabase.from('profiles').select('tier').eq('id', user.id).single(),
+      supabase.from('exchange_auth')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('exchange_name', 'binance') // 🚨 CHANGE THIS based on the page (okx, mexc, etc.)
+        .single()
+    ]);
     
     if (!isSilentRefresh) {
-      setUserTier(profile?.tier || 0);
+      setUserTier(profileRes.data?.tier || 0);
       setUserId(user.id);
     }
     
-    // FETCH FROM UNIFIED TABLE FILTERED BY MEXC
-    const { data } = await supabase.from('exchange_auth')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('exchange_name', 'mexc') 
-    .single();
-
-    if (data) {
+    // 4. UPDATE CACHE IN BACKGROUND
+    if (authRes.data) {
+      const data = authRes.data;
       setBotConfig(data);
       if (!isSilentRefresh) {
         setDailyRisk(data.daily_risk_wallet || 1000);
@@ -130,9 +131,10 @@ export default function MEXCDashboard() {
         setMaxConcurrent(data.max_concurrent_setups || 3);
         setIsBotEnabled(data.is_bot_enabled ?? true);
         setApiKey(data.api_key || '');
-        setPassphrase(data.passphrase || ''); // SYNC PASSPHRASE
+        setPassphrase(data.passphrase || '');
         setEnvironment(data.environment || 'testnet');
         setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
+        
         const dbGrades = [];
         if (data.allow_aplusplus ?? true) dbGrades.push('A++');
         if (data.allow_aplus ?? true) dbGrades.push('A+');
@@ -141,10 +143,11 @@ export default function MEXCDashboard() {
         setAllowedGrades(dbGrades);
       }
       
-      localStorage.setItem('mexc_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data }));
+      localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data }));
     } else {
-      localStorage.setItem('mexc_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data: null }));
+      localStorage.setItem('binance_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data: null }));
     }
+    
     setLoading(false);
   };
 
