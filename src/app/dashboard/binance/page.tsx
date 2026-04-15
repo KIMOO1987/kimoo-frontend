@@ -111,7 +111,11 @@ export default function BinanceDashboard() {
       setUserId(user.id);
     }
     
-    const { data } = await supabase.from('binance_auth').select('*').eq('user_id', user.id).single();
+    const { data } = await supabase.from('exchange_auth')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('exchange_name', 'binance') // Filter for Binance
+    .single();
     if (data) {
       setBotConfig(data);
       if (!isSilentRefresh) {
