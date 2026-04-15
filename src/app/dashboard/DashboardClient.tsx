@@ -51,10 +51,9 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
     setIsInitialLoad(false);
   }, [userProfile?.id, accountSize, riskValue, rewardValue, timeframe, assetClass]);
 
-  // Prevent Hammering: Debounce and 5-min safety refresh
   useEffect(() => {
     const delay = setTimeout(fetchData, 500);
-    const interval = setInterval(() => fetchData(true), 300000); 
+    const interval = setInterval(() => fetchData(true), 300000); // 5-minute safety
     return () => { clearTimeout(delay); clearInterval(interval); };
   }, [fetchData]);
 
@@ -62,12 +61,6 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
     setIsSaving(true);
     await supabase.from('profiles').update({ account_size: accountSize, risk_value: riskValue, reward_value: rewardValue }).eq('id', userProfile.id);
     setIsSaving(false);
-  };
-
-  const getTierDisplay = () => {
-    if (userProfile?.role === 'admin') return 'SYSTEM ADMIN';
-    const tiers: any = { 3: 'ULTIMATE', 2: 'PRO', 1: 'ALPHA' };
-    return tiers[tier] || 'FREE TRADER';
   };
 
   return (
@@ -78,45 +71,27 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
       </div>
 
       <div className="max-w-[1700px] mx-auto relative z-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-12">
-          <div>
-            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic uppercase text-white">Client<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Dashboard</span></h1>
-            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">• KIMOO CRT ENGINE PRO •</p>
-          </div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+           <h1 className="text-2xl md:text-4xl font-black italic uppercase">Client<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Dashboard</span></h1>
         </div>
 
-        {/* SETTINGS SECTION */}
+        {/* SETTINGS CARD */}
         <div className="mb-10 p-6 md:p-10 rounded-[2.5rem] bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] backdrop-blur-2xl shadow-2xl">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/5 pb-8 mb-8">
-               <div>
-                  <div className="flex flex-wrap items-center gap-4 mb-3">
-                     <h2 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter">{userProfile?.full_name || 'TRADER'}</h2>
-                     <span className="bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[10px] font-black px-4 py-1.5 rounded-lg uppercase tracking-widest">{getTierDisplay()}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-zinc-500"><Mail size={14} className="text-indigo-400" /><span className="text-[11px] font-bold tracking-widest uppercase font-mono">{userProfile?.email}</span></div>
-               </div>
-               <div className="flex items-center gap-3 mt-6 md:mt-0">
-                  <Activity size={20} className="text-emerald-400 animate-pulse" /><span className="font-black text-lg uppercase text-emerald-400">ONLINE</span>
-               </div>
-            </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-                <InputBox label="Account Size" icon={<Wallet size={16}/>} value={accountSize} onChange={setAccountSize} prefix="$" color="emerald" />
-                <InputBox label="Risk per SL" icon={<Percent size={16}/>} value={riskValue} onChange={setRiskValue} suffix="R" color="red" />
-                <InputBox label="Reward per TP" icon={<TrendingUp size={16}/>} value={rewardValue} onChange={setRewardValue} suffix="R" color="blue" />
-                <SelectBox label="Result Scope" value={timeframe} onChange={setTimeframe} options={[{v:'all', l:'All Time'}, {v:'daily', l:'Daily'}, {v:'weekly', l:'Weekly'}, {v:'monthly', l:'Monthly'}]} />
-                <SelectBox label="Asset Class" value={assetClass} onChange={setAssetClass} options={[{v:'ALL', l:'All Assets'}, {v:'CRYPTO', l:'Crypto'}, {v:'FOREX', l:'Forex'}, {v:'METALS', l:'Metals'}]} />
-                <button onClick={handleSaveSettings} disabled={isSaving} className="h-[50px] self-end bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all border border-white/10">
-                   <Save size={16} className={isSaving ? 'animate-spin' : ''} /> {isSaving ? 'Saving...' : 'Save Config'}
-                </button>
+                <InputBox label="Account Size" value={accountSize} onChange={setAccountSize} prefix="$" color="emerald" />
+                <InputBox label="Risk per SL" value={riskValue} onChange={setRiskValue} suffix="R" color="red" />
+                <InputBox label="Reward per TP" value={rewardValue} onChange={setRewardValue} suffix="R" color="blue" />
+                <SelectBox label="Scope" value={timeframe} onChange={setTimeframe} options={[{v:'all', l:'All Time'}, {v:'daily', l:'Daily'}, {v:'weekly', l:'Weekly'}]} />
+                <SelectBox label="Asset" value={assetClass} onChange={setAssetClass} options={[{v:'ALL', l:'All Assets'}, {v:'CRYPTO', l:'Crypto'}, {v:'FOREX', l:'Forex'}]} />
+                <button onClick={handleSaveSettings} disabled={isSaving} className="h-[50px] self-end bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-black text-[10px] uppercase shadow-lg border border-white/10">{isSaving ? 'Saving' : 'Save Config'}</button>
             </div>
         </div>
 
-        {/* ANALYTICS GRID */}
         {isInitialLoad ? (
-           <div className="w-full py-24 flex flex-col items-center justify-center border border-white/5 rounded-[2.5rem] bg-white/[0.02] animate-pulse"><Activity size={40} className="text-zinc-700 mb-4" /><p className="text-xs font-black uppercase text-zinc-600">Syncing Engine...</p></div>
+           <div className="w-full py-24 flex flex-col items-center justify-center border border-white/5 rounded-[2.5rem] bg-white/[0.02] animate-pulse"><Activity size={40} className="text-zinc-700" /></div>
         ) : (
           <>
+            {/* 16 METRIC CARDS RESTORED */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 mb-8">
                <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
                <StatCard label="Total Wins" value={realStats.totalWins} icon={<CheckCircle2 size={18}/>} color="text-emerald-400" />
@@ -124,26 +99,18 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                <StatCard label="Total BE" value={realStats.totalBE} icon={<MinusCircle size={18}/>} color="text-zinc-400" />
                <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
                <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
-               
                <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Wallet size={18}/>} color="text-emerald-500" />
-               <StatCard label="Profit Factor" value={realStats.profitFactor} icon={<Star size={18}/>} color="text-blue-400" tooltip="Gross Profit / Gross Loss." />
-               <StatCard label="Expectancy" value={realStats.expectancy} icon={<Layers size={18}/>} color="text-zinc-300" tooltip="Avg R return per signal." />
-               <StatCard label="Max Drawdown" value={realStats.maxDrawdown} icon={<TrendingDown size={18}/>} color="text-red-400" tooltip="Deepest drop from peak." />
-               <StatCard label="Long WR" value={realStats.longWR} sub="Buy Side" />
-               <StatCard label="Short WR" value={realStats.shortWR} sub="Sell Side" />
-
-               <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="Top Alpha Pair" color="text-emerald-400" />
-               <StatCard label="Most Traded" value={realStats.mostTraded} sub="Volume Pair" color="text-blue-400" />
-               <StatCard label="Highest WR" value={realStats.highWRPair} sub="Max Accuracy" color="text-indigo-400" />
-               <StatCard label="Win Streak" value={realStats.winStreak} icon={<TrendingUp size={18}/>} color="text-emerald-500" />
-               <StatCard label="Loss Streak" value={realStats.lossStreak} icon={<TrendingDown size={18}/>} color="text-red-500" />
-               <StatCard label="Integrity" value="100%" sub="Verified" />
+               <StatCard label="Profit Factor" value={realStats.profitFactor || "0.00"} icon={<Star size={18}/>} color="text-blue-400" />
+               <StatCard label="Expectancy" value={realStats.expectancy || "0.00R"} icon={<Layers size={18}/>} />
+               <StatCard label="Max Drawdown" value={realStats.maxDrawdown || "0.00R"} icon={<TrendingDown size={18}/>} color="text-red-400" />
+               <StatCard label="Long WR" value={realStats.longWR || "0%"} sub="Buy Side" />
+               <StatCard label="Short WR" value={realStats.shortWR || "0%"} sub="Sell Side" />
             </div>
 
-            {/* CHART SECTION */}
+            {/* GRAPHS */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
                 <div className="lg:col-span-2 bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-8 rounded-[2.5rem] shadow-2xl">
-                   <h3 className="text-xl font-black italic tracking-tighter uppercase mb-6">Equity Curve</h3>
+                   <h3 className="text-xl font-black italic uppercase mb-6">Equity Curve</h3>
                    <div className="h-[300px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                          <AreaChart data={chartData}>
@@ -156,8 +123,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                    </div>
                 </div>
                 <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-8 rounded-[2.5rem] shadow-2xl flex flex-col justify-center text-center">
-                   <h3 className="text-xl font-black italic tracking-tighter uppercase mb-6">Outcome Split</h3>
-                   <div className="h-[250px]">
+                   <h3 className="text-xl font-black italic uppercase mb-6">Outcome Split</h3>
+                   <div className="h-[250px] flex items-center justify-center">
                       <ResponsiveContainer width="100%" height="100%">
                          <PieChart>
                             <Pie data={[{ name: 'Wins', value: realStats.totalWins }, { name: 'Losses', value: realStats.totalLosses }, { name: 'BE', value: realStats.totalBE }]} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none">
@@ -170,14 +137,14 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                 </div>
             </div>
 
-            {/* RECENT ACTIVITY */}
+            {/* RECENT ACTIVITY TABLE */}
             <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] rounded-[2.5rem] p-6 md:p-10 shadow-2xl mb-12">
-               <h3 className="text-xl font-black italic tracking-tighter uppercase text-white mb-6 border-b border-white/5 pb-4">Recent Signals</h3>
+               <h3 className="text-xl font-black italic uppercase text-white mb-6 border-b border-white/5 pb-4">Recent Signals</h3>
                <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[1000px]">
                   <thead>
                     <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5">
-                      <th className="pb-4">Asset</th><th>Side</th><th>Entry</th><th>Status</th><th>R:R</th><th>T.F.</th><th className="text-center">Grade</th><th className="text-center">Date</th><th className="text-center">View</th>
+                      <th className="pb-4">Asset</th><th>Side</th><th>Entry</th><th>Status</th><th>R:R</th><th>T.F.</th><th className="text-center">Grade</th><th className="text-center">Date</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -189,9 +156,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                         <td className="py-5 text-[10px] font-bold tracking-widest text-zinc-500 uppercase">{s.status}</td>
                         <td className={`py-5 font-mono font-black ${s.trade_r > 0 ? 'text-emerald-400' : s.trade_r < 0 ? 'text-red-400' : 'text-zinc-500'}`}>{s.trade_r > 0 ? '+' : ''}{Number(s.trade_r || 0).toFixed(2)}R</td>
                         <td className="py-5 text-[11px] font-mono text-zinc-500">{s.tf_alignment || '5M'}</td>
-                        <td className="py-5 text-center"><span className="px-2 py-1 border border-white/10 bg-white/5 rounded text-[9px] font-black">{s.grade || 'A'}</span></td>
+                        <td className="py-5 text-center"><span className="px-2.5 py-1 border border-white/10 bg-white/5 rounded text-[9px] font-black">{s.grade || 'A'}</span></td>
                         <td className="py-5 text-center text-[10px] font-mono text-zinc-500">{new Date(s.created_at).toLocaleDateString()}</td>
-                        <td className="py-5 text-center"><Link href="/dashboard/history" className="text-zinc-500 hover:text-white"><ChevronRight size={18}/></Link></td>
                       </tr>
                     ))}
                   </tbody>
@@ -205,8 +171,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   );
 }
 
-// Helpers
-function InputBox({ label, icon, value, onChange, prefix, suffix, color }: any) {
+// UI Components
+function InputBox({ label, value, onChange, prefix, suffix, color }: any) {
   return (
     <div className="flex flex-col w-full group">
        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 ml-1">{label}</span>
@@ -236,10 +202,7 @@ function StatCard({ label, value, icon, sub, color = "text-white", tooltip }: an
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 rounded-[2rem] hover:bg-white/[0.06] transition-all duration-300 shadow-xl group">
        <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-2">
-            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
-            {tooltip && <div className="group/tip relative"><Info size={12} className="text-zinc-700"/><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 p-2 bg-black border border-white/10 rounded text-[9px] opacity-0 group-hover/tip:opacity-100 transition-opacity z-50 text-center">{tooltip}</div></div>}
-          </div>
+          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
           <div className={`${color} opacity-40 group-hover:opacity-100 transition-opacity`}>{icon}</div>
        </div>
        <p className={`text-2xl font-black tracking-tight ${color} drop-shadow-md`}>{value || '---'}</p>
