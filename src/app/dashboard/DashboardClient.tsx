@@ -54,8 +54,21 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   }, [userProfile?.id, accountSize, riskValue, rewardValue, timeframe, assetClass]);
 
   useEffect(() => {
-    const delay = setTimeout(fetchData, 500);
-    return () => clearTimeout(delay);
+    // 1. Fetch immediately (with a small 500ms delay to wait for typing to finish)
+    const delayDebounce = setTimeout(() => {
+        fetchData();
+    }, 500);
+
+    // 2. Change 30000 (30s) to 300000 (5 mins) to stop resource exhaustion
+    const interval = setInterval(() => {
+        fetchData(true); // 'true' means silent refresh (no loading spinner)
+    }, 300000); 
+
+    // 3. Cleanup on unmount or setting change
+    return () => {
+        clearTimeout(delayDebounce);
+        clearInterval(interval);
+    };
   }, [fetchData]);
 
   const handleSaveSettings = async () => {
