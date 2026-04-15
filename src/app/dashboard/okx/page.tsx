@@ -33,6 +33,7 @@ export default function OKXDashboard() {
   const [maxConcurrent, setMaxConcurrent] = useState(3);
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
+  const [passphrase, setPassphrase] = useState(''); // NEW: OKX Specific Passphrase State
   const [isBotEnabled, setIsBotEnabled] = useState(true);
   
   // NEW: Grade Filters (Dropdown style)
@@ -50,7 +51,7 @@ export default function OKXDashboard() {
   const [allowedSymbols, setAllowedSymbols] = useState<string[]>(POPULAR_SYMBOLS);
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
 
-  // Environment State (Testnet vs Live)
+  // NEW: Environment State (Testnet vs Live)
   const [environment, setEnvironment] = useState<'testnet' | 'live'>('testnet');
 
   // Optimized log handler to prevent unnecessary re-renders
@@ -75,6 +76,7 @@ export default function OKXDashboard() {
             setMaxConcurrent(parsed.data.max_concurrent_setups || 3);
             setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
             setApiKey(parsed.data.api_key || '');
+            setPassphrase(parsed.data.passphrase || ''); // LOAD PASSPHRASE
             setEnvironment(parsed.data.environment || 'testnet');
             setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
             const parsedGrades = [];
@@ -126,6 +128,7 @@ export default function OKXDashboard() {
         setMaxConcurrent(data.max_concurrent_setups || 3);
         setIsBotEnabled(data.is_bot_enabled ?? true);
         setApiKey(data.api_key || '');
+        setPassphrase(data.passphrase || ''); // SYNC PASSPHRASE
         setEnvironment(data.environment || 'testnet');
         setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
         const dbGrades = [];
@@ -226,7 +229,7 @@ export default function OKXDashboard() {
         return;
     }
 
-    addLog("🔒 Encrypting & Syncing OKX Credentials...");
+    addLog("🔒 Encrypting & Syncing Credentials...");
     
     let encryptedSecret = botConfig.api_secret; 
     if (apiSecret) {
@@ -237,6 +240,14 @@ export default function OKXDashboard() {
         }
     }
 
+    // NEW: Encrypt Passphrase specifically for OKX security
+    let encryptedPass = botConfig.passphrase;
+    if (passphrase) {
+        try {
+            encryptedPass = CryptoJS.AES.encrypt(passphrase, MASTER_ENCRYPTION_KEY).toString();
+        } catch (e) {}
+    }
+
     const updates: any = { 
         daily_risk_wallet: dailyRisk, 
         risk_percentage: riskPercent,
@@ -245,6 +256,7 @@ export default function OKXDashboard() {
         is_bot_enabled: isBotEnabled,
         api_key: apiKey,
         api_secret: encryptedSecret,
+        passphrase: encryptedPass, // SAVE ENCRYPTED PASSPHRASE
         environment: environment,
         allowed_symbols: allowedSymbols,
         allow_aplusplus: allowedGrades.includes('A++'),
@@ -259,6 +271,7 @@ export default function OKXDashboard() {
     if (!error) {
         addLog(`✅ OKX System Secured & Cloud Synced to ${environment.toUpperCase()}.`);
         setApiSecret(''); 
+        setPassphrase(''); // Clear plaintext on success
     } else {
         addLog(`❌ Sync Failed: ${error.message}`);
     }
@@ -359,6 +372,20 @@ export default function OKXDashboard() {
                     placeholder="••••••••••••"
                   />
                 </div>
+
+                {/* OKX PASSPHRASE INPUT (Conditional display for parity) */}
+                {botConfig?.exchange_name === 'okx' && (
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> API Passphrase</label>
+                    <input 
+                      type="password" 
+                      value={passphrase} 
+                      onChange={(e) => setPassphrase(e.target.value)} 
+                      className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white outline-none focus:border-white/50 hover:border-white/20 transition-all" 
+                      placeholder="OKX Passphrase..."
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -539,7 +566,7 @@ export default function OKXDashboard() {
                   return (
                     <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-white/5 border-l-2 border-white pl-3 py-1' : ''}`}>
                       <span className="text-zinc-600 shrink-0 select-none">{timeStr}</span>
-                      <span className={`shrink-0 font-bold select-none text-white underline decoration-white/30`}>OKX:</span>
+                      <span className={`shrink-0 font-bold select-none text-white underline decoration-white/30`}>ENGINE:</span>
                       <span className={`break-words ${
                         log.includes('❌') ? 'text-red-400' : 
                         log.includes('🚀') ? 'text-white font-bold' : 
