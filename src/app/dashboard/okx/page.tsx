@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import CryptoJS from 'crypto-js';
 import { ShieldAlert, Terminal, Settings2, ShieldCheck, Activity, Wallet, Percent, Target, Lock, Save, ChevronDown } from 'lucide-react';
+import ExecutionStats from '@/components/ExecutionStats';
 
 // Internal Components
 import BotStatus from '@/components/BotStatus';
@@ -323,6 +324,12 @@ export default function OKXDashboard() {
             {userId && <BotStatus userId={userId} exchangeName="okx" />}
           </div>
         </div>
+
+        {/* ============================================================ */}
+        {/* AUTHENTIC REAL-TIME STATS BAR */}
+        {/* ============================================================ */}
+        {userId && <ExecutionStats userId={userId} exchange="okx" />}
+        {/* ============================================================ */}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
           
