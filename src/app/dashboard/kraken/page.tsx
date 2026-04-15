@@ -307,7 +307,7 @@ export default function KrakenDashboard() {
           </div>
           
           <div className="flex items-center gap-3 px-5 py-2.5 bg-white/[0.02] border border-white/[0.05] rounded-xl backdrop-blur-md shadow-xl">
-            {userId && <BotStatus userId={userId} />}
+            {userId && <BotStatus userId={userId} exchangeName="kraken" />}
           </div>
         </div>
 
