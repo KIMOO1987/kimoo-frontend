@@ -6,21 +6,15 @@ import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard';
 import { Search, Activity, Zap, TrendingUp, Layers, Target, Wallet, BarChart3, AlertCircle } from 'lucide-react';
 
-/**
- * SUB-COMPONENT: Top Metric Cards
- * Matches the 4 cards at the top of image_c862a4.jpg
- */
+// Sub-component remains the same as your original
 function AnalysisCard({ title, symbol, value, subValue, colorClass, icon: Icon }: any) {
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex flex-col justify-between">
       <div className={`absolute top-0 left-0 w-full h-[2px] ${colorClass.replace('text-', 'bg-')} opacity-50 group-hover:opacity-100 transition-opacity`} />
-      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      
       <div className="relative z-10 flex justify-between items-start mb-6">
         <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest">{title}</p>
         {Icon && <div className={`p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] ${colorClass} group-hover:scale-110 transition-transform duration-300 shadow-lg`}><Icon size={18}/></div>}
       </div>
-      
       <div className="relative z-10">
         <h3 className="text-2xl md:text-3xl font-black text-white italic uppercase tracking-tighter mb-2 drop-shadow-md">{symbol}</h3>
         <div className="flex items-baseline gap-3">
@@ -33,14 +27,28 @@ function AnalysisCard({ title, symbol, value, subValue, colorClass, icon: Icon }
 }
 
 export default function SymbolAudit() {
-  const { loading: authLoading } = useAuth();
-  const [stats, setStats] = useState<any[]>([]);
-  const [globalData, setGlobalData] = useState({ winRate: 0, total: 0 });
+  const { user, loading: authLoading } = useAuth();
+  
+  // 1. INSTANT HYDRATION
+  const [stats, setStats] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('audit_stats_cache');
+      return cached ? JSON.parse(cached) : [];
+    }
+    return [];
+  });
+
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !localStorage.getItem('audit_stats_cache');
+    }
+    return true;
+  });
+
   const [search, setSearch] = useState('');
   const [assetClass, setAssetClass] = useState('ALL');
-  const [loading, setLoading] = useState(true);
 
-  // --- SYMBOL CATEGORY HELPER ---
+  // Helper for categories (No change)
   const getSymbolCategory = (symbol: string) => {
     if (!symbol) return 'CRYPTO';
     const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -52,89 +60,34 @@ export default function SymbolAudit() {
   };
 
   useEffect(() => {
-    // 1. Optimistic Cache Load: Instantly show previous audit data
-    const cachedStats = sessionStorage.getItem('audit_stats_cache');
-    const cachedGlobal = sessionStorage.getItem('audit_global_cache');
-    
-    if (cachedStats && cachedGlobal) {
-      try {
-        setStats(JSON.parse(cachedStats));
-        setGlobalData(JSON.parse(cachedGlobal));
-        setLoading(false); // Instantly hide loader
-      } catch (e) {}
-    } else {
-      setLoading(true);
-    }
+    if (!user) return;
 
     const fetchPerformance = async () => {
-      const { data, error } = await supabase.from('signals').select('*');
+      // 2. USE THE NEW RPC (Much faster than select('*'))
+      const { data, error } = await supabase.rpc('get_symbol_audit', { p_user_id: user.id });
 
       if (data) {
-        const map: any = {};
-        let gWins = 0;
-        let gTotal = 0;
-
-        data.forEach(s => {
-          const sym = s.symbol?.toUpperCase();
-          if (!sym) return;
-          if (!map[sym]) map[sym] = { symbol: sym, trades: 0, wins: 0, losses: 0, be: 0, totalRR: 0 };
-          
-          map[sym].trades++;
-          const status = s.status?.toUpperCase();
-          
-          // Calculate Realized RR for this specific signal
-          const entry = Number(s.entry_price || 0);
-          const sl = Number(s.sl || 0);
-          const risk = Math.abs(entry - sl);
-          let signalRR = 0;
-
-          if (risk > 0) {
-            if (['WIN', 'TP2'].includes(status)) {
-              signalRR = Math.abs(Number(s.tp_secondary || s.tp || 0) - entry) / risk;
-            } else if (['TP1', 'TP1 + SL (BE)'].includes(status)) {
-              signalRR = Math.abs(Number(s.tp || 0) - entry) / risk;
-            } else if (status === 'SL') {
-              signalRR = -1;
-            }
-          }
-
-          if (['WIN', 'TP1', 'TP2'].includes(status) && status !== 'TP1 + SL (BE)') {
-            map[sym].wins++;
-            gWins++;
-            gTotal++;
-          } else if (['LOSS', 'SL'].includes(status)) {
-            map[sym].losses++;
-            gTotal++;
-          } else if (status === 'BE' || status === 'TP1 + SL (BE)') {
-            map[sym].be++;
-            gTotal++;
-          }
-          map[sym].totalRR += signalRR;
-        });
-
-        const formatted = Object.values(map).map((item: any) => ({
-          ...item,
-          winRate: Number(((item.wins / (item.wins + item.losses || 1)) * 100).toFixed(1))
-        })).sort((a: any, b: any) => b.totalRR - a.totalRR);
-
-        const globalObj = { 
-          winRate: gTotal > 0 ? Number(((gWins / gTotal) * 100).toFixed(1)) : 0, 
-          total: gTotal 
-        };
+        // Map keys to match your existing frontend variable names
+        const formatted = data.map((item: any) => ({
+          symbol: item.symbol,
+          trades: item.total_trades,
+          wins: item.wins,
+          losses: item.losses,
+          be: item.be,
+          winRate: item.win_rate,
+          totalRR: item.net_rr
+        }));
 
         setStats(formatted);
-        setGlobalData(globalObj);
-        
-        // 2. Save the fresh data to cache for the next refresh
-        sessionStorage.setItem('audit_stats_cache', JSON.stringify(formatted));
-        sessionStorage.setItem('audit_global_cache', JSON.stringify(globalObj));
+        localStorage.setItem('audit_stats_cache', JSON.stringify(formatted));
       }
       setLoading(false);
     };
-    fetchPerformance();
-  }, []);
 
-  // Dynamic Filter Logic
+    fetchPerformance();
+  }, [user]);
+
+  // 3. DYNAMIC FILTERING (Optimized with useMemo)
   const filteredStats = useMemo(() => {
     return stats.filter(s => {
       const searchMatch = s.symbol.includes(search.toUpperCase());
@@ -143,7 +96,7 @@ export default function SymbolAudit() {
     });
   }, [stats, search, assetClass]);
 
-  // Dynamically derived metrics for Top Cards based on current filters
+  // Derived metrics for Top Cards
   const mostProfitable = useMemo(() => [...filteredStats].sort((a, b) => b.totalRR - a.totalRR)[0], [filteredStats]);
   const highestWinRate = useMemo(() => [...filteredStats].filter(s => s.trades >= 2).sort((a, b) => b.winRate - a.winRate)[0], [filteredStats]);
   const mostTraded = useMemo(() => [...filteredStats].sort((a, b) => b.trades - a.trades)[0], [filteredStats]);
@@ -161,7 +114,8 @@ export default function SymbolAudit() {
     };
   }, [filteredStats]);
 
-  if (authLoading || loading) {
+  // ... (Rest of your JSX layout stays the same) ...
+  if (authLoading || (loading && stats.length === 0)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#030407]">
         <div className="flex flex-col items-center justify-center py-20 animate-pulse">
@@ -175,7 +129,6 @@ export default function SymbolAudit() {
   return (
     <AccessGuard requiredTier={3} tierName="Lifetime Pro">
       <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
-        
         {/* Ambient Glowing Backgrounds */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
           <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[150px] rounded-full mix-blend-screen" />
@@ -183,7 +136,6 @@ export default function SymbolAudit() {
         </div>
 
         <div className="max-w-[1700px] mx-auto relative z-10 flex flex-col min-h-screen space-y-8">
-          {/* HEADER SECTION */}
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 mb-6">
             <div>
               <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
@@ -195,7 +147,6 @@ export default function SymbolAudit() {
             </div>
             
             <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
-              {/* Asset Class Filter */}
               <div className="flex flex-col gap-1 w-full md:w-48">
                 <label className="text-[9px] font-black text-zinc-500 uppercase ml-2 tracking-widest">Asset Class</label>
                 <div className="relative">
@@ -225,7 +176,6 @@ export default function SymbolAudit() {
             </div>
           </div>
 
-          {/* TOP METRIC CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 md:gap-8">
             <AnalysisCard 
               title="Most Profitable" 
@@ -254,7 +204,6 @@ export default function SymbolAudit() {
             />
           </div>
 
-          {/* DATA TABLE */}
           <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] rounded-2xl md:rounded-[2.5rem] overflow-hidden flex-grow shadow-2xl backdrop-blur-md">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[800px]">
