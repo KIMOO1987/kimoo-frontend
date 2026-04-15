@@ -11,7 +11,7 @@ import {
   UserPlus,
   LayoutDashboard
 } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { createBrowserClient } from '@supabase/ssr';
 
 const adminMenuGroups = [
   {
@@ -41,9 +41,14 @@ const adminMenuGroups = [
 export default function AdminSidebar({ userRole }: { userRole: string }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-    const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const handleLogout = async () => {
     try {
