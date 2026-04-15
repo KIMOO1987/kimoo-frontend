@@ -156,13 +156,15 @@ const fetchBotData = async (isSilentRefresh = false) => {
       localStorage.setItem('okx_data_cache', JSON.stringify({ userId: user.id, tier: dashboardData.profile?.tier || 0, data: config }));
     }
 
-    // 5. HYDRATE THE TERMINAL LOGS INSTANTLY
+// 5. HYDRATE THE TERMINAL LOGS INSTANTLY
     if (dashboardData.logs && dashboardData.logs.length > 0) {
       const formattedLogs = dashboardData.logs.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
       
       setLogs((prev) => {
-        const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
-        const finalLogs = [...formattedLogs.reverse(), ...existingRealtime].slice(-100);
+        // 🚨 THE FIX: Array.from(new Set(...)) instantly deletes any duplicate text strings!
+        const uniqueLogs = Array.from(new Set([...formattedLogs.reverse(), ...prev]));
+        const finalLogs = uniqueLogs.slice(-100); // Keep only the last 100
+        
         localStorage.setItem('okx_terminal_logs', JSON.stringify(finalLogs)); 
         return finalLogs;
       });
@@ -199,8 +201,10 @@ const fetchBotData = async (isSilentRefresh = false) => {
   }, [addLog, supabase]);
 
   // Dedicated listener for OKX Bot Logs
-  useEffect(() => {
+    useEffect(() => {
     if (!userId) return;
+
+    // 🚨 Notice there is no "fetchRecentLogs" function here anymore, because the RPC does it!
 
     const logChannel = supabase.channel(`okx-logs-stream-${userId}`)
       .on('postgres_changes', 
@@ -208,8 +212,10 @@ const fetchBotData = async (isSilentRefresh = false) => {
         (payload) => {
           if (payload.new.message) {
             setLogs(prev => {
-              const newLogs = [...prev, `[${new Date().toLocaleTimeString()}] ${payload.new.message}`].slice(-100);
-              localStorage.setItem('okx_terminal_logs', JSON.stringify(newLogs)); // Save to cache
+              const newLog = `[${new Date().toLocaleTimeString()}] ${payload.new.message}`;
+              // Use Set here too just in case!
+              const newLogs = Array.from(new Set([...prev, newLog])).slice(-100);
+              localStorage.setItem('okx_terminal_logs', JSON.stringify(newLogs));
               return newLogs;
             });
           }
