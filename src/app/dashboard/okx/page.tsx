@@ -24,7 +24,13 @@ export default function OKXDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userTier, setUserTier] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cachedLogs = localStorage.getItem('okx_terminal_logs');
+      if (cachedLogs) return JSON.parse(cachedLogs);
+    }
+    return [];
+  });
   const terminalRef = useRef<HTMLDivElement>(null);
   
   // Settings & Credentials State
@@ -179,12 +185,12 @@ const fetchBotData = async (isSilentRefresh = false) => {
   }, [addLog, supabase]);
 
   // Dedicated listener for OKX Bot Logs
-  useEffect(() => {
+useEffect(() => {
     if (!userId) return;
 
     const fetchRecentLogs = async () => {
       const { data } = await supabase
-        .from('okx_bot_logs') // Target OKX table
+        .from('okx_bot_logs') // 🚨 Change to binance_bot_logs if on Binance page
         .select('message, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -192,30 +198,33 @@ const fetchBotData = async (isSilentRefresh = false) => {
         
       if (data && data.length > 0) {
         const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
+        
         setLogs((prev) => {
           const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
-          return [...history.reverse(), ...existingRealtime].slice(-100);
+          const finalLogs = [...history.reverse(), ...existingRealtime].slice(-100);
+          localStorage.setItem('okx_terminal_logs', JSON.stringify(finalLogs)); // Save to cache
+          return finalLogs;
         });
-      } else {
-        setLogs((prev) => prev.length === 0 ? [`[${new Date().toLocaleTimeString()}] SYSTEM: OKX Secure connection established. Awaiting new signals...`] : prev);
       }
     };
     fetchRecentLogs();
 
-    const logChannel = supabase
-      .channel(`okx-logs-stream-${userId}`)
+    const logChannel = supabase.channel(`okx-logs-stream-${userId}`)
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'okx_bot_logs', filter: `user_id=eq.${userId}` }, 
         (payload) => {
           if (payload.new.message) {
-            addLog(payload.new.message);
+            setLogs(prev => {
+              const newLogs = [...prev, `[${new Date().toLocaleTimeString()}] ${payload.new.message}`].slice(-100);
+              localStorage.setItem('okx_terminal_logs', JSON.stringify(newLogs)); // Save to cache
+              return newLogs;
+            });
           }
         }
-      )
-      .subscribe();
+      ).subscribe();
 
     return () => { supabase.removeChannel(logChannel); }
-  }, [userId, addLog, supabase]);
+  }, [userId, supabase]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -341,7 +350,14 @@ const saveAllSettings = async () => {
           </div>
           
           <div className="flex items-center gap-3 px-5 py-2.5 bg-white/[0.02] border border-white/[0.05] rounded-xl backdrop-blur-md shadow-xl">
-            {userId && <BotStatus userId={userId} exchangeName="okx" />}
+            {userId && (
+              <BotStatus 
+                userId={userId} 
+                exchangeName="okx" 
+                cachedStatus={botConfig?.status} 
+                cachedHeartbeat={botConfig?.last_heartbeat} 
+              />
+            )}
           </div>
         </div>
 
