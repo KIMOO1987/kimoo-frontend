@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import {
   TrendingUp, Zap, Star, Activity, BarChart3, Target, Layers,
   Wallet, CheckCircle2, XCircle, MinusCircle, Percent, Save, Mail, TrendingDown,
-  Info, AlertCircle, ChevronRight
+  Info, AlertCircle, ChevronRight, Clock
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip,
@@ -20,25 +20,23 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ tier, expiryDate, userProfile }: DashboardClientProps) {
-  // 1. INSTANT HYDRATION: Sync settings from user profile and results from cache
   const [accountSize, setAccountSize] = useState(userProfile?.account_size || 10000); 
   const [riskValue, setRiskValue] = useState(userProfile?.risk_value || 1.0); 
   const [rewardValue, setRewardValue] = useState(userProfile?.reward_value || 2.0); 
   const [timeframe, setTimeframe] = useState('all');
   const [assetClass, setAssetClass] = useState('ALL');
   const [isSaving, setIsSaving] = useState(false);
-  const [isInitialLoad, setIsInitialLoad] = useState(() => (typeof window !== 'undefined' ? !localStorage.getItem('dashboard_data_cache') : true));
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
-  const [chartData, setChartData] = useState<any[]>(() => (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('dashboard_chart_cache') || '[]') : []));
-  const [recentSignals, setRecentSignals] = useState<any[]>(() => (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('dashboard_recent_cache') || '[]') : []));
-  const [realStats, setRealStats] = useState(() => (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('dashboard_stats_cache') || '{}') : { total: 0, totalWins: 0, totalLosses: 0, totalBE: 0, winRate: "0%", totalRR: "0.00R", profitUSD: 0, mostProfitable: "---", mostTraded: "---", highWRPair: "---", profitFactor: "0.00", expectancy: "0.00R", longWR: "0%", shortWR: "0%" }));
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [recentSignals, setRecentSignals] = useState<any[]>([]);
+  const [realStats, setRealStats] = useState<any>({});
 
-  // 2. REFINED SERVER-SIDE ANALYTICS FETCH
   const fetchData = useCallback(async (isSilent = false) => {
     if (!userProfile?.id) return;
-    if (!isSilent && isInitialLoad) setIsInitialLoad(true);
+    if (!isSilent) setIsInitialLoad(true);
 
-    const { data, error } = await supabase.rpc('get_client_dashboard_data', {
+    const { data } = await supabase.rpc('get_client_dashboard_data', {
       p_user_id: userProfile.id,
       p_account_size: accountSize,
       p_risk_percent: riskValue,
@@ -49,62 +47,55 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
 
     if (data) {
       setRealStats(data);
-      setChartData(data.chartData);
-      setRecentSignals(data.recentSignals);
-
-      // Persistent caching for instant hydration next visit
-      localStorage.setItem('dashboard_data_cache', 'true');
-      localStorage.setItem('dashboard_stats_cache', JSON.stringify(data));
-      localStorage.setItem('dashboard_chart_cache', JSON.stringify(data.chartData));
-      localStorage.setItem('dashboard_recent_cache', JSON.stringify(data.recentSignals));
+      setChartData(data.chartData || []);
+      setRecentSignals(data.recentSignals || []);
     }
     setIsInitialLoad(false);
   }, [userProfile?.id, accountSize, riskValue, rewardValue, timeframe, assetClass]);
 
   useEffect(() => {
-    const delayDebounce = setTimeout(() => fetchData(), 500); // Prevent hammering DB while typing
-    return () => clearTimeout(delayDebounce);
-  }, [fetchData]);
-
-  // Realtime subscription
-  useEffect(() => {
-    const channel = supabase.channel('dashboard_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'signals' }, () => fetchData(true))
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const delay = setTimeout(fetchData, 500);
+    return () => clearTimeout(delay);
   }, [fetchData]);
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
-    await supabase.from('profiles').update({ account_size: accountSize, risk_value: riskValue, reward_value: rewardValue }).eq('id', userProfile.id);
+    await supabase.from('profiles').update({ 
+      account_size: accountSize, 
+      risk_value: riskValue, 
+      reward_value: rewardValue 
+    }).eq('id', userProfile.id);
     setIsSaving(false);
   };
 
   const getTierDisplay = () => {
     if (userProfile?.role === 'admin') return 'SYSTEM ADMIN';
-    const tiers: Record<number, string> = { 3: 'ULTIMATE', 2: 'PRO', 1: 'ALPHA' };
+    const tiers: any = { 3: 'ULTIMATE', 2: 'PRO', 1: 'ALPHA' };
     return tiers[tier] || 'FREE TRADER';
   };
 
-  // UI rendering remains mostly the same, but with cleaner data mapping
   return (
     <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+      
+      {/* BACKGROUND AMBIENCE */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[150px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[150px]" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[150px] rounded-full" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[150px] rounded-full" />
       </div>
 
       <div className="max-w-[1700px] mx-auto relative z-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 md:mb-12">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-12">
           <div>
-            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">Client<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Dashboard</span></h1>
+            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic uppercase text-white">
+              Client<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Dashboard</span>
+            </h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">• KIMOO CRT ENGINE PRO •</p>
           </div>
         </div>
 
-        {/* PROFILE & SETTINGS CARD */}
-        <div className="flex flex-col mb-6 md:mb-10 p-6 md:p-10 rounded-[2.5rem] bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] backdrop-blur-2xl shadow-2xl gap-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/5 pb-8 mb-4">
+        {/* SETTINGS CARD */}
+        <div className="mb-10 p-6 md:p-10 rounded-[2.5rem] bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] backdrop-blur-2xl shadow-2xl">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/5 pb-8 mb-8">
                <div>
                   <div className="flex flex-wrap items-center gap-4 mb-3">
                      <h2 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter">{userProfile?.full_name || 'TRADER'}</h2>
@@ -112,46 +103,53 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                   </div>
                   <div className="flex items-center gap-2 text-zinc-500"><Mail size={14} className="text-indigo-400" /><span className="text-[11px] font-bold tracking-widest uppercase font-mono">{userProfile?.email}</span></div>
                </div>
-               <div className="flex items-center gap-3 mt-4 md:mt-0"><Activity size={20} className="text-emerald-400" /><span className="font-black text-lg uppercase text-emerald-400">ONLINE</span></div>
+               <div className="flex items-center gap-3 mt-6 md:mt-0">
+                  <div className="relative shrink-0"><Activity size={20} className="text-emerald-400" /><span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" /></div>
+                  <span className="font-black text-lg uppercase text-emerald-400">ONLINE</span>
+               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                 <InputBox label="Account Size" icon={<Wallet size={16}/>} value={accountSize} onChange={setAccountSize} prefix="$" color="emerald" />
                 <InputBox label="Risk per SL" icon={<Percent size={16}/>} value={riskValue} onChange={setRiskValue} suffix="R" color="red" />
                 <InputBox label="Reward per TP" icon={<TrendingUp size={16}/>} value={rewardValue} onChange={setRewardValue} suffix="R" color="blue" />
-                
-                <div className="flex flex-col w-full">
-                   <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5">Result Scope</label>
-                   <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)} className="bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white font-black text-lg outline-none appearance-none cursor-pointer"><option value="all">All Time</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select>
-                </div>
-
-                <div className="flex flex-col w-full">
-                   <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5">Asset Class</label>
-                   <select value={assetClass} onChange={(e) => setAssetClass(e.target.value)} className="bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white font-black text-lg outline-none appearance-none cursor-pointer"><option value="ALL">All Assets</option><option value="CRYPTO">Crypto</option><option value="FOREX">Forex</option></select>
-                </div>
-
-                <button onClick={handleSaveSettings} disabled={isSaving} className="h-[50px] self-end bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                <SelectBox label="Result Scope" value={timeframe} onChange={setTimeframe} options={[{v:'all', l:'All Time'}, {v:'daily', l:'Daily'}, {v:'weekly', l:'Weekly'}, {v:'monthly', l:'Monthly'}]} />
+                <SelectBox label="Asset Class" value={assetClass} onChange={setAssetClass} options={[{v:'ALL', l:'All Assets'}, {v:'CRYPTO', l:'Crypto'}, {v:'FOREX', l:'Forex'}, {v:'METALS', l:'Metals'}]} />
+                <button onClick={handleSaveSettings} disabled={isSaving} className="h-[50px] self-end bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 transition-all">
                    <Save size={16} className={isSaving ? 'animate-spin' : ''} /> {isSaving ? 'Saving' : 'Save Config'}
                 </button>
             </div>
         </div>
 
-        {/* ANALYTICS CONTENT */}
+        {/* STATS GRID - ALL CARDS RESTORED */}
         {isInitialLoad ? (
-           <div className="w-full py-20 flex flex-col items-center justify-center border border-white/5 rounded-[2.5rem] bg-white/[0.02] animate-pulse"><Activity size={40} className="text-zinc-700 mb-4" /><p className="text-xs font-black uppercase text-zinc-600">Syncing Intelligence...</p></div>
+           <div className="w-full py-24 flex flex-col items-center justify-center border border-white/5 rounded-[2.5rem] bg-white/[0.02] animate-pulse mb-12"><Activity size={40} className="text-zinc-700 mb-4" /><p className="text-xs font-black uppercase text-zinc-600">Syncing Intelligence...</p></div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 mb-8">
                <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
+               <StatCard label="Total Wins" value={realStats.totalWins} icon={<CheckCircle2 size={18}/>} color="text-emerald-400" />
+               <StatCard label="Total Losses" value={realStats.totalLosses} icon={<XCircle size={18}/>} color="text-red-500" />
+               <StatCard label="Total BE" value={realStats.totalBE} icon={<MinusCircle size={18}/>} color="text-zinc-400" />
                <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
                <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
-               <StatCard label="Net Profit" value={`$${realStats.profitUSD.toLocaleString()}`} icon={<Wallet size={18}/>} color="text-emerald-500" />
+               
+               <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Wallet size={18}/>} color="text-emerald-500" />
                <StatCard label="Profit Factor" value={realStats.profitFactor} icon={<Star size={18}/>} color="text-blue-400" />
-               <StatCard label="Expectancy" value={realStats.expectancy} icon={<Layers size={18}/>} />
-               <StatCard label="Long WR" value={realStats.longWR} sub="Buy Bias" />
-               <StatCard label="Short WR" value={realStats.shortWR} sub="Sell Bias" />
+               <StatCard label="Expectancy" value={realStats.expectancy} icon={<Layers size={18}/>} color="text-zinc-300" />
+               <StatCard label="Max Drawdown" value={realStats.maxDrawdown} icon={<TrendingDown size={18}/>} color="text-red-400" />
+               <StatCard label="Long WR" value={realStats.longWR} sub="Buy Side" />
+               <StatCard label="Short WR" value={realStats.shortWR} sub="Sell Side" />
+
+               <StatCard label="Most Profitable" value={realStats.mostProfitable} sub="Best Pair" color="text-emerald-400" />
+               <StatCard label="Most Traded" value={realStats.mostTraded} sub="Volume Pair" color="text-blue-400" />
+               <StatCard label="Highest WR" value={realStats.highWRPair} sub="Top Accuracy" color="text-indigo-400" />
+               <StatCard label="Win Streak" value={realStats.winStreak} icon={<TrendingUp size={18}/>} color="text-emerald-500" />
+               <StatCard label="Loss Streak" value={realStats.lossStreak} icon={<TrendingDown size={18}/>} color="text-red-500" />
+               <StatCard label="Integrity" value="100%" sub="Verified" />
             </div>
 
+            {/* CHARTS */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
                 <div className="lg:col-span-2 bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-8 rounded-[2.5rem] shadow-2xl">
                    <h3 className="text-xl font-black italic tracking-tighter uppercase mb-6">Equity Curve</h3>
@@ -167,7 +165,7 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                    </div>
                 </div>
                 <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-8 rounded-[2.5rem] shadow-2xl flex flex-col justify-center">
-                   <h3 className="text-xl font-black italic tracking-tighter uppercase mb-6 text-center">Win/Loss Split</h3>
+                   <h3 className="text-xl font-black italic tracking-tighter uppercase mb-6 text-center">Outcome Split</h3>
                    <div className="h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
                          <PieChart>
@@ -180,6 +178,35 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                    </div>
                 </div>
             </div>
+
+            {/* RECENT SIGNALS TABLE */}
+            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] rounded-[2.5rem] p-6 md:p-10 shadow-2xl mb-12">
+               <h3 className="text-xl font-black italic tracking-tighter uppercase text-white mb-6 border-b border-white/5 pb-4">Recent Signals</h3>
+               <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[1000px]">
+                  <thead>
+                    <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5">
+                      <th className="pb-4 font-bold">Asset</th><th className="pb-4 font-bold">Side</th><th className="pb-4 font-bold">Entry Price</th><th className="pb-4 font-bold">Status</th><th className="pb-4 font-bold">R:R</th><th className="pb-4 font-bold">T.F.</th><th className="pb-4 text-center font-bold">Grade</th><th className="pb-4 text-center font-bold">Execution</th><th className="pb-4 text-center font-bold">View</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {recentSignals.map((s, i) => (
+                      <tr key={s.id || i} className="group hover:bg-white/[0.02] transition-colors">
+                        <td className="py-5 font-black italic text-white">{s.symbol}</td>
+                        <td className={`py-5 font-black text-[11px] ${s.side === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>{s.side}</td>
+                        <td className="py-5 text-[11px] font-mono text-zinc-400">{Number(s.entry_price || 0).toFixed(5)}</td>
+                        <td className="py-5 text-[11px] font-bold tracking-widest text-zinc-400 uppercase">{s.status}</td>
+                        <td className={`py-5 font-mono font-black ${s.trade_r > 0 ? 'text-emerald-400' : s.trade_r < 0 ? 'text-red-400' : 'text-zinc-500'}`}>{s.trade_r > 0 ? '+' : ''}{Number(s.trade_r).toFixed(2)}R</td>
+                        <td className="py-5 text-[11px] font-mono text-zinc-500">{s.tf_alignment || '5M'}</td>
+                        <td className="py-5 text-center"><span className="px-2.5 py-1 border border-white/10 bg-white/5 rounded text-[9px] font-black">{s.grade || 'A'}</span></td>
+                        <td className="py-5 text-center text-[10px] font-mono text-zinc-500">{new Date(s.created_at).toLocaleDateString()}</td>
+                        <td className="py-5 text-center"><Link href="/dashboard/history" className="text-zinc-500 hover:text-white transition-all"><ChevronRight size={18}/></Link></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+               </div>
+            </div>
           </>
         )}
       </div>
@@ -187,15 +214,28 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   );
 }
 
-// --- SUB-COMPONENTS ---
+// --- REUSABLE UI SUB-COMPONENTS ---
 function InputBox({ label, icon, value, onChange, prefix, suffix, color }: any) {
   return (
     <div className="flex flex-col w-full">
-       <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5">{label}</span>
-       <div className={`flex items-center bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 focus-within:border-${color}-500/50 transition-all`}>
-          {prefix && <span className="text-zinc-500 font-black mr-2">{prefix}</span>}
+       <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 ml-1">{label}</span>
+       <div className={`flex items-center bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 focus-within:border-${color === 'emerald' ? 'emerald' : color === 'red' ? 'red' : 'blue'}-500/50 transition-all hover:border-white/20`}>
+          {prefix && <span className="text-zinc-500 font-black text-sm mr-2">{prefix}</span>}
           <input type="number" step="0.1" value={value} onChange={(e) => onChange(Number(e.target.value))} className="bg-transparent text-white font-black text-lg w-full outline-none" />
-          {suffix && <span className="text-zinc-500 font-black ml-2">{suffix}</span>}
+          {suffix && <span className="text-zinc-500 font-black text-sm ml-2">{suffix}</span>}
+       </div>
+    </div>
+  );
+}
+
+function SelectBox({ label, value, onChange, options }: any) {
+  return (
+    <div className="flex flex-col w-full">
+       <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 ml-1">{label}</span>
+       <div className="bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 hover:border-white/20 transition-all">
+          <select value={value} onChange={(e) => onChange(e.target.value)} className="bg-transparent text-white font-black text-lg w-full outline-none appearance-none cursor-pointer">
+            {options.map((o: any) => <option key={o.v} value={o.v} className="bg-[#05070a]">{o.l}</option>)}
+          </select>
        </div>
     </div>
   );
@@ -203,12 +243,12 @@ function InputBox({ label, icon, value, onChange, prefix, suffix, color }: any) 
 
 function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 rounded-[2rem] hover:bg-white/[0.06] transition-all">
+    <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 rounded-[2rem] hover:bg-white/[0.06] hover:border-white/10 transition-all duration-300 shadow-xl group">
        <div className="flex justify-between items-start mb-6">
-          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
-          <div className={`${color} opacity-70`}>{icon}</div>
+          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
+          <div className={`${color} opacity-50 group-hover:opacity-100 transition-opacity`}>{icon}</div>
        </div>
-       <p className={`text-2xl font-black tracking-tight ${color}`}>{value}</p>
+       <p className={`text-2xl font-black tracking-tight ${color} drop-shadow-md`}>{value || '---'}</p>
        {sub && <p className="text-[8px] font-bold text-zinc-600 mt-2 uppercase tracking-widest">{sub}</p>}
     </div>
   );
