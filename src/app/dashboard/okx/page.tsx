@@ -111,47 +111,61 @@ const fetchBotData = async (isSilentRefresh = false) => {
     }
     const user = session.user;
 
-    // 3. PARALLEL DB FETCHING: Fetch Profile and Exchange Auth at the exact same time
-    const [profileRes, authRes] = await Promise.all([
-      supabase.from('profiles').select('tier').eq('id', user.id).single(),
-      supabase.from('exchange_auth')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('exchange_name', 'okx') // 🚨 CHANGE THIS based on the page (okx, mexc, etc.)
-        .single()
-    ]);
-    
+    // 3. ONE SINGLE LIGHTNING FETCH VIA RPC
+    const { data: dashboardData, error: rpcError } = await supabase.rpc('get_dashboard_data', {
+      p_user_id: user.id,
+      p_exchange_name: 'okx' // 🚨 Change to 'binance', 'mexc', etc. depending on the page
+    });
+
+    if (rpcError) {
+      console.error("RPC Error:", rpcError);
+      setLoading(false);
+      return;
+    }
+
+    // 4. DISTRIBUTE THE UNIFIED DATA
     if (!isSilentRefresh) {
-      setUserTier(profileRes.data?.tier || 0);
+      setUserTier(dashboardData.profile?.tier || 0);
       setUserId(user.id);
     }
-    
-    // 4. UPDATE CACHE IN BACKGROUND
-    if (authRes.data) {
-      const data = authRes.data;
-      setBotConfig(data);
+
+    if (dashboardData.config && Object.keys(dashboardData.config).length > 0) {
+      const config = dashboardData.config;
+      setBotConfig(config);
+      
       if (!isSilentRefresh) {
-        setDailyRisk(data.daily_risk_wallet || 1000);
-        setRiskPercent(data.risk_percentage || 1.0);
-        setMinRR(data.rr || 1.2);
-        setMaxConcurrent(data.max_concurrent_setups || 3);
-        setIsBotEnabled(data.is_bot_enabled ?? true);
-        setApiKey(data.api_key || '');
-        setPassphrase(data.passphrase || '');
-        setEnvironment(data.environment || 'testnet');
-        setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
+        setDailyRisk(config.daily_risk_wallet || 1000);
+        setRiskPercent(config.risk_percentage || 1.0);
+        setMinRR(config.rr || 1.2);
+        setMaxConcurrent(config.max_concurrent_setups || 3);
+        setIsBotEnabled(config.is_bot_enabled ?? true);
+        setApiKey(config.api_key || '');
+        setPassphrase(config.passphrase || '');
+        setEnvironment(config.environment || 'testnet');
+        setAllowedSymbols(config.allowed_symbols ?? POPULAR_SYMBOLS);
         
         const dbGrades = [];
-        if (data.allow_aplusplus ?? true) dbGrades.push('A++');
-        if (data.allow_aplus ?? true) dbGrades.push('A+');
-        if (data.allow_good ?? true) dbGrades.push('GOOD');
-        if (data.allow_normal ?? false) dbGrades.push('NORMAL');
+        if (config.allow_aplusplus ?? true) dbGrades.push('A++');
+        if (config.allow_aplus ?? true) dbGrades.push('A+');
+        if (config.allow_good ?? true) dbGrades.push('GOOD');
+        if (config.allow_normal ?? false) dbGrades.push('NORMAL');
         setAllowedGrades(dbGrades);
       }
       
-      localStorage.setItem('okx_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data }));
-    } else {
-      localStorage.setItem('okx_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data: null }));
+      // Cache the config
+      localStorage.setItem('okx_data_cache', JSON.stringify({ userId: user.id, tier: dashboardData.profile?.tier || 0, data: config }));
+    }
+
+    // 5. HYDRATE THE TERMINAL LOGS INSTANTLY
+    if (dashboardData.logs && dashboardData.logs.length > 0) {
+      const formattedLogs = dashboardData.logs.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
+      
+      setLogs((prev) => {
+        const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
+        const finalLogs = [...formattedLogs.reverse(), ...existingRealtime].slice(-100);
+        localStorage.setItem('okx_terminal_logs', JSON.stringify(finalLogs)); 
+        return finalLogs;
+      });
     }
     
     setLoading(false);
@@ -185,29 +199,8 @@ const fetchBotData = async (isSilentRefresh = false) => {
   }, [addLog, supabase]);
 
   // Dedicated listener for OKX Bot Logs
-useEffect(() => {
+  useEffect(() => {
     if (!userId) return;
-
-    const fetchRecentLogs = async () => {
-      const { data } = await supabase
-        .from('okx_bot_logs') // 🚨 Change to binance_bot_logs if on Binance page
-        .select('message, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(30);
-        
-      if (data && data.length > 0) {
-        const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
-        
-        setLogs((prev) => {
-          const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
-          const finalLogs = [...history.reverse(), ...existingRealtime].slice(-100);
-          localStorage.setItem('okx_terminal_logs', JSON.stringify(finalLogs)); // Save to cache
-          return finalLogs;
-        });
-      }
-    };
-    fetchRecentLogs();
 
     const logChannel = supabase.channel(`okx-logs-stream-${userId}`)
       .on('postgres_changes', 
