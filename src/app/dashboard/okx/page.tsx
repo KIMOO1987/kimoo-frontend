@@ -60,10 +60,10 @@ export default function OKXDashboard() {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-100));
   }, []);
 
-  const fetchBotData = async (isSilentRefresh = false) => {
+const fetchBotData = async (isSilentRefresh = false) => {
+    // 1. INSTANT OPTIMISTIC UI: Unblock the screen immediately if cache exists
     if (!isSilentRefresh) {
-      // Optimistic Cache Load (OKX specific)
-      const cached = localStorage.getItem('okx_data_cache');
+      const cached = localStorage.getItem('okx_data_cache'); // Change to 'okx' or 'mexc' depending on the page
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -77,9 +77,10 @@ export default function OKXDashboard() {
             setMaxConcurrent(parsed.data.max_concurrent_setups || 3);
             setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
             setApiKey(parsed.data.api_key || '');
-            setPassphrase(parsed.data.passphrase || ''); // LOAD PASSPHRASE
+            setPassphrase(parsed.data.passphrase || '');
             setEnvironment(parsed.data.environment || 'testnet');
             setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
+            
             const parsedGrades = [];
             if (parsed.data.allow_aplusplus ?? true) parsedGrades.push('A++');
             if (parsed.data.allow_aplus ?? true) parsedGrades.push('A+');
@@ -87,40 +88,41 @@ export default function OKXDashboard() {
             if (parsed.data.allow_normal ?? false) parsedGrades.push('NORMAL');
             setAllowedGrades(parsedGrades);
           }
-          setLoading(false);
+          setLoading(false); // 🚀 Screen renders immediately here
         } catch (e) {}
       } else {
         setLoading(true);
       }
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // 2. LIGHTNING AUTH: Read local JWT session instead of forcing a server ping
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
     
-    if (authError || !user) {
+    if (authError || !session?.user) {
       if (!isSilentRefresh) setError("Authentication required. Please log in.");
       setLoading(false);
       return;
     }
+    const user = session.user;
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('tier')
-      .eq('id', user.id)
-      .single();
+    // 3. PARALLEL DB FETCHING: Fetch Profile and Exchange Auth at the exact same time
+    const [profileRes, authRes] = await Promise.all([
+      supabase.from('profiles').select('tier').eq('id', user.id).single(),
+      supabase.from('exchange_auth')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('exchange_name', 'okx') // 🚨 CHANGE THIS based on the page (okx, mexc, etc.)
+        .single()
+    ]);
     
     if (!isSilentRefresh) {
-      setUserTier(profile?.tier || 0);
+      setUserTier(profileRes.data?.tier || 0);
       setUserId(user.id);
     }
     
-    // FETCH FROM UNIFIED TABLE FILTERED BY OKX
-    const { data } = await supabase.from('exchange_auth')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('exchange_name', 'okx') 
-    .single();
-
-    if (data) {
+    // 4. UPDATE CACHE IN BACKGROUND
+    if (authRes.data) {
+      const data = authRes.data;
       setBotConfig(data);
       if (!isSilentRefresh) {
         setDailyRisk(data.daily_risk_wallet || 1000);
@@ -129,9 +131,10 @@ export default function OKXDashboard() {
         setMaxConcurrent(data.max_concurrent_setups || 3);
         setIsBotEnabled(data.is_bot_enabled ?? true);
         setApiKey(data.api_key || '');
-        setPassphrase(data.passphrase || ''); // SYNC PASSPHRASE
+        setPassphrase(data.passphrase || '');
         setEnvironment(data.environment || 'testnet');
         setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
+        
         const dbGrades = [];
         if (data.allow_aplusplus ?? true) dbGrades.push('A++');
         if (data.allow_aplus ?? true) dbGrades.push('A+');
@@ -140,10 +143,11 @@ export default function OKXDashboard() {
         setAllowedGrades(dbGrades);
       }
       
-      localStorage.setItem('okx_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data }));
+      localStorage.setItem('okx_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data }));
     } else {
-      localStorage.setItem('okx_data_cache', JSON.stringify({ userId: user.id, tier: profile?.tier || 0, data: null }));
+      localStorage.setItem('okx_data_cache', JSON.stringify({ userId: user.id, tier: profileRes.data?.tier || 0, data: null }));
     }
+    
     setLoading(false);
   };
 
