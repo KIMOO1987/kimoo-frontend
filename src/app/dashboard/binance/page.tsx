@@ -33,14 +33,15 @@ export default function BinanceDashboard() {
   const [maxConcurrent, setMaxConcurrent] = useState(3);
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
+  const [passphrase, setPassphrase] = useState(''); // NEW: Unified Passphrase State
   const [isBotEnabled, setIsBotEnabled] = useState(true);
   
-  // NEW: Grade Filters (Dropdown style)
+  // Grade Filters
   const AVAILABLE_GRADES = ['A++', 'A+', 'GOOD', 'NORMAL'];
   const [allowedGrades, setAllowedGrades] = useState<string[]>(['A++', 'A+', 'GOOD']);
   const [isGradeDropdownOpen, setIsGradeDropdownOpen] = useState(false);
 
-  // NEW: Symbol Filter
+  // Symbol Filter
   const POPULAR_SYMBOLS = [
     'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 
     'TAOUSDT', 'ADAUSDT', 'DOGEUSDT','AVAXUSDT', 'DOTUSDT',
@@ -50,7 +51,7 @@ export default function BinanceDashboard() {
   const [allowedSymbols, setAllowedSymbols] = useState<string[]>(POPULAR_SYMBOLS);
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
 
-  // NEW: Environment State (Testnet vs Live)
+  // Environment State (Testnet vs Live)
   const [environment, setEnvironment] = useState<'testnet' | 'live'>('testnet');
 
   // Optimized log handler to prevent unnecessary re-renders
@@ -60,7 +61,7 @@ export default function BinanceDashboard() {
 
   const fetchBotData = async (isSilentRefresh = false) => {
     if (!isSilentRefresh) {
-      // Optimistic Cache Load (Stale-While-Revalidate) to skip loading screen
+      // Optimistic Cache Load
       const cached = localStorage.getItem('binance_data_cache');
       if (cached) {
         try {
@@ -75,6 +76,7 @@ export default function BinanceDashboard() {
             setMaxConcurrent(parsed.data.max_concurrent_setups || 3);
             setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
             setApiKey(parsed.data.api_key || '');
+            setPassphrase(parsed.data.passphrase || ''); // LOAD PASSPHRASE
             setEnvironment(parsed.data.environment || 'testnet');
             setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
             const parsedGrades = [];
@@ -84,7 +86,7 @@ export default function BinanceDashboard() {
             if (parsed.data.allow_normal ?? false) parsedGrades.push('NORMAL');
             setAllowedGrades(parsedGrades);
           }
-          setLoading(false); // Instantly hide initialization screen
+          setLoading(false);
         } catch (e) {}
       } else {
         setLoading(true);
@@ -111,11 +113,14 @@ export default function BinanceDashboard() {
       setUserId(user.id);
     }
     
-    const { data } = await supabase.from('exchange_auth')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('exchange_name', 'binance') // Filter for Binance
-    .single();
+    // FETCH FROM UNIFIED TABLE FILTERED BY BINANCE
+    const { data } = await supabase
+      .from('exchange_auth')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('exchange_name', 'binance')
+      .single();
+
     if (data) {
       setBotConfig(data);
       if (!isSilentRefresh) {
@@ -125,6 +130,7 @@ export default function BinanceDashboard() {
         setMaxConcurrent(data.max_concurrent_setups || 3);
         setIsBotEnabled(data.is_bot_enabled ?? true);
         setApiKey(data.api_key || '');
+        setPassphrase(data.passphrase || ''); // SYNC PASSPHRASE
         setEnvironment(data.environment || 'testnet');
         setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
         const dbGrades = [];
@@ -157,7 +163,7 @@ export default function BinanceDashboard() {
     const channel = supabase
       .channel('binance-auth-sync')
       .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'binance_auth' },
+        { event: 'UPDATE', schema: 'public', table: 'exchange_auth', filter: 'exchange_name=eq.binance' },
         (payload) => {
             setBotConfig(payload.new);
         }
@@ -170,11 +176,10 @@ export default function BinanceDashboard() {
     }
   }, [addLog, supabase]);
 
-  // NEW: Dedicated listener for User's Private Bot Logs
+  // Dedicated listener for Binance Bot Logs
   useEffect(() => {
     if (!userId) return;
 
-    // Fetch historical logs on initial load so the terminal isn't empty
     const fetchRecentLogs = async () => {
       const { data } = await supabase
         .from('binance_bot_logs')
@@ -186,7 +191,6 @@ export default function BinanceDashboard() {
       if (data && data.length > 0) {
         const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
         setLogs((prev) => {
-          // Merge history safely without wiping realtime logs that arrived during the fetch
           const existingRealtime = prev.filter(l => !l.includes('SYSTEM:'));
           return [...history.reverse(), ...existingRealtime].slice(-100);
         });
@@ -239,6 +243,14 @@ export default function BinanceDashboard() {
         }
     }
 
+    // NEW: Encrypt Passphrase for unified storage
+    let encryptedPass = botConfig.passphrase;
+    if (passphrase) {
+        try {
+            encryptedPass = CryptoJS.AES.encrypt(passphrase, MASTER_ENCRYPTION_KEY).toString();
+        } catch (e) {}
+    }
+
     const updates: any = { 
         daily_risk_wallet: dailyRisk, 
         risk_percentage: riskPercent,
@@ -247,7 +259,7 @@ export default function BinanceDashboard() {
         is_bot_enabled: isBotEnabled,
         api_key: apiKey,
         api_secret: encryptedSecret,
-        // NEW: Sync environment to DB
+        passphrase: encryptedPass, // SAVE ENCRYPTED PASSPHRASE
         environment: environment,
         allowed_symbols: allowedSymbols,
         allow_aplusplus: allowedGrades.includes('A++'),
@@ -257,11 +269,12 @@ export default function BinanceDashboard() {
         updated_at: new Date().toISOString()
     };
 
-    const { error } = await supabase.from('binance_auth').update(updates).eq('id', botConfig.id);
+    const { error } = await supabase.from('exchange_auth').update(updates).eq('id', botConfig.id);
 
     if (!error) {
         addLog(`✅ System Secured & Cloud Synced to ${environment.toUpperCase()}.`);
         setApiSecret(''); 
+        setPassphrase(''); // Clear plaintext on success
     } else {
         addLog(`❌ Sync Failed: ${error.message}`);
     }
@@ -324,7 +337,7 @@ export default function BinanceDashboard() {
                 <ShieldCheck size={16} /> Secure API Vault
               </h2>
               <div className="space-y-6">
-                {/* NEW: ENVIRONMENT TOGGLE */}
+                {/* ENVIRONMENT TOGGLE */}
                 <div>
                   <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-2"><Activity size={10}/> Network Mode</label>
                   <div className="flex bg-white/[0.02] rounded-xl p-1.5 border border-white/[0.08]">
@@ -363,6 +376,20 @@ export default function BinanceDashboard() {
                     placeholder="••••••••••••"
                   />
                 </div>
+
+                {/* PASSPHRASE (Hidden for Binance, visible for OKX) */}
+                {botConfig?.exchange_name === 'okx' && (
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> API Passphrase</label>
+                    <input 
+                      type="password" 
+                      value={passphrase} 
+                      onChange={(e) => setPassphrase(e.target.value)} 
+                      className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white outline-none focus:border-white/50" 
+                      placeholder="Passphrase..."
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -389,7 +416,6 @@ export default function BinanceDashboard() {
                         value={riskPercent} 
                         onChange={(e) => setRiskPercent(Number(e.target.value))} 
                         className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-yellow-500/50 hover:border-white/20 transition-all"
-
                       />
                   </div>
                   <div className="space-y-2">
