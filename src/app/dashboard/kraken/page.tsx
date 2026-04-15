@@ -33,9 +33,10 @@ export default function KrakenDashboard() {
   const [maxConcurrent, setMaxConcurrent] = useState(3);
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
+  const [passphrase, setPassphrase] = useState(''); // NEW: Unified Passphrase State
   const [isBotEnabled, setIsBotEnabled] = useState(true);
   
-  // NEW: Grade Filters (Dropdown style)
+  // NEW: Grade Filters
   const AVAILABLE_GRADES = ['A++', 'A+', 'GOOD', 'NORMAL'];
   const [allowedGrades, setAllowedGrades] = useState<string[]>(['A++', 'A+', 'GOOD']);
   const [isGradeDropdownOpen, setIsGradeDropdownOpen] = useState(false);
@@ -75,6 +76,7 @@ export default function KrakenDashboard() {
             setMaxConcurrent(parsed.data.max_concurrent_setups || 3);
             setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
             setApiKey(parsed.data.api_key || '');
+            setPassphrase(parsed.data.passphrase || ''); // LOAD PASSPHRASE
             setEnvironment(parsed.data.environment || 'testnet');
             setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
             const parsedGrades = [];
@@ -126,6 +128,7 @@ export default function KrakenDashboard() {
         setMaxConcurrent(data.max_concurrent_setups || 3);
         setIsBotEnabled(data.is_bot_enabled ?? true);
         setApiKey(data.api_key || '');
+        setPassphrase(data.passphrase || ''); // SYNC PASSPHRASE
         setEnvironment(data.environment || 'testnet');
         setAllowedSymbols(data.allowed_symbols ?? POPULAR_SYMBOLS);
         const dbGrades = [];
@@ -176,7 +179,7 @@ export default function KrakenDashboard() {
 
     const fetchRecentLogs = async () => {
       const { data } = await supabase
-        .from('kraken_bot_logs') // Specific Kraken Log Table
+        .from('kraken_bot_logs') 
         .select('message, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -237,6 +240,14 @@ export default function KrakenDashboard() {
         }
     }
 
+    // NEW: Encrypt Passphrase for unified storage
+    let encryptedPass = botConfig.passphrase;
+    if (passphrase) {
+        try {
+            encryptedPass = CryptoJS.AES.encrypt(passphrase, MASTER_ENCRYPTION_KEY).toString();
+        } catch (e) {}
+    }
+
     const updates: any = { 
         daily_risk_wallet: dailyRisk, 
         risk_percentage: riskPercent,
@@ -245,6 +256,7 @@ export default function KrakenDashboard() {
         is_bot_enabled: isBotEnabled,
         api_key: apiKey,
         api_secret: encryptedSecret,
+        passphrase: encryptedPass, // SAVE ENCRYPTED PASSPHRASE
         environment: environment,
         allowed_symbols: allowedSymbols,
         allow_aplusplus: allowedGrades.includes('A++'),
@@ -259,6 +271,7 @@ export default function KrakenDashboard() {
     if (!error) {
         addLog(`✅ Kraken System Secured & Cloud Synced to ${environment.toUpperCase()}.`);
         setApiSecret(''); 
+        setPassphrase(''); // Clear plaintext
     } else {
         addLog(`❌ Sync Failed: ${error.message}`);
     }
@@ -340,7 +353,7 @@ export default function KrakenDashboard() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Settings2 size={10}/> API Key</label>
+                  <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Settings2 size={10}/> Public API Key</label>
                   <input 
                     type="text" 
                     value={apiKey} 
@@ -359,6 +372,20 @@ export default function KrakenDashboard() {
                     placeholder="••••••••••••"
                   />
                 </div>
+
+                {/* PASSPHRASE (Conditional display for parity) */}
+                {botConfig?.exchange_name === 'okx' && (
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> API Passphrase</label>
+                    <input 
+                      type="password" 
+                      value={passphrase} 
+                      onChange={(e) => setPassphrase(e.target.value)} 
+                      className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white outline-none focus:border-white/50" 
+                      placeholder="Passphrase..."
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
