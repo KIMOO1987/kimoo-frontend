@@ -341,7 +341,7 @@ const saveAllSettings = async () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-12">
           <div>
             <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
-              <img src="/okx-logo.png" alt="OKX" className="w-8 h-8 md:w-10 md:h-10 object-contain brightness-200 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+              <img src="/okx.png" alt="OKX" className="w-8 h-8 md:w-10 md:h-10 object-contain brightness-200 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
               OKX<span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 to-zinc-400">Terminal</span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
