@@ -187,7 +187,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                    <div className="h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
                          <PieChart>
-                            <Pie data={[{ name: 'Wins', value: realStats.totalWins }, { name: 'Losses', value: realStats.totalLosses }, { name: 'BE', value: realStats.totalBE }]} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none">
+                            <RechartsTooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '1rem', color: '#fff' }} itemStyle={{ color: '#fff' }} />
+                            <Pie data={[{ name: 'Wins', value: realStats.totalWins }, { name: 'Losses', value: realStats.totalLosses }, { name: 'BE', value: realStats.totalBE }]} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none" label={{ fill: '#a1a1aa', fontSize: 12, fontWeight: 'bold' }}>
                                <Cell fill="#34d399" /><Cell fill="#ef4444" /><Cell fill="#52525b" />
                             </Pie>
                          </PieChart>
