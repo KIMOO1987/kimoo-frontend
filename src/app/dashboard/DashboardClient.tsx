@@ -34,7 +34,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
     total: 0, totalWins: 0, totalLosses: 0, totalBE: 0,
     winRate: "0%", totalRR: "0.00R", profitUSD: "$0.00",
     mostProfitable: "---", mostTraded: "---", highWRPair: "---",
-    maxDrawdown: "0.00R", profitFactor: "0.00", expectancy: "0.00R"
+    maxDrawdown: "0.00R", profitFactor: "0.00", expectancy: "0.00R",
+    winStreak: 0, lossStreak: 0, longWR: "0%", shortWR: "0%"
   });
 
   const fetchData = useCallback(async (isSilent = false) => {
@@ -235,7 +236,7 @@ function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
           <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
           <div className={`${color} opacity-50`}>{icon}</div>
        </div>
-       <p className={`text-2xl font-black tracking-tight ${color} drop-shadow-md`}>{value || '---'}</p>
+       <p className={`text-2xl font-black tracking-tight ${color} drop-shadow-md`}>{value ?? '---'}</p>
        {sub && <p className="text-[8px] font-bold text-zinc-600 mt-2 uppercase tracking-widest">{sub}</p>}
     </div>
   );
