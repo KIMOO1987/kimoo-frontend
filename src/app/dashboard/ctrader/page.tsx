@@ -66,12 +66,13 @@ export default function CTraderDashboard() {
           .from('bot_signals')
           .select('bot_token, is_active')
           .eq('user_id', user.id)
+          .eq('platform', 'cTrader')
           .maybeSingle();
 
         if (!data && !tokenError) {
           const { data: newData } = await supabase
             .from('bot_signals')
-            .insert([{ user_id: user.id }])
+            .insert([{ user_id: user.id, platform: 'cTrader' }])
             .select()
             .single();
           data = newData;
@@ -116,7 +117,7 @@ export default function CTraderDashboard() {
 
   // Dedicated listener for User's Private cBot Logs
   useEffect(() => {
-    if (!userId) return;
+    if (!botToken) return;
 
     // Fetch historical logs on initial load
     const fetchRecentLogs = async () => {
@@ -124,6 +125,7 @@ export default function CTraderDashboard() {
         .from('cbot_logs')
         .select('message, created_at')
         .eq('user_id', userId)
+        .eq('bot_token', botToken)
         .order('created_at', { ascending: false })
         .limit(30);
         
@@ -143,7 +145,7 @@ export default function CTraderDashboard() {
       .subscribe();
 
     return () => { supabase.removeChannel(logChannel); }
-  }, [userId, addLog, supabase]);
+  }, [botToken, addLog, supabase]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -172,8 +174,8 @@ export default function CTraderDashboard() {
         addLog(`cTrader Bridge: ${action === 'start' ? 'ACTIVE & LISTENING' : 'OFFLINE'}.`);
         
         // Sync the new status to the Supabase Database
-        if (userId) {
-          await supabase.from('bot_signals').update({ is_active: action === 'start' }).eq('user_id', userId);
+        if (botToken) {
+          await supabase.from('bot_signals').update({ is_active: action === 'start' }).eq('bot_token', botToken);
         }
       } else {
         addLog(`Error: Server responded with status ${res.status}`);
