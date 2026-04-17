@@ -1,29 +1,148 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
 import AccessGuard from '@/components/AccessGuard';
-import { Terminal, Power, Settings2, Server, Activity, ShieldCheck } from 'lucide-react';
+import { Terminal, Power, Settings2, Server, Activity, ShieldCheck, Copy } from 'lucide-react';
 
 export default function MT5Dashboard() {
   const [status, setStatus] = useState('stopped');
-  const [logs, setLogs] = useState<{time: string, msg: string}[]>([]);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [botToken, setBotToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const terminalRef = useRef<HTMLDivElement>(null);
 
-  const addLog = (msg: string) => {
-    setLogs((prev) => [...prev, { time: new Date().toLocaleTimeString(), msg }].slice(-100));
-  };
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  useEffect(() => {
+    const savedStatus = sessionStorage.getItem('mt5_bridge_status');
+    if (savedStatus === 'running') {
+      setStatus('running');
+    }
+
+    async function initializeBridge(isSilentRefresh = false) {
+      try {
+        if (!isSilentRefresh) {
+          const cached = sessionStorage.getItem('mt5_data_cache');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              setBotToken(parsed.botToken);
+              setLoading(false);
+            } catch (e) {}
+          } else {
+            setLoading(true);
+          }
+        }
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user) {
+          setLoading(false);
+          return;
+        }
+        if (!isSilentRefresh) setUserId(user.id);
+
+        let { data, error: tokenError } = await supabase
+          .from('bot_signals')
+          .select('bot_token, is_active')
+          .eq('user_id', user.id)
+          .eq('platform', 'MT5')
+          .maybeSingle();
+
+        if (!data && !tokenError) {
+          const { data: newData } = await supabase
+            .from('bot_signals')
+            .insert([{ user_id: user.id, platform: 'MT5' }])
+            .select()
+            .single();
+          data = newData;
+        }
+
+        if (data) {
+          if (!isSilentRefresh) setBotToken(data.bot_token);
+          if (data.is_active) {
+            setStatus('running');
+            sessionStorage.setItem('mt5_bridge_status', 'running');
+          } else {
+            setStatus('stopped');
+            sessionStorage.setItem('mt5_bridge_status', 'stopped');
+          }
+          sessionStorage.setItem('mt5_data_cache', JSON.stringify({
+            botToken: data.bot_token
+          }));
+        }
+      } catch (err) {
+        console.error("MT5 Bridge Init Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    initializeBridge();
+    const refreshInterval = setInterval(() => initializeBridge(true), 30000);
+    return () => clearInterval(refreshInterval);
+  }, [supabase]);
+
+  const addLog = useCallback((msg: string) => {
+    setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-100));
+  }, []);
+
+  useEffect(() => {
+    if (!botToken) return;
+
+    const fetchRecentLogs = async () => {
+      const { data } = await supabase
+        .from('cbot_logs')
+        .select('message, created_at')
+        .eq('bot_token', botToken)
+        .order('created_at', { ascending: false })
+        .limit(30);
+        
+      if (data) {
+        const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
+        setLogs(history.reverse());
+      }
+    };
+    fetchRecentLogs();
+
+    const logChannel = supabase
+      .channel(`private-mt5-logs-${botToken}`)
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'cbot_logs', filter: `bot_token=eq.${botToken}` }, 
+        (payload) => { addLog(payload.new.message); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(logChannel); }
+  }, [botToken, addLog, supabase]);
 
   const handleControl = async (action: 'start' | 'stop') => {
-    addLog(`Sending ${action} command to MT5 Windows VPS...`);
-    const res = await fetch('/api/terminal/control', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ platform: 'mt5', action }),
-    });
+    addLog(`Sending ${action.toUpperCase()} command to MT5 Cloud Bridge...`);
+    try {
+      const res = await fetch('/api/terminal/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: 'mt5', action }),
+      });
 
-    if (res.ok) {
-      setStatus(action === 'start' ? 'running' : 'stopped');
-      addLog(`MT5 Bridge ${action === 'start' ? 'initialized' : 'disconnected'}.`);
+      if (res.ok) {
+        setStatus(action === 'start' ? 'running' : 'stopped');
+        sessionStorage.setItem('mt5_bridge_status', action === 'start' ? 'running' : 'stopped');
+        addLog(`MT5 Bridge: ${action === 'start' ? 'ACTIVE & LISTENING' : 'OFFLINE'}.`);
+        
+        if (botToken) {
+          await supabase.from('bot_signals').update({ is_active: action === 'start' }).eq('bot_token', botToken);
+        }
+      } else {
+        addLog(`Error: Server responded with status ${res.status}`);
+      }
+    } catch (e) {
+      addLog("Connection Error: Check your internet or API route.");
     }
   };
 
@@ -36,6 +155,20 @@ export default function MT5Dashboard() {
       });
     }
   }, [logs]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#030407]">
+        <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+          <Activity size={40} className="text-blue-500 mb-4 animate-spin" />
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-800">Initializing Secure Bridge...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const apiBaseUrl = "https://kimoocrt.vercel.app/api/signals";
+  const fullUrl = botToken ? `${apiBaseUrl}?botId=${botToken}` : "Generating Token...";
 
   return (
     <AccessGuard requiredTier={3} tierName="Lifetime Pro">
@@ -100,6 +233,31 @@ export default function MT5Dashboard() {
                 >
                   <Power size={16} /> DISCONNECT
                 </button>
+
+                <div className="mt-8 pt-8 border-t border-white/5">
+                  <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <Server size={14} className="text-blue-400" /> Unique Signal URL
+                  </label>
+                  <div className="relative group">
+                    <input 
+                      readOnly 
+                      value={fullUrl} 
+                      className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-4 pr-12 py-4 text-[10px] md:text-xs font-mono text-blue-400 outline-none hover:border-white/20 transition-all cursor-text overflow-hidden text-ellipsis"
+                    />
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(fullUrl);
+                        addLog("URL Copied to clipboard.");
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/[0.05] border border-white/[0.05] hover:bg-white/[0.1] hover:text-white rounded-lg transition-all text-zinc-400"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                  <p className="mt-5 text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-relaxed">
+                    Paste this endpoint into your <span className="text-white border-b border-white/20 pb-0.5">Kimoo EA</span> parameters within MT5.
+                  </p>
+                </div>
               </div>
 
               {/* Server Config Block */}
@@ -147,13 +305,25 @@ export default function MT5Dashboard() {
                       <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Core Connection...</span>
                     </div>
                   ) : (
-                    logs.map((log, i) => (
-                      <div key={i} className="flex gap-4">
-                        <span className="text-zinc-600 shrink-0 select-none">[{log.time}]</span>
-                        <span className="text-blue-500 shrink-0 font-bold select-none">MT5-CORE:</span>
-                        <span className="text-zinc-300 break-words">{log.msg}</span>
-                      </div>
-                    ))
+                    logs.map((log, i) => {
+                      const firstBracket = log.indexOf(']');
+                      const timeStr = log.substring(0, firstBracket + 1);
+                      const msgStr = log.substring(firstBracket + 2);
+                      return (
+                        <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-blue-500/5 border-l-2 border-blue-500 pl-3 py-1' : ''}`}>
+                          <span className="text-zinc-600 shrink-0 select-none">{timeStr}</span>
+                          <span className="shrink-0 font-bold select-none text-blue-500">BRIDGE:</span>
+                          <span className={`break-words ${
+                            log.includes('❌') || log.includes('Error') ? 'text-red-400' : 
+                            log.includes('🚀') ? 'text-blue-300 font-bold' : 
+                            log.includes('✅') ? 'text-emerald-400' : 
+                            'text-zinc-300'
+                          }`}>
+                            {msgStr}
+                          </span>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
