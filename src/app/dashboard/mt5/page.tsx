@@ -186,6 +186,7 @@ export default function MT5Dashboard() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-12">
             <div>
               <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+                <img src="/mt5.png" alt="MetaTrader 5" className="w-8 h-8 md:w-10 md:h-10 object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
                 MetaTrader 5<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Terminal</span>
               </h1>
               <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
@@ -257,27 +258,6 @@ export default function MT5Dashboard() {
                   <p className="mt-5 text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-relaxed">
                     Paste this endpoint into your <span className="text-white border-b border-white/20 pb-0.5">Kimoo EA</span> parameters within MT5.
                   </p>
-                </div>
-              </div>
-
-              {/* Server Config Block */}
-              <div className="bg-gradient-to-br from-white/[0.02] to-transparent border border-white/[0.05] p-6 md:p-8 rounded-[2.5rem]">
-                <h2 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <Server size={14} /> VPS Identity
-                </h2>
-                <div className="space-y-5">
-                  <div className="flex justify-between items-center border-b border-white/[0.02] pb-3">
-                    <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Login ID</span>
-                    <span className="text-[10px] font-black text-white font-mono tracking-widest">8829103</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-white/[0.02] pb-3">
-                    <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Server / Broker</span>
-                    <span className="text-[10px] font-black text-blue-400 font-mono tracking-widest drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]">ICMarkets-SC</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Latency Node</span>
-                    <span className="text-[10px] font-black text-emerald-400 font-mono tracking-widest drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">12ms</span>
-                  </div>
                 </div>
               </div>
             </div>
