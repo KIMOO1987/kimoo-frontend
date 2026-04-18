@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import {
   TrendingUp, Zap, Star, Activity, BarChart3, Target, Layers,
   Wallet, CheckCircle2, XCircle, MinusCircle, Percent, Save, Mail, TrendingDown,
-  Info, AlertCircle, ChevronRight, Clock
+  Info, AlertCircle, ChevronRight, Clock, Key, Copy, Check
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip,
@@ -27,6 +27,17 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   const [assetClass, setAssetClass] = useState('ALL');
   const [isSaving, setIsSaving] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [copied, setCopied] = useState(false); // <-- NEW STATE
+  
+    // --- NEW COPY FUNCTION ---
+    const handleCopyLicense = () => {
+      if (userProfile?.id) {
+        navigator.clipboard.writeText(userProfile.id);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+      }
+    };
+
   
   const [chartData, setChartData] = useState<any[]>([]);
   const [recentSignals, setRecentSignals] = useState<any[]>([]);
@@ -115,12 +126,37 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
         {/* SETTINGS CARD */}
         <div className="mb-10 p-6 md:p-10 rounded-[2.5rem] bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] backdrop-blur-2xl shadow-2xl">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/5 pb-8 mb-8">
-               <div>
+              <div>
                   <div className="flex flex-wrap items-center gap-4 mb-3">
                      <h2 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter">{userProfile?.full_name || 'TRADER'}</h2>
                      <span className="bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[10px] font-black px-4 py-1.5 rounded-lg uppercase tracking-widest">{getTierDisplay()}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-zinc-500"><Mail size={14} className="text-indigo-400" /><span className="text-[11px] font-bold tracking-widest uppercase font-mono">{userProfile?.email}</span></div>
+                  
+                  {/* Email Row */}
+                  <div className="flex items-center gap-2 text-zinc-500 mb-2">
+                     <Mail size={14} className="text-indigo-400" />
+                     <span className="text-[11px] font-bold tracking-widest uppercase font-mono">{userProfile?.email}</span>
+                  </div>
+
+                  {/* License Key / UUID Row */}
+                  <div className="flex items-center gap-2 text-zinc-500 bg-white/[0.02] border border-white/[0.05] w-fit px-3 py-1.5 rounded-lg">
+                     <Key size={14} className="text-blue-400" />
+                     <span className="text-[11px] font-bold tracking-widest uppercase font-mono">
+                        LICENSE: <span className="text-zinc-300">{userProfile?.id || 'NO-KEY-FOUND'}</span>
+                     </span>
+                     <button 
+                        onClick={handleCopyLicense}
+                        className="ml-2 hover:bg-white/10 p-1.5 rounded transition-all flex items-center justify-center cursor-pointer group"
+                        title="Copy License Key"
+                     >
+                        {copied ? (
+                           <Check size={14} className="text-emerald-400" />
+                        ) : (
+                           <Copy size={14} className="text-zinc-400 group-hover:text-white transition-colors" />
+                        )}
+                     </button>
+                     {copied && <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest ml-1 animate-pulse">Copied!</span>}
+                  </div>
                </div>
                <div className="flex items-center gap-3 mt-6 md:mt-0">
                   <Activity size={20} className="text-emerald-400" />
