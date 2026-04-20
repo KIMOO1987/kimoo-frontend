@@ -15,8 +15,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          // Fix: Ensure options (like path/expiry) are passed correctly
-          cookiesToSet.forEach(({ name, value, options }) => {
+          cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value)
           })
           supabaseResponse = NextResponse.next({
@@ -30,46 +29,39 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Use getUser() for security.
   const { data: { user } } = await supabase.auth.getUser()
-  const pathname = request.nextUrl.pathname;
+  const pathname = request.nextUrl.pathname
 
-  // Route for Admin
-  if (!user && pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
-    return NextResponse.redirect(new URL('/admin/login', request.url));
-  }
-  
-  // --- THE FIX: SAFE PASSAGE ---
-  // 1. Allow the callback to run without interference
+  // 1. Always allow the auth callback to run
   if (pathname.startsWith('/auth')) {
-    return supabaseResponse;
+    return supabaseResponse
   }
 
-  // 2. Allow the update-password page to load even if the session is still "warming up"
+  // 2. Always allow the update-password page
   if (pathname === '/update-password') {
-    return supabaseResponse;
+    return supabaseResponse
   }
 
-  // 3. ONLY THEN: Protect the dashboard
+  // 3. Protect /dashboard — redirect unauthenticated users to login
   if (!user && pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // 4. Redirect logged-in users away from login/signup (but NOT from update-password)
+  // 4. Protect /admin routes — redirect unauthenticated users to admin login
+  if (!user && pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
+    return NextResponse.redirect(new URL('/admin/login', request.url))
+  }
+
+  // 5. Redirect logged-in users away from login/signup
   if (user && (pathname === '/login' || pathname === '/signup')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  return supabaseResponse;
+  return supabaseResponse
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/public-health (Your Cron-job route!)
-     * - _next/static, _next/image, favicon.ico, etc.
-     */
     '/((?!api/public-health|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
