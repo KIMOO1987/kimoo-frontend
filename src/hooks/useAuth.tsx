@@ -42,41 +42,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
-
-    const checkUser = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user && mounted) {
+  
+    // Safety net: if Supabase takes too long, unblock the UI anyway
+    const timeout = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 4000);
+  
+    // onAuthStateChange is the ONLY source of truth.
+    // It fires INITIAL_SESSION immediately on load — no need for getSession().
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+  
+        clearTimeout(timeout); // Auth responded — cancel the safety timer
+  
+        if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id);
+          setLoading(false); // ✅ Unblock the UI immediately
+          fetchProfile(session.user.id); // Fetch profile in background (no await)
         } else {
           setUser(null);
           setTier(0);
+          setRole('user');
+          setLoading(false); // ✅ Unblock the UI immediately
         }
-      } catch (error) {
-        console.error("Initial session check error:", error);
-      } finally {
-        if (mounted) setLoading(false);
       }
-    };
-
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-      } else {
-        setUser(null);
-        setTier(0);
-        setRole('user');
-      }
-      if (mounted) setLoading(false);
-    });
-
+    );
+  
     return () => {
       mounted = false;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
