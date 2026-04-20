@@ -77,8 +77,13 @@ export async function requestPasswordReset(formData: FormData) {
  * This uses the Service Role Key to bypass user-facing flows.
  */
 export async function adminForceResetPassword(userId: string, newPassword: string) {
-  // CRITICAL: You must implement a session check here to ensure the 
-  // person calling this is actually an Admin or Moderator!
+  const cookieStore = await cookies();
+  const supabase = createServerClient(...); // regular server client
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+  
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  if (profile?.role !== 'admin') throw new Error('Forbidden');
   
   const supabaseAdmin = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
