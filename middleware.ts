@@ -48,7 +48,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 4. Protect /admin routes — redirect unauthenticated users to admin login
-  if (!user && pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
+  if (!user && pathname.startsWith('/admin')) {
     return NextResponse.redirect(new URL('/admin/login', request.url))
   }
 
