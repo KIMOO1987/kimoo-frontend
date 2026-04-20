@@ -14,8 +14,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null);
-  const [tier, setTier] = useState<number>(0); // Initialize to 0
-  const [role, setRole] = useState<string>('user'); // Initialize to 'user'
+  const [tier, setTier] = useState<number>(0);
+  const [role, setRole] = useState<string>('user');
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -33,8 +33,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setRole(profile.role ?? 'user');
       }
     } catch (error) {
-      console.error("Profile fetch error:", error);
-      // Fallback to basic access on error
       setTier(0);
       setRole('user');
     }
@@ -42,33 +40,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
-  
-    // Safety net: if Supabase takes too long, unblock the UI anyway
+
+    // Safety net: if Supabase never responds, unblock the UI after 4 seconds
     const timeout = setTimeout(() => {
       if (mounted) setLoading(false);
     }, 4000);
-  
-    // onAuthStateChange is the ONLY source of truth.
-    // It fires INITIAL_SESSION immediately on load — no need for getSession().
+
+    // onAuthStateChange is the single source of truth.
+    // It fires INITIAL_SESSION on page load — no need for a separate getSession() call.
+    // This eliminates the race condition and the hang on token refresh after inactivity.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-  
+
         clearTimeout(timeout); // Auth responded — cancel the safety timer
-  
+
         if (session?.user) {
           setUser(session.user);
-          setLoading(false); // ✅ Unblock the UI immediately
-          fetchProfile(session.user.id); // Fetch profile in background (no await)
+          setLoading(false); // Unblock UI immediately — don't wait for profile
+          fetchProfile(session.user.id); // Fetch profile in background
         } else {
           setUser(null);
           setTier(0);
           setRole('user');
-          setLoading(false); // ✅ Unblock the UI immediately
+          setLoading(false);
         }
       }
     );
-  
+
     return () => {
       mounted = false;
       clearTimeout(timeout);
