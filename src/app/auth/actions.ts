@@ -1,4 +1,5 @@
-'use client' // If using this in a client component, or remove if using as Server Actions
+'use client'
+
 import { createBrowserClient } from '@supabase/ssr'
 
 export async function signOut() {
