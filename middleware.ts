@@ -34,6 +34,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname;
 
+  // Route for Admin
+  if (!user && pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
+    return NextResponse.redirect(new URL('/admin/login', request.url));
+  }
+  
   // --- THE FIX: SAFE PASSAGE ---
   // 1. Allow the callback to run without interference
   if (pathname.startsWith('/auth')) {
