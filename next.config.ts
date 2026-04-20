@@ -1,12 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 1. Ignore TypeScript errors to bypass the 'risk' property build failure
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-
-  // 2. Add rewrites to mask the Supabase URL
   async rewrites() {
     return [
       {
