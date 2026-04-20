@@ -3,17 +3,17 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { 
-  Lock, 
-  Mail, 
-  Loader2, 
-  UserPlus, 
-  ArrowLeft, 
-  ShieldCheck, 
-  User, 
-  Globe, 
-  MapPin, 
-  Calendar 
+import {
+  Lock,
+  Mail,
+  Loader2,
+  UserPlus,
+  ArrowLeft,
+  ShieldCheck,
+  User,
+  Globe,
+  MapPin,
+  Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,7 +27,7 @@ export default function SignUpPage() {
     password: '',
     confirmPassword: ''
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const router = useRouter();
@@ -41,21 +41,39 @@ export default function SignUpPage() {
     setLoading(true);
     setMessage(null);
 
-    // 1. Validation: Password Match
+    // 1. Age validation — must be 18+
+    const age = parseInt(formData.age);
+    if (isNaN(age) || age < 18) {
+      setMessage({ type: 'error', text: 'You must be at least 18 years old to register.' });
+      setLoading(false);
+      return;
+    }
+
+    // 2. Password strength — minimum 8 characters with at least one number
+    if (formData.password.length < 8) {
+      setMessage({ type: 'error', text: 'Password must be at least 8 characters long.' });
+      setLoading(false);
+      return;
+    }
+    if (!/\d/.test(formData.password)) {
+      setMessage({ type: 'error', text: 'Password must contain at least one number.' });
+      setLoading(false);
+      return;
+    }
+
+    // 3. Password match
     if (formData.password !== formData.confirmPassword) {
       setMessage({ type: 'error', text: 'Passwords do not match.' });
       setLoading(false);
       return;
     }
 
-    // 2. Supabase Auth Sign Up with Metadata
-    const { data, error } = await supabase.auth.signUp({
+    // 4. Supabase sign up
+    const { error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        // These fields will be saved to auth.users.raw_user_meta_data
-        // and can be synced to your 'profiles' table via a Supabase Trigger
         data: {
           full_name: formData.fullName,
           age: formData.age,
@@ -69,9 +87,9 @@ export default function SignUpPage() {
       setMessage({ type: 'error', text: error.message });
       setLoading(false);
     } else {
-      setMessage({ 
-        type: 'success', 
-        text: 'Identity Initialized. Please check your email to verify your clearance.' 
+      setMessage({
+        type: 'success',
+        text: 'Identity Initialized. Please check your email to verify your clearance.'
       });
       setTimeout(() => router.push('/login'), 5000);
     }
@@ -81,7 +99,7 @@ export default function SignUpPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#05070a] py-12 px-6">
       <div className="crt-card w-full max-w-xl p-10 relative overflow-hidden">
         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-600/5 blur-[100px] pointer-events-none" />
-        
+
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 mb-4">
             <UserPlus size={10} className="text-blue-500" />
@@ -101,7 +119,6 @@ export default function SignUpPage() {
             </div>
           )}
 
-          {/* Identity Block */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
               <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 tracking-widest">Full Name</label>
@@ -111,10 +128,10 @@ export default function SignUpPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 tracking-widest">Age</label>
+              <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 tracking-widest">Age (18+ required)</label>
               <div className="relative">
                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
-                <input name="age" type="number" required value={formData.age} onChange={handleChange} placeholder="25" className="crt-input w-full pl-12" />
+                <input name="age" type="number" required min="18" max="100" value={formData.age} onChange={handleChange} placeholder="25" className="crt-input w-full pl-12" />
               </div>
             </div>
           </div>
@@ -136,7 +153,6 @@ export default function SignUpPage() {
             </div>
           </div>
 
-          {/* Authentication Block */}
           <div className="space-y-2 pt-2">
             <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 tracking-widest">Email Address</label>
             <div className="relative">
@@ -147,7 +163,7 @@ export default function SignUpPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 tracking-widest">Password</label>
+              <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 tracking-widest">Password (8+ chars, 1 number)</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
                 <input name="password" type="password" required value={formData.password} onChange={handleChange} placeholder="••••••••" className="crt-input w-full pl-12" />
@@ -164,10 +180,7 @@ export default function SignUpPage() {
 
           <button type="submit" disabled={loading} className="crt-btn-primary w-full flex items-center justify-center gap-2 py-4 mt-6 relative group overflow-hidden">
             {loading ? <Loader2 className="animate-spin" size={16} /> : (
-              <>
-                <span className="relative z-10 font-black uppercase text-xs tracking-widest">Initialize Account</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-              </>
+              <span className="relative z-10 font-black uppercase text-xs tracking-widest">Initialize Account</span>
             )}
           </button>
         </form>
