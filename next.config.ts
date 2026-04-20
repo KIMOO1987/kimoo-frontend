@@ -5,7 +5,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/signals",
-        destination: "https://mdchezakdhcwnoelwiye.supabase.co/functions/v1/get-signal",
+        // FIXED: use env var instead of hardcoded Supabase project URL
+        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/get-signal`,
       },
     ];
   },
