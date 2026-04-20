@@ -54,7 +54,7 @@ serve(async (req) => {
     // --- STEP 2: FETCH GLOBAL ACTIVE SIGNALS (No Join Needed) ---
     const { data: trades, error: tradesError } = await supabase
       .from('signals')
-      .select('symbol, side, sl, tp, tp_secondary, status, is_active, created_at, grade, category', 'tf_alignment')
+      .select('symbol, side, sl, tp, tp_secondary, status, is_active, created_at, grade, category, tf_alignment')
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
