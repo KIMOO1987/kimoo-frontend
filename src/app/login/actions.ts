@@ -31,11 +31,9 @@ export async function login(formData: FormData) {
   })
 
   if (error) {
-    // Redirect back with an error param
     redirect('/login?error=Invalid credentials')
   }
 
-  // Forces a fresh server-side load of the dashboard
   redirect('/dashboard')
 }
 
@@ -62,7 +60,7 @@ export async function requestPasswordReset(formData: FormData) {
   )
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?next=/dashboard/settings`,
+    redirectTo: `${origin}/auth/callback?type=recovery`,
   })
 
   if (error) {
@@ -73,21 +71,46 @@ export async function requestPasswordReset(formData: FormData) {
 }
 
 /**
- * Admin/Moderator manual reset logic.
- * This uses the Service Role Key to bypass user-facing flows.
+ * Admin/Moderator manual reset — protected with server-side role check.
  */
 export async function adminForceResetPassword(userId: string, newPassword: string) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(...); // regular server client
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-  
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') throw new Error('Forbidden');
-  
+  const cookieStore = await cookies()
+
+  // 1. Verify the caller is logged in and is an admin
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: (cookiesToSet) => {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {}
+        },
+      },
+    }
+  )
+
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) throw new Error('Unauthorized: No session found.')
+
+  const { data: callerProfile } = await supabaseAuth
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (callerProfile?.role !== 'admin' && callerProfile?.role !== 'moderator') {
+    throw new Error('Forbidden: Insufficient role.')
+  }
+
+  // 2. Use the service role client to reset the target user's password
   const supabaseAdmin = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!, // Requires service_role key
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {
         getAll: () => [],
@@ -118,19 +141,17 @@ export async function submitManualResetRequest(formData: FormData) {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: () => {}, // No session needed for insert
+        setAll: () => {},
       },
     }
   )
 
-  // 1. Find the user ID by email (optional, helps tracking)
   const { data: userData } = await supabase
     .from('profiles')
     .select('id')
     .eq('email', email)
-    .single();
+    .single()
 
-  // 2. Insert request
   const { error } = await supabase
     .from('password_reset_requests')
     .insert({
@@ -138,9 +159,9 @@ export async function submitManualResetRequest(formData: FormData) {
       full_name: fullName || 'Unknown Trader',
       user_id: userData?.id || null,
       status: 'pending'
-    });
+    })
 
-  if (error) redirect('/forgot-password?error=Failed to submit request');
+  if (error) redirect('/forgot-password?error=Failed to submit request')
 
-  redirect('/forgot-password?success=Support request sent. A moderator will contact you.');
+  redirect('/forgot-password?success=Support request sent. A moderator will contact you.')
 }
