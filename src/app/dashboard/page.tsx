@@ -1,5 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers'; 
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import DashboardClient from './DashboardClient';
 
@@ -8,7 +8,7 @@ export const fetchCache = 'force-no-store';
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies(); 
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
         setAll: (cookiesToSet) => {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options) 
+              cookieStore.set(name, value, options)
             );
           } catch {
             // Handled by middleware
@@ -29,11 +29,11 @@ export default async function DashboardPage() {
     }
   );
 
-  // 1. SECURE AUTH CHECK
+  // 1. Secure auth check
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // 2. FETCH USER PROFILE DATA (Updated to include tier and role)
+  // 2. Fetch user profile
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('id, tier, role, plan_type, expiry_date, full_name, country, email, account_size, risk_value, reward_value')
@@ -42,40 +42,33 @@ export default async function DashboardPage() {
 
   let activeProfile = profile;
 
-  // 3. AUTO-REPAIR: Ensure profile record exists
+  // 3. Auto-repair: if no profile exists, create one
+  // FIXED: upsert select now includes plan_type to match the type of activeProfile above
   if (!activeProfile || error) {
-    console.log(`[REPAIR] Profile missing for ${user.email}. Creating record...`);
     const { data: newProfile } = await supabase
       .from('profiles')
-      .upsert({ 
-        id: user.id, 
-        email: user.email, 
+      .upsert({
+        id: user.id,
+        email: user.email,
         tier: 0,
         role: 'user',
+        plan_type: null,
         full_name: 'TRADER',
         account_size: 100000,
         risk_value: 1.0,
         reward_value: 2.0
       })
-      .select('id, tier, role, expiry_date, full_name, country, email, account_size, risk_value, reward_value')
+      .select('id, tier, role, plan_type, expiry_date, full_name, country, email, account_size, risk_value, reward_value')
       .single();
-    
+
     activeProfile = newProfile;
   }
 
-  // DEBUG LOGS - Check your VSCode terminal for these!
-  console.log("--- KIMOO SIGNAL CONSOLE SYNC ---");
-  console.log("User:", user.email);
-  console.log("Tier Level:", activeProfile?.tier); // Should be 3 for you
-  console.log("Role:", activeProfile?.role);       // Should be admin for you
-  console.log("-----------------------");
-
-  // 4. Pass the CORRECT props to DashboardClient
   return (
-    <DashboardClient 
-      tier={activeProfile?.tier ?? 0} // Passing the numeric tier (0, 1, 2, or 3)
+    <DashboardClient
+      tier={activeProfile?.tier ?? 0}
       expiryDate={activeProfile?.expiry_date}
-      userProfile={activeProfile} // Passing the full object so DashboardClient has access to full_name, email, etc.
+      userProfile={activeProfile}
     />
   );
 }
