@@ -32,16 +32,7 @@ export async function GET(request: Request) {
       
       // LOGIC: Check if the session was created specifically for recovery
       // This is the most reliable way to detect a password reset
-      const isRecoveryFlow = 
-        requestUrl.searchParams.get('type') === 'recovery' || 
-        requestUrl.toString().includes('recovery') ||
-        session.user?.recovery_sent_at !== null; // Optional: extra check
-
-      if (isRecoveryFlow) {
-        // Use a relative path to ensure Vercel handles it correctly
-        return NextResponse.redirect(`${origin}/update-password`)
-      }
-
+      const isRecoveryFlow = requestUrl.searchParams.get('type') === 'recovery';
       // Default redirect for signups/logins
       const next = requestUrl.searchParams.get('next') ?? '/dashboard'
       return NextResponse.redirect(`${origin}${next}`)
