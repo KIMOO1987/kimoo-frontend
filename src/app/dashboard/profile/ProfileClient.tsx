@@ -178,7 +178,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-6">
           <div>
-            <h1 className="text-2xl md:text-5xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
               Account<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Identity</span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
