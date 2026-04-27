@@ -172,7 +172,7 @@ export default function ActiveSignalsPage() {
 
   return (
     <AccessGuard requiredTier={1} tierName="PRO">
-      <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+      <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
         
         {/* Ambient Glowing Backgrounds */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -185,10 +185,10 @@ export default function ActiveSignalsPage() {
           {/* Header Section */}
           <div className="mb-8 md:mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
             <div>
-              <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+              <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-zinc-900 dark:text-white">
                 Active<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Intelligence</span>
               </h1>
-              <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
+              <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 dark:text-zinc-500 font-bold mt-3 leading-none">
                 • LIVE CRT MARKET EXPOSURE •
               </p>
             </div>
@@ -211,7 +211,7 @@ export default function ActiveSignalsPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2.5rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-500 group shadow-2xl flex flex-col justify-between min-h-[500px]"
+                    className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-500 group shadow-2xl flex flex-col justify-between min-h-[500px]"
                   >
                     {/* Internal Ambient Glow */}
                     <div className={`absolute -top-24 -right-24 w-64 h-64 blur-[120px] opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity duration-700 ${
@@ -219,10 +219,10 @@ export default function ActiveSignalsPage() {
                     }`} />
 
                     <div className="relative z-10">
-                      <div className="flex justify-between items-start mb-8 border-b border-white/5 pb-6">
+                      <div className="flex justify-between items-start mb-8 border-b border-[var(--glass-border)] pb-6">
                         <div>
-                          <h3 className="text-3xl font-black text-white tracking-tighter italic uppercase drop-shadow-md">{signal.symbol}</h3>
-                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2 flex items-center gap-2">
+                          <h3 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter italic uppercase drop-shadow-md">{signal.symbol}</h3>
+                          <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mt-2 flex items-center gap-2">
                             {signal.strategy || 'KIMOO CRT PRO'} • {signal.tf_alignment || '5M'}
                           </p>
                         </div>
@@ -238,8 +238,8 @@ export default function ActiveSignalsPage() {
                       </div>
 
                       <div className="space-y-1.5 mb-8">
-                        <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-4 mb-4 flex justify-between items-center group-hover:border-white/[0.1] transition-colors">
-                          <div className="flex items-center gap-3 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                        <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl p-4 mb-4 flex justify-between items-center group-hover:border-white/[0.1] transition-colors">
+                          <div className="flex items-center gap-3 text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">
                               <Activity size={14} className="text-blue-400 animate-pulse"/> Status
                           </div>
                           <span className="text-xs font-black uppercase tracking-widest text-blue-400">{getDisplayStatus(signal.status)}</span>
@@ -249,7 +249,7 @@ export default function ActiveSignalsPage() {
                         <TradeDataRow icon={<Zap size={12} className="text-amber-400"/>} label="Entry Region" value={Number(signal.entry_price || 0).toFixed(5)} />
                         <TradeDataRow icon={<Shield size={12} className="text-red-400"/>} label="Invalidation" value={Number(signal.sl || 0).toFixed(5)} valueClass="text-red-400" />
                         
-                        <div className="my-2 border-t border-white/[0.05]" />
+                        <div className="my-2 border-t border-[var(--glass-border)]" />
 
                         <TradeDataRow 
                           icon={<Target size={12} className="text-emerald-400"/>} 
@@ -265,13 +265,13 @@ export default function ActiveSignalsPage() {
                           valueClass="text-yellow-500" 
                         />
 
-                        <div className="my-2 border-t border-white/[0.05]" />
+                        <div className="my-2 border-t border-[var(--glass-border)]" />
 
                         <TradeDataRow 
-                          icon={<Layout size={12} className="text-zinc-500"/>} 
+                          icon={<Layout size={12} className="text-zinc-600 dark:text-zinc-500"/>} 
                           label="Confluences" 
                           value={signal.confluences || 'Institutional Bias Confirmed'} 
-                          valueClass="text-zinc-400 text-[11px] italic" 
+                          valueClass="text-zinc-700 dark:text-zinc-400 text-[11px] italic" 
                         />
 
                         {/* Live Realtime RR */}
@@ -280,7 +280,7 @@ export default function ActiveSignalsPage() {
                           const isProfit = parseFloat(liveRRValue) >= 0;
                           return (
                             <div className={`mt-4 p-4 rounded-2xl border flex justify-between items-center transition-colors duration-500 ${isProfit ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
-                              <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-400 flex items-center gap-2">
                                 <Activity size={14} className={isProfit ? 'text-emerald-400' : 'text-red-400'} /> Live PnL
                               </div>
                               <span className={`text-lg font-black font-mono tracking-tight drop-shadow-md ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>{liveRRValue}</span>
@@ -290,7 +290,7 @@ export default function ActiveSignalsPage() {
                         
                         <div className="flex justify-between items-center pt-4 mt-2">
                           <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Time Elapsed</span>
-                          <span className="text-[10px] font-mono text-zinc-400 font-black uppercase flex items-center gap-2 bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/5">
+                          <span className="text-[10px] font-mono text-zinc-700 dark:text-zinc-400 font-black uppercase flex items-center gap-2 bg-[var(--glass-bg)] px-3 py-1.5 rounded-lg border border-[var(--glass-border)]">
                             <Clock size={12} /> {getTimeAgo(signal.created_at)}
                           </span>
                         </div>
@@ -299,23 +299,23 @@ export default function ActiveSignalsPage() {
 
                     <button 
                       onClick={() => handleViewSetup(signal.symbol)}
-                      className="relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn mt-4"
+                      className="relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn mt-4"
                     >
-                      <Layout size={16} className="text-blue-200 group-hover/btn:text-white transition-colors" /> 
+                      <Layout size={16} className="text-blue-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" /> 
                       Open Live Setup 
                       <ArrowUpRight size={16} className="text-blue-200 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
                     </button>
                   </motion.div>
                 ))
               ) : loadingSignals ? (
-                <div className="col-span-full w-full flex flex-col items-center justify-center py-32 border border-white/[0.05] rounded-[2.5rem] bg-white/[0.02] animate-pulse">
+                <div className="col-span-full w-full flex flex-col items-center justify-center py-32 border border-[var(--glass-border)] rounded-[2.5rem] bg-[var(--glass-bg)] animate-pulse">
                   <Activity size={40} className="text-zinc-700 mb-4" />
                   <p className="text-xs font-black uppercase tracking-widest text-zinc-600">Syncing Live Market Data...</p>
                 </div>
               ) : !loadingSignals && (
-                <div className="col-span-full w-full flex flex-col items-center justify-center py-40 border border-dashed border-white/[0.1] rounded-[2.5rem] bg-white/[0.01]">
+                <div className="col-span-full w-full flex flex-col items-center justify-center py-40 border border-dashed border-white/[0.1] rounded-[2.5rem] bg-[var(--glass-bg)]">
                   <AlertCircle size={48} className="text-zinc-700 mb-6" />
-                  <h3 className="text-2xl font-black italic tracking-tighter uppercase text-white mb-2">No Active Intelligence</h3>
+                  <h3 className="text-2xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-white mb-2">No Active Intelligence</h3>
                   <p className="text-sm font-bold text-zinc-600 uppercase tracking-widest">Awaiting Order Block Displacement...</p>
                 </div>
               )}
@@ -328,10 +328,10 @@ export default function ActiveSignalsPage() {
 }
 
 // --- HELPERS ---
-function TradeDataRow({ icon, label, value, valueClass = "text-white" }: any) {
+function TradeDataRow({ icon, label, value, valueClass = "text-zinc-900 dark:text-white" }: any) {
   return (
-    <div className="flex justify-between items-center py-2.5 hover:bg-white/[0.02] rounded-lg px-2 -mx-2 transition-colors">
-      <div className="flex items-center gap-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+    <div className="flex justify-between items-center py-2.5 hover:bg-[var(--glass-bg)] rounded-lg px-2 -mx-2 transition-colors">
+      <div className="flex items-center gap-3 text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">
         {icon} <span>{label}</span>
       </div>
       <span className={`text-sm font-mono font-black ${valueClass}`}>{value}</span>

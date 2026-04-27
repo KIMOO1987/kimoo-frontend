@@ -14,15 +14,15 @@ export default function SettingsPage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <header className="mb-12 text-center">
-        <h1 className="text-4xl font-black tracking-tighter text-white">Terminal Bridge</h1>
-        <p className="text-zinc-500 text-xs uppercase tracking-[0.3em] mt-2">Connect your MT4/MT5 to the CRT Engine</p>
+        <h1 className="text-4xl font-black tracking-tighter text-zinc-900 dark:text-white">Terminal Bridge</h1>
+        <p className="text-zinc-600 dark:text-zinc-500 text-xs uppercase tracking-[0.3em] mt-2">Connect your MT4/MT5 to the CRT Engine</p>
       </header>
 
-      <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
+      <div className="bg-[var(--input-bg)] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
           <div className="space-y-3">
-            <label className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-500 ml-1">
+            <label className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-600 dark:text-zinc-500 ml-1">
               <User size={14} /> MT4/5 Account ID
             </label>
             <input
@@ -30,12 +30,12 @@ export default function SettingsPage() {
               placeholder="e.g. 7781290"
               value={config.accountId}
               onChange={(e) => setConfig({...config, accountId: e.target.value})}
-              className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-blue-500 outline-none transition-all font-mono"
+              className="w-full bg-[var(--input-bg)] border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-blue-500 outline-none transition-all font-mono"
             />
           </div>
 
           <div className="space-y-3">
-            <label className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-500 ml-1">
+            <label className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-600 dark:text-zinc-500 ml-1">
               <Server size={14} /> Broker Server
             </label>
             <input
@@ -43,12 +43,12 @@ export default function SettingsPage() {
               placeholder="e.g. IC Markets-SC"
               value={config.server}
               onChange={(e) => setConfig({...config, server: e.target.value})}
-              className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-blue-500 outline-none transition-all font-mono"
+              className="w-full bg-[var(--input-bg)] border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-blue-500 outline-none transition-all font-mono"
             />
           </div>
 
           <div className="space-y-3 md:col-span-2">
-            <label className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-500 ml-1">
+            <label className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-600 dark:text-zinc-500 ml-1">
               <Lock size={14} /> Master/Investor Password
             </label>
             <input
@@ -56,7 +56,7 @@ export default function SettingsPage() {
               placeholder="••••••••••••"
               value={config.password}
               onChange={(e) => setConfig({...config, password: e.target.value})}
-              className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-blue-500 outline-none transition-all"
+              className="w-full bg-[var(--input-bg)] border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-blue-500 outline-none transition-all"
             />
           </div>
         </div>
@@ -77,7 +77,7 @@ export default function SettingsPage() {
         <div className="mt-10 relative">
           <button
             disabled
-            className="w-full bg-white/5 border border-white/10 text-zinc-500 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 cursor-not-allowed"
+            className="w-full bg-white/5 border border-white/10 text-zinc-600 dark:text-zinc-500 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 cursor-not-allowed"
           >
             <Clock size={18} />
             Coming Soon — Broker Bridge In Development

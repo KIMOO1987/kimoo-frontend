@@ -307,26 +307,26 @@ const saveAllSettings = async () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#030407]">
+    <div className="min-h-screen flex items-center justify-center ">
       <div className="flex flex-col items-center justify-center py-20 animate-pulse">
-        <Activity size={40} className="text-white mb-4 animate-spin" />
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500">Initializing OKX Terminal...</p>
+        <Activity size={40} className="text-zinc-900 dark:text-white mb-4 animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600 dark:text-zinc-500">Initializing OKX Terminal...</p>
       </div>
     </div>
   );
 
   if (error || (userTier !== null && userTier < 3)) {
     return (
-      <div className="min-h-screen bg-[#030407] flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen  flex flex-col items-center justify-center p-6 text-center">
         <ShieldAlert className="text-red-500 mb-4" size={48} />
-        <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Access Denied</h2>
-        <p className="text-zinc-500 text-sm mt-2 max-w-xs">{error || "This feature requires a Lifetime Pro (Tier 3) subscription."}</p>
+        <h2 className="text-2xl font-black text-zinc-900 dark:text-white uppercase italic tracking-tighter">Access Denied</h2>
+        <p className="text-zinc-600 dark:text-zinc-500 text-sm mt-2 max-w-xs">{error || "This feature requires a Lifetime Pro (Tier 3) subscription."}</p>
       </div>
     );
   }
 
   return (
-    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden transition-all duration-300">
+    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden transition-all duration-300">
       
       {/* Ambient Glowing Backgrounds - OKX White/Silver */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -339,16 +339,16 @@ const saveAllSettings = async () => {
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-12">
           <div>
-            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-zinc-900 dark:text-white">
               <img src="/okx.png" alt="OKX" className="w-8 h-8 md:w-10 md:h-10 object-contain brightness-200 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
               OKX<span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 to-zinc-400">Terminal</span>
             </h1>
-            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
+            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 dark:text-zinc-500 font-bold mt-3 leading-none">
               • OKX V5 {environment === 'live' ? 'LIVE' : 'DEMO'} EXECUTION ENGINE •
             </p>
           </div>
           
-          <div className="flex items-center gap-3 px-5 py-2.5 bg-white/[0.02] border border-white/[0.05] rounded-xl backdrop-blur-md shadow-xl">
+          <div className="flex items-center gap-3 px-5 py-2.5 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl backdrop-blur-md shadow-xl">
             {userId && (
               <BotStatus 
                 userId={userId} 
@@ -371,17 +371,17 @@ const saveAllSettings = async () => {
           {/* SIDEBAR: CONTROLS */}
           <div className="lg:col-span-4 space-y-6 md:space-y-8 order-2 lg:order-1">
             {/* AES VAULT */}
-            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
-              <h2 className="text-[11px] font-black text-white uppercase tracking-widest mb-6 flex items-center gap-3">
+            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
+              <h2 className="text-[11px] font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-3">
                 <ShieldCheck size={16} /> Secure API Vault
               </h2>
               <div className="space-y-6">
                 <div>
-                  <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-2"><Activity size={10}/> Network Mode</label>
-                  <div className="flex bg-white/[0.02] rounded-xl p-1.5 border border-white/[0.08]">
+                  <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-2"><Activity size={10}/> Network Mode</label>
+                  <div className="flex bg-[var(--glass-bg)] rounded-xl p-1.5 border border-[var(--glass-border)]">
                     <button 
                       onClick={() => setEnvironment('testnet')}
-                      className={`flex-1 py-2.5 text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${environment === 'testnet' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'text-zinc-500 hover:text-white'}`}
+                      className={`flex-1 py-2.5 text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${environment === 'testnet' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'text-zinc-600 dark:text-zinc-500 hover:text-zinc-900 dark:text-white'}`}
                     >
                       DEMO
                     </button>
@@ -395,22 +395,22 @@ const saveAllSettings = async () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Settings2 size={10}/> API Key</label>
+                  <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Settings2 size={10}/> API Key</label>
                   <input 
                     type="text" 
                     value={apiKey} 
                     onChange={(e) => setApiKey(e.target.value)} 
-                    className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white outline-none focus:border-white/50 hover:border-white/20 transition-all"
+                    className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-[var(--glass-border)]0 hover:border-white/20 transition-all"
                     placeholder="OKX V5 API Key..."
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> Secret Key (AES)</label>
+                  <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> Secret Key (AES)</label>
                   <input 
                     type="password" 
                     value={apiSecret} 
                     onChange={(e) => setApiSecret(e.target.value)} 
-                    className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white outline-none focus:border-white/50 hover:border-white/20 transition-all"
+                    className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-[var(--glass-border)]0 hover:border-white/20 transition-all"
                     placeholder="••••••••••••"
                   />
                 </div>
@@ -418,12 +418,12 @@ const saveAllSettings = async () => {
                 {/* OKX PASSPHRASE INPUT (Conditional display for parity) */}
                 {botConfig?.exchange_name === 'okx' && (
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> API Passphrase</label>
+                    <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Lock size={10}/> API Passphrase</label>
                     <input 
                       type="password" 
                       value={passphrase} 
                       onChange={(e) => setPassphrase(e.target.value)} 
-                      className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white outline-none focus:border-white/50 hover:border-white/20 transition-all" 
+                      className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-[var(--glass-border)]0 hover:border-white/20 transition-all" 
                       placeholder="OKX Passphrase..."
                     />
                   </div>
@@ -432,62 +432,62 @@ const saveAllSettings = async () => {
             </div>
 
             {/* RISK PARAMETERS */}
-            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-md space-y-6">
-              <h2 className="text-[11px] font-black text-white uppercase tracking-widest mb-6 flex items-center gap-3">
+            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-md space-y-6">
+              <h2 className="text-[11px] font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-3">
                 <Target size={16} /> Risk Strategy
               </h2>
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-1.5"><Wallet size={10}/> Wallet ($)</label>
+                      <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-1.5"><Wallet size={10}/> Wallet ($)</label>
                       <input 
                         type="number" 
                         value={dailyRisk} 
                         onChange={(e) => setDailyRisk(Number(e.target.value))} 
-                        className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-white/50 hover:border-white/20 transition-all"
+                        className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-[var(--glass-border)]0 hover:border-white/20 transition-all"
                       />
                   </div>
                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-1.5"><Percent size={10}/> Risk (%)</label>
+                      <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-1.5"><Percent size={10}/> Risk (%)</label>
                       <input 
                         type="number" 
                         step="0.1" 
                         value={riskPercent} 
                         onChange={(e) => setRiskPercent(Number(e.target.value))} 
-                        className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-white/50 hover:border-white/20 transition-all"
+                        className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-[var(--glass-border)]0 hover:border-white/20 transition-all"
                       />
                   </div>
                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Activity size={10}/> Max Concurrent</label>
+                      <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Activity size={10}/> Max Concurrent</label>
                       <input 
                         type="number" 
                         min="1"
                         max="20"
                         value={maxConcurrent} 
                         onChange={(e) => setMaxConcurrent(Number(e.target.value))} 
-                        className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-white/50 hover:border-white/20 transition-all"
+                        className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-[var(--glass-border)]0 hover:border-white/20 transition-all"
                       />
                   </div>
                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Target size={10}/> Min RR</label>
+                      <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2"><Target size={10}/> Min RR</label>
                       <input 
                         type="number" 
                         step="0.1" 
                         value={minRR} 
                         onChange={(e) => setMinRR(Number(e.target.value))} 
-                        className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-white/50 hover:border-white/20 transition-all"
+                        className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-[var(--glass-border)]0 hover:border-white/20 transition-all"
                       />
                   </div>
               </div>
               
               <div className="py-2">
-                  <label className="flex items-center gap-3 cursor-pointer group bg-white/[0.02] p-4 rounded-xl border border-white/[0.05] hover:border-white/30 hover:bg-white/[0.04] transition-all">
+                  <label className="flex items-center gap-3 cursor-pointer group bg-[var(--glass-bg)] p-4 rounded-xl border border-[var(--glass-border)] hover:border-white/30 hover:bg-[var(--glass-bg)] transition-all">
                       <input 
                         type="checkbox" 
                         checked={isBotEnabled} 
                         onChange={() => setIsBotEnabled(!isBotEnabled)} 
                         className="accent-white w-5 h-5 cursor-pointer"
                       />
-                      <span className="text-[11px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-white transition-colors">
+                      <span className="text-[11px] uppercase font-black tracking-widest text-zinc-700 dark:text-zinc-400 group-hover:text-zinc-900 dark:text-white transition-colors">
                         Engine Execution Armed
                       </span>
                   </label>
@@ -495,11 +495,11 @@ const saveAllSettings = async () => {
 
               {/* SETUP FILTERS */}
               <div className="relative">
-                <h3 className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-3">
+                <h3 className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-3">
                   <ShieldCheck size={10} /> Setup Filters
                 </h3>
                 <div 
-                  className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white flex justify-between items-center cursor-pointer hover:border-white/20 transition-all"
+                  className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white flex justify-between items-center cursor-pointer hover:border-white/20 transition-all"
                   onClick={() => setIsGradeDropdownOpen(!isGradeDropdownOpen)}
                 >
                   <span className="font-black tracking-widest uppercase text-[10px]">
@@ -509,13 +509,13 @@ const saveAllSettings = async () => {
                 </div>
                 
                 {isGradeDropdownOpen && (
-                  <div className="absolute z-50 top-[100%] left-0 w-full mt-2 bg-[#0a0a0a] border border-white/[0.08] rounded-xl shadow-2xl p-3 max-h-[250px] overflow-y-auto flex flex-col gap-1">
-                    <div className="flex gap-2 mb-2 pb-2 border-b border-white/[0.05]">
-                      <button onClick={() => setAllowedGrades(AVAILABLE_GRADES)} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-white font-bold tracking-widest transition-all">ALL</button>
-                      <button onClick={() => setAllowedGrades([])} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-white font-bold tracking-widest transition-all">NONE</button>
+                  <div className="absolute z-50 top-[100%] left-0 w-full mt-2 bg-[var(--input-bg)] border border-[var(--glass-border)] rounded-xl shadow-2xl p-3 max-h-[250px] overflow-y-auto flex flex-col gap-1">
+                    <div className="flex gap-2 mb-2 pb-2 border-b border-[var(--glass-border)]">
+                      <button onClick={() => setAllowedGrades(AVAILABLE_GRADES)} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-zinc-900 dark:text-white font-bold tracking-widest transition-all">ALL</button>
+                      <button onClick={() => setAllowedGrades([])} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-zinc-900 dark:text-white font-bold tracking-widest transition-all">NONE</button>
                     </div>
                     {AVAILABLE_GRADES.map(grade => (
-                      <label key={grade} className="flex items-center gap-3 cursor-pointer group hover:bg-white/[0.02] p-2 rounded-lg transition-all border border-transparent hover:border-white/[0.05]">
+                      <label key={grade} className="flex items-center gap-3 cursor-pointer group hover:bg-[var(--glass-bg)] p-2 rounded-lg transition-all border border-transparent hover:border-[var(--glass-border)]">
                         <input 
                           type="checkbox" 
                           checked={allowedGrades.includes(grade)}
@@ -524,7 +524,7 @@ const saveAllSettings = async () => {
                           }}
                           className="accent-white w-4 h-4 cursor-pointer"
                         />
-                        <span className="text-[10px] uppercase font-black tracking-widest text-zinc-300 group-hover:text-white">{grade} Setup</span>
+                        <span className="text-[10px] uppercase font-black tracking-widest text-zinc-800 dark:text-zinc-300 group-hover:text-zinc-900 dark:text-white">{grade} Setup</span>
                       </label>
                     ))}
                   </div>
@@ -533,11 +533,11 @@ const saveAllSettings = async () => {
 
               {/* ALLOWED SYMBOLS */}
               <div className="relative">
-                <h3 className="text-[9px] font-black text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-3">
+                <h3 className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-3">
                   <Activity size={10} /> Allowed Symbols Filter
                 </h3>
                 <div 
-                  className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3.5 text-xs font-mono text-white flex justify-between items-center cursor-pointer hover:border-white/20 transition-all"
+                  className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white flex justify-between items-center cursor-pointer hover:border-white/20 transition-all"
                   onClick={() => setIsSymbolDropdownOpen(!isSymbolDropdownOpen)}
                 >
                   <span className="font-black tracking-widest uppercase text-[10px]">
@@ -547,13 +547,13 @@ const saveAllSettings = async () => {
                 </div>
                 
                 {isSymbolDropdownOpen && (
-                  <div className="absolute z-50 top-[100%] left-0 w-full mt-2 bg-[#0a0a0a] border border-white/[0.08] rounded-xl shadow-2xl p-3 max-h-[250px] overflow-y-auto flex flex-col gap-1">
-                    <div className="flex gap-2 mb-2 pb-2 border-b border-white/[0.05]">
-                      <button onClick={() => setAllowedSymbols(POPULAR_SYMBOLS)} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-white font-bold tracking-widest transition-all">ALL</button>
-                      <button onClick={() => setAllowedSymbols([])} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-white font-bold tracking-widest transition-all">NONE</button>
+                  <div className="absolute z-50 top-[100%] left-0 w-full mt-2 bg-[var(--input-bg)] border border-[var(--glass-border)] rounded-xl shadow-2xl p-3 max-h-[250px] overflow-y-auto flex flex-col gap-1">
+                    <div className="flex gap-2 mb-2 pb-2 border-b border-[var(--glass-border)]">
+                      <button onClick={() => setAllowedSymbols(POPULAR_SYMBOLS)} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-zinc-900 dark:text-white font-bold tracking-widest transition-all">ALL</button>
+                      <button onClick={() => setAllowedSymbols([])} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-zinc-900 dark:text-white font-bold tracking-widest transition-all">NONE</button>
                     </div>
                     {POPULAR_SYMBOLS.map(sym => (
-                      <label key={sym} className="flex items-center gap-3 cursor-pointer group hover:bg-white/[0.02] p-2 rounded-lg transition-all border border-transparent hover:border-white/[0.05]">
+                      <label key={sym} className="flex items-center gap-3 cursor-pointer group hover:bg-[var(--glass-bg)] p-2 rounded-lg transition-all border border-transparent hover:border-[var(--glass-border)]">
                         <input 
                           type="checkbox" 
                           checked={allowedSymbols.includes(sym)}
@@ -562,7 +562,7 @@ const saveAllSettings = async () => {
                           }}
                           className="accent-white w-4 h-4 cursor-pointer"
                         />
-                        <span className="text-[10px] uppercase font-black tracking-widest text-zinc-300 group-hover:text-white">{sym}</span>
+                        <span className="text-[10px] uppercase font-black tracking-widest text-zinc-800 dark:text-zinc-300 group-hover:text-zinc-900 dark:text-white">{sym}</span>
                       </label>
                     ))}
                   </div>
@@ -571,7 +571,7 @@ const saveAllSettings = async () => {
 
               <button 
                 onClick={saveAllSettings} 
-                className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 border border-white/10 bg-white text-black shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:bg-zinc-200`}
+                className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 border border-[var(--glass-border)] bg-white text-black shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:bg-zinc-200`}
               >
                 <Save size={16} /> SAVE & SYNC OKX {environment.toUpperCase()}
               </button>
@@ -582,14 +582,14 @@ const saveAllSettings = async () => {
           <div className="lg:col-span-8 space-y-6 md:space-y-8 order-1 lg:order-2">
             
             {/* LOG TERMINAL */}
-            <div className="bg-[#020305] border border-white/[0.08] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[600px] lg:h-[calc(100vh-220px)] min-h-[500px] relative">
+            <div className="bg-[var(--input-bg)] border border-[var(--glass-border)] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[600px] lg:h-[calc(100vh-220px)] min-h-[500px] relative">
               <div className="absolute top-0 left-0 w-full h-full bg-white/5 blur-[100px] pointer-events-none" />
               
-              <div className="bg-white/[0.02] border-b border-white/[0.05] px-6 py-4 flex justify-between items-center relative z-10 backdrop-blur-md">
-                <div className="flex items-center gap-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                  <Terminal size={14} className="text-white" /> OKX_V5_STREAM [{environment}]
+              <div className="bg-[var(--glass-bg)] border-b border-[var(--glass-border)] px-6 py-4 flex justify-between items-center relative z-10 backdrop-blur-md">
+                <div className="flex items-center gap-3 text-[10px] font-black text-zinc-700 dark:text-zinc-400 uppercase tracking-widest">
+                  <Terminal size={14} className="text-zinc-900 dark:text-white" /> OKX_V5_STREAM [{environment}]
                 </div>
-                <span className="hidden sm:block text-[9px] text-zinc-500 font-mono bg-white/[0.05] border border-white/[0.05] px-2.5 py-1 rounded-md tracking-widest">
+                <span className="hidden sm:block text-[9px] text-zinc-600 dark:text-zinc-500 font-mono bg-white/[0.05] border border-[var(--glass-border)] px-2.5 py-1 rounded-md tracking-widest">
                   UUID: {botConfig?.id?.slice(0,18)}
                 </span>
               </div>
@@ -608,12 +608,12 @@ const saveAllSettings = async () => {
                   return (
                     <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-white/5 border-l-2 border-white pl-3 py-1' : ''}`}>
                       <span className="text-zinc-600 shrink-0 select-none">{timeStr}</span>
-                      <span className={`shrink-0 font-bold select-none text-white underline decoration-white/30`}>ENGINE:</span>
+                      <span className={`shrink-0 font-bold select-none text-zinc-900 dark:text-white underline decoration-white/30`}>ENGINE:</span>
                       <span className={`break-words ${
                         log.includes('❌') ? 'text-red-400' : 
-                        log.includes('🚀') ? 'text-white font-bold' : 
+                        log.includes('🚀') ? 'text-zinc-900 dark:text-white font-bold' : 
                         log.includes('✅') ? 'text-emerald-400' : 
-                        'text-zinc-300'
+                        'text-zinc-800 dark:text-zinc-300'
                       }`}>
                         {msgStr}
                       </span>

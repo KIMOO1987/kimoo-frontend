@@ -2,13 +2,23 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-static';
+
 export async function GET(request: Request) {
+  if (process.env.NEXT_EXPORT === 'true') {
+    return NextResponse.json({ message: 'Disabled during export' });
+  }
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const origin = requestUrl.origin
 
   if (code) {
-    const cookieStore = await cookies()
+    let cookieStore;
+    try {
+        cookieStore = await cookies();
+    } catch (e) {
+        return NextResponse.json({ error: 'Static export' });
+    }
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

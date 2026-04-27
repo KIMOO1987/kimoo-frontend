@@ -165,7 +165,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
   };
 
   return (
-    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
       
       {/* Ambient Glowing Backgrounds */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -178,10 +178,10 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-6">
           <div>
-            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-zinc-900 dark:text-white">
               Account<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Identity</span>
             </h1>
-            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
+            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 dark:text-zinc-500 font-bold mt-3 leading-none">
               • PERSONAL MANAGEMENT & BILLING DETAILS •
             </p>
           </div>
@@ -192,32 +192,32 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
         </div>
         {/* NEW: PLAN STATUS ROW (Synced with Dashboard) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center gap-6">
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] text-yellow-400 group-hover:scale-110 transition-transform duration-300 shadow-lg"><Star size={28} /></div>
+          <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center gap-6">
+            <div className="p-3.5 rounded-2xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-yellow-400 group-hover:scale-110 transition-transform duration-300 shadow-lg"><Star size={28} /></div>
             <div>
-              <span className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1.5">Current Plan</span>
-              <span className="text-2xl md:text-3xl font-black italic tracking-tighter uppercase text-white drop-shadow-md">
+              <span className="text-[9px] md:text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest block mb-1.5">Current Plan</span>
+              <span className="text-2xl md:text-3xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-white drop-shadow-md">
                  {initialData?.plan_type || (tier === 3 ? 'ULTIMATE' : tier === 2 ? 'PRO' : 'ALPHA')}
               </span>
             </div>
           </div>
-          <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center gap-6">
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] text-indigo-400 group-hover:scale-110 transition-transform duration-300 shadow-lg"><Clock size={28} /></div>
+          <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center gap-6">
+            <div className="p-3.5 rounded-2xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-indigo-400 group-hover:scale-110 transition-transform duration-300 shadow-lg"><Clock size={28} /></div>
             <div>
-              <span className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1.5">Validity Status</span>
+              <span className="text-[9px] md:text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest block mb-1.5">Validity Status</span>
               <div className="flex items-baseline gap-3">
                 <span className={`text-2xl md:text-3xl font-black italic tracking-tighter uppercase drop-shadow-md ${tier > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {tier > 0 ? 'ACTIVE' : 'EXPIRED'}
                 </span>
-                {tier > 0 && <span className="text-zinc-400 font-bold text-[11px] tracking-widest">({daysLeft} DAYS)</span>}
+                {tier > 0 && <span className="text-zinc-700 dark:text-zinc-400 font-bold text-[11px] tracking-widest">({daysLeft} DAYS)</span>}
               </div>
             </div>
           </div>
-          <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center gap-6">
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] text-blue-400 group-hover:scale-110 transition-transform duration-300 shadow-lg"><Fingerprint size={28} /></div>
+          <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center gap-6">
+            <div className="p-3.5 rounded-2xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-blue-400 group-hover:scale-110 transition-transform duration-300 shadow-lg"><Fingerprint size={28} /></div>
             <div>
-              <span className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1.5">Account ID</span>
-              <span className="text-xl md:text-2xl font-mono font-black text-white italic drop-shadow-md tracking-tighter">
+              <span className="text-[9px] md:text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest block mb-1.5">Account ID</span>
+              <span className="text-xl md:text-2xl font-mono font-black text-zinc-900 dark:text-white italic drop-shadow-md tracking-tighter">
                  #{initialData?.id?.slice(0, 8).toUpperCase() || 'KMO-XXXX'}
               </span>
             </div>
@@ -225,15 +225,15 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
           <div className="lg:col-span-7 space-y-6 md:space-y-8">
-            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-10 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
-              <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-8">
-                <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-3">
+            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-10 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
+              <div className="flex items-center justify-between mb-8 border-b border-[var(--glass-border)] pb-8">
+                <h3 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
                   <User size={16} className="text-blue-400" /> Personal Information
                 </h3>
                 <div className="flex items-center gap-5">
                   <div className="text-right hidden sm:block">
-                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Member Since</p>
-                    <p className="text-xs font-black text-white italic">{memberSince}</p>
+                    <p className="text-[9px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mb-1">Member Since</p>
+                    <p className="text-xs font-black text-zinc-900 dark:text-white italic">{memberSince}</p>
                   </div>
                   <input
                     type="file"
@@ -249,45 +249,45 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
                         <Activity size={20} className="text-blue-400" />
                       </div>
                     ) : avatarUrl ? (
-                      <img src={avatarUrl} alt="User Avatar" className="w-14 h-14 rounded-full object-cover border-2 border-white/10 group-hover:border-blue-500/50 transition-colors" />
+                      <img src={avatarUrl} alt="User Avatar" className="w-14 h-14 rounded-full object-cover border-2 border-[var(--glass-border)] group-hover:border-blue-500/50 transition-colors" />
                     ) : (
-                      <div className="w-14 h-14 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center overflow-hidden group-hover:border-blue-500/50 transition-colors">
-                        <User size={24} className="text-zinc-400 group-hover:text-blue-400 transition-colors" />
+                      <div className="w-14 h-14 rounded-full bg-white/[0.05] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden group-hover:border-blue-500/50 transition-colors">
+                        <User size={24} className="text-zinc-700 dark:text-zinc-400 group-hover:text-blue-400 transition-colors" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"><Camera size={16} className="text-white"/></div>
+                    <div className="absolute inset-0 bg-[var(--input-bg)]/60 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"><Camera size={16} className="text-zinc-900 dark:text-white"/></div>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-2.5">
-                  <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Full Name</label>
+                  <label className="text-[9px] md:text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest">Full Name</label>
                   <div className="relative">
-                    <input className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono font-bold text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
-                    <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono font-bold text-zinc-900 dark:text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
+                    <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" />
                   </div>
                 </div>
                 <div className="space-y-2.5">
-                  <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Registered Email</label>
+                  <label className="text-[9px] md:text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest">Registered Email</label>
                   <div className="relative opacity-60 cursor-not-allowed">
-                    <input className="w-full bg-white/[0.02] border border-white/[0.05] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-zinc-400 outline-none pointer-events-none" value={formData.email} readOnly />
-                    <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-zinc-700 dark:text-zinc-400 outline-none pointer-events-none" value={formData.email} readOnly />
+                    <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2.5">
-                    <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Country</label>
+                    <label className="text-[9px] md:text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest">Country</label>
                     <div className="relative">
-                      <input className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all" value={formData.country} onChange={(e) => setFormData({...formData, country: e.target.value})} />
-                      <Globe size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                      <input className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all" value={formData.country} onChange={(e) => setFormData({...formData, country: e.target.value})} />
+                      <Globe size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" />
                     </div>
                   </div>
                   <div className="space-y-2.5">
-                    <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Billing Address</label>
+                    <label className="text-[9px] md:text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest">Billing Address</label>
                     <div className="relative">
-                      <input className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
-                      <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                      <input className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+                      <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" />
                     </div>
                   </div>
                 </div>
@@ -299,10 +299,10 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
                   </motion.div>
                 )}
 
-                <button onClick={handleUpdateProfile} disabled={loading} className={`w-full mt-8 py-4 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 active:scale-95 flex items-center justify-center gap-3 ${
-                    loading ? 'bg-white/[0.05] border border-white/5 text-zinc-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)]'
+                <button onClick={handleUpdateProfile} disabled={loading} className={`w-full mt-8 py-4 text-zinc-900 dark:text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 active:scale-95 flex items-center justify-center gap-3 ${
+                    loading ? 'bg-white/[0.05] border border-[var(--glass-border)] text-zinc-600 dark:text-zinc-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)]'
                 }`}>
-                  {loading ? <RefreshCcw size={16} className="animate-spin text-zinc-400" /> : <Save size={16} className="text-blue-200" />}
+                  {loading ? <RefreshCcw size={16} className="animate-spin text-zinc-700 dark:text-zinc-400" /> : <Save size={16} className="text-blue-200" />}
                   {loading ? 'Processing Sync...' : 'Save Identity Changes'}
                 </button>
               </div>
@@ -311,7 +311,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
               <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /> Security Notice
               </h4>
-              <p className="text-xs leading-relaxed text-zinc-400 font-bold">
+              <p className="text-xs leading-relaxed text-zinc-700 dark:text-zinc-400 font-bold">
                 Identity details are verified strictly for localized billing requirements and advanced security protocols. Ensure accuracy to prevent access revocation.
               </p>
             </div>
@@ -319,56 +319,56 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
 
           <div className="lg:col-span-5 space-y-6 md:space-y-8">
             {/* Password Change Section */}
-            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-10 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
-              <h3 className="text-xs font-black text-white uppercase tracking-widest mb-8 flex items-center gap-3">
+            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-10 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
+              <h3 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-8 flex items-center gap-3">
                 <Lock size={16} className="text-red-400" /> Security Credentials
               </h3>
               
               <div className="space-y-6">
                 <div className="space-y-2.5">
-                  <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Old Password</label>
+                  <label className="text-[9px] md:text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest">Old Password</label>
                   <div className="relative">
-                    <input type="password" placeholder="••••••••" className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-white outline-none focus:border-red-500/50 hover:border-white/20 transition-all" value={passwordData.oldPassword} onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})} />
-                    <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input type="password" placeholder="••••••••" className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-red-500/50 hover:border-white/20 transition-all" value={passwordData.oldPassword} onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})} />
+                    <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" />
                   </div>
                 </div>
                 <div className="space-y-2.5">
-                  <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">New Password</label>
+                  <label className="text-[9px] md:text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest">New Password</label>
                   <div className="relative">
-                    <input type="password" placeholder="••••••••" className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-white outline-none focus:border-red-500/50 hover:border-white/20 transition-all" value={passwordData.newPassword} onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})} />
-                    <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input type="password" placeholder="••••••••" className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-red-500/50 hover:border-white/20 transition-all" value={passwordData.newPassword} onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})} />
+                    <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" />
                   </div>
                 </div>
                 <div className="space-y-2.5">
-                  <label className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">Re-enter Password</label>
+                  <label className="text-[9px] md:text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest">Re-enter Password</label>
                   <div className="relative">
-                    <input type="password" placeholder="••••••••" className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-white outline-none focus:border-red-500/50 hover:border-white/20 transition-all" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})} />
-                    <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input type="password" placeholder="••••••••" className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-12 pr-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-red-500/50 hover:border-white/20 transition-all" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})} />
+                    <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" />
                   </div>
                 </div>
               </div>
-              <button onClick={handlePasswordChange} disabled={passwordLoading} className={`w-full mt-8 py-4 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 active:scale-95 flex items-center justify-center gap-3 group ${
-                  passwordLoading ? 'bg-white/[0.05] border border-white/5 text-zinc-500 cursor-not-allowed' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.08] hover:border-red-500/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.2)]'
+              <button onClick={handlePasswordChange} disabled={passwordLoading} className={`w-full mt-8 py-4 text-zinc-900 dark:text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all duration-300 active:scale-95 flex items-center justify-center gap-3 group ${
+                  passwordLoading ? 'bg-white/[0.05] border border-[var(--glass-border)] text-zinc-600 dark:text-zinc-500 cursor-not-allowed' : 'bg-[var(--glass-bg)] hover:bg-white/[0.05] border border-[var(--glass-border)] hover:border-red-500/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.2)]'
               }`}>
-                {passwordLoading ? <RefreshCcw size={16} className="animate-spin text-zinc-400" /> : <Lock size={16} className="group-hover:text-red-400 transition-colors" />}
+                {passwordLoading ? <RefreshCcw size={16} className="animate-spin text-zinc-700 dark:text-zinc-400" /> : <Lock size={16} className="group-hover:text-red-400 transition-colors" />}
                 {passwordLoading ? 'Rotating Keys...' : 'Update Credentials'}
               </button>
             </div>
 
-            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-10 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
-              <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-8 flex items-center gap-3">
+            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-10 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
+              <h4 className="text-xs font-black text-zinc-700 dark:text-zinc-400 uppercase tracking-widest mb-8 flex items-center gap-3">
                 <Zap size={16} className="text-amber-400" /> Current Privileges
               </h4>
               <div className="space-y-5">
                 {tierFeatures.map((feat, i) => (
-                  <div key={i} className="flex items-center gap-4 bg-white/[0.01] p-3 rounded-xl border border-white/5">
+                  <div key={i} className="flex items-center gap-4 bg-[var(--glass-bg)] p-3 rounded-xl border border-[var(--glass-border)]">
                     <CheckCircle2 size={18} className="text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)] shrink-0" />
-                    <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{feat}</span>
+                    <span className="text-[11px] font-bold text-zinc-800 dark:text-zinc-300 uppercase tracking-widest">{feat}</span>
                   </div>
                 ))}
               </div>
               
-              <div className="mt-10 pt-8 border-t border-white/5">
+              <div className="mt-10 pt-8 border-t border-[var(--glass-border)]">
                 <h4 className="text-[10px] font-black text-red-500/60 uppercase tracking-widest mb-4 flex items-center gap-2"><AlertCircle size={14}/> Danger Zone</h4>
                 <button className="w-full py-4 border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all flex items-center justify-center gap-3 hover:shadow-[0_0_20px_rgba(239,68,68,0.2)]">
                   <Trash2 size={16} /> Request Account Deletion
@@ -376,12 +376,12 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-white/[0.02] to-transparent border border-white/[0.05] p-6 md:p-8 rounded-[2rem]">
-              <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-6 italic flex items-center gap-2"><Activity size={14}/> Security Logs</h4>
+            <div className="bg-gradient-to-br from-white/[0.02] to-transparent border border-[var(--glass-border)] p-6 md:p-8 rounded-[2rem]">
+              <h4 className="text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mb-6 italic flex items-center gap-2"><Activity size={14}/> Security Logs</h4>
               <div className="space-y-5">
                 <div className="flex justify-between items-center border-b border-white/[0.02] pb-3">
                   <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Last Security Rotation</span>
-                  <span className="text-[9px] font-black text-zinc-400 uppercase font-mono">NEVER</span>
+                  <span className="text-[9px] font-black text-zinc-700 dark:text-zinc-400 uppercase font-mono">NEVER</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-white/[0.02] pb-3">
                   <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Current Session</span>
@@ -389,7 +389,7 @@ export default function ProfileClient({ initialData, tier, expiryDate }: any) {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Clearance Level</span>
-                  <span className="text-[10px] font-black text-white uppercase italic tracking-widest">{initialData?.role || 'User'}</span>
+                  <span className="text-[10px] font-black text-zinc-900 dark:text-white uppercase italic tracking-widest">{initialData?.role || 'User'}</span>
                 </div>
               </div>
             </div>

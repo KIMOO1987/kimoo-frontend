@@ -35,8 +35,8 @@ export default function ExecutionStats({ userId, exchange }: { userId: string, e
     <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-2xl flex items-center gap-4 backdrop-blur-md">
       <div className={`p-3 rounded-xl bg-${color}-500/10 text-${color}-500`}><Icon size={20}/></div>
       <div>
-        <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">{title}</p>
-        <p className="text-lg font-bold text-white tracking-tight">{value}</p>
+        <p className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mb-1">{title}</p>
+        <p className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">{value}</p>
       </div>
     </div>
   );

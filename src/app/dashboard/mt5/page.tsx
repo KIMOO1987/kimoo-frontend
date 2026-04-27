@@ -158,7 +158,7 @@ export default function MT5Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#030407]">
+      <div className="min-h-screen flex items-center justify-center ">
         <div className="flex flex-col items-center justify-center py-20 animate-pulse">
           <Activity size={40} className="text-blue-500 mb-4 animate-spin" />
           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-800">Initializing Secure Bridge...</p>
@@ -172,7 +172,7 @@ export default function MT5Dashboard() {
 
   return (
     <AccessGuard requiredTier={3} tierName="Lifetime Pro">
-      <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+      <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
         
         {/* Ambient Glowing Backgrounds */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -185,17 +185,17 @@ export default function MT5Dashboard() {
           {/* Header Section */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-12">
             <div>
-              <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+              <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-zinc-900 dark:text-white">
                 <img src="/mt5.png" alt="MetaTrader 5" className="w-8 h-8 md:w-10 md:h-10 object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
                 MetaTrader 5<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Terminal</span>
               </h1>
-              <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
+              <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 dark:text-zinc-500 font-bold mt-3 leading-none">
                 • HIGH-FREQUENCY EXECUTION BRIDGE •
               </p>
             </div>
             
             {/* VPS Status Pill */}
-            <div className="flex items-center gap-3 px-5 py-2.5 bg-white/[0.02] border border-white/[0.05] rounded-xl backdrop-blur-md shadow-xl">
+            <div className="flex items-center gap-3 px-5 py-2.5 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl backdrop-blur-md shadow-xl">
               <div className={`w-2.5 h-2.5 rounded-full ${status === 'running' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.8)]'} animate-pulse`} />
               <span className={`text-[10px] font-black uppercase tracking-widest ${status === 'running' ? 'text-emerald-400' : 'text-red-400'}`}>
                 {status === 'running' ? 'VPS ONLINE' : 'VPS OFFLINE'}
@@ -208,16 +208,16 @@ export default function MT5Dashboard() {
             <div className="lg:col-span-4 space-y-6 md:space-y-8">
               
               {/* Terminal Control Panel */}
-              <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
-                <h2 className="text-[11px] font-black text-white uppercase tracking-widest mb-6 flex items-center gap-3">
+              <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
+                <h2 className="text-[11px] font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-3">
                   <Settings2 size={16} className="text-blue-400" /> Engine Controls
                 </h2>
                 <button 
                   onClick={() => handleControl('start')}
                   className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 mb-4 active:scale-95 ${
                     status === 'running' 
-                      ? 'bg-white/[0.02] border border-white/5 text-zinc-600 cursor-not-allowed shadow-none' 
-                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] border border-blue-500/30'
+                      ? 'bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 cursor-not-allowed shadow-none' 
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] border border-blue-500/30'
                   }`}
                   disabled={status === 'running'}
                 >
@@ -227,7 +227,7 @@ export default function MT5Dashboard() {
                   onClick={() => handleControl('stop')}
                   className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 ${
                     status === 'stopped' 
-                      ? 'bg-white/[0.02] border border-white/5 text-zinc-600 cursor-not-allowed shadow-none' 
+                      ? 'bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 cursor-not-allowed shadow-none' 
                       : 'bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:shadow-[0_0_30px_rgba(239,68,68,0.2)]'
                   }`}
                   disabled={status === 'stopped'}
@@ -235,28 +235,28 @@ export default function MT5Dashboard() {
                   <Power size={16} /> DISCONNECT
                 </button>
 
-                <div className="mt-8 pt-8 border-t border-white/5">
-                  <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <div className="mt-8 pt-8 border-t border-[var(--glass-border)]">
+                  <label className="block text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Server size={14} className="text-blue-400" /> Unique Signal URL
                   </label>
                   <div className="relative group">
                     <input 
                       readOnly 
                       value={fullUrl} 
-                      className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl pl-4 pr-12 py-4 text-[10px] md:text-xs font-mono text-blue-400 outline-none hover:border-white/20 transition-all cursor-text overflow-hidden text-ellipsis"
+                      className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-4 pr-12 py-4 text-[10px] md:text-xs font-mono text-blue-400 outline-none hover:border-white/20 transition-all cursor-text overflow-hidden text-ellipsis"
                     />
                     <button 
                       onClick={() => {
                         navigator.clipboard.writeText(fullUrl);
                         addLog("URL Copied to clipboard.");
                       }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/[0.05] border border-white/[0.05] hover:bg-white/[0.1] hover:text-white rounded-lg transition-all text-zinc-400"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/[0.05] border border-[var(--glass-border)] hover:bg-white/[0.1] hover:text-zinc-900 dark:text-white rounded-lg transition-all text-zinc-700 dark:text-zinc-400"
                     >
                       <Copy size={14} />
                     </button>
                   </div>
-                  <p className="mt-5 text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-relaxed">
-                    Paste this endpoint into your <span className="text-white border-b border-white/20 pb-0.5">Kimoo EA</span> parameters within MT5.
+                  <p className="mt-5 text-[10px] text-zinc-600 dark:text-zinc-500 font-bold uppercase tracking-widest leading-relaxed">
+                    Paste this endpoint into your <span className="text-zinc-900 dark:text-white border-b border-white/20 pb-0.5">Kimoo EA</span> parameters within MT5.
                   </p>
                 </div>
               </div>
@@ -264,11 +264,11 @@ export default function MT5Dashboard() {
 
             {/* Terminal Output Window */}
             <div className="lg:col-span-8">
-              <div className="bg-[#020305] border border-white/[0.08] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[600px] relative">
+              <div className="bg-[var(--input-bg)] border border-[var(--glass-border)] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[600px] relative">
                 <div className="absolute top-0 left-0 w-full h-full bg-blue-500/5 blur-[100px] pointer-events-none" />
                 
-                <div className="bg-white/[0.02] border-b border-white/[0.05] px-6 py-4 flex justify-between items-center relative z-10 backdrop-blur-md">
-                  <div className="flex items-center gap-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                <div className="bg-[var(--glass-bg)] border-b border-[var(--glass-border)] px-6 py-4 flex justify-between items-center relative z-10 backdrop-blur-md">
+                  <div className="flex items-center gap-3 text-[10px] font-black text-zinc-700 dark:text-zinc-400 uppercase tracking-widest">
                     <Terminal size={14} className="text-blue-400" /> MT5_EXECUTION_STREAM
                   </div>
                   <div className="flex gap-2">
@@ -297,7 +297,7 @@ export default function MT5Dashboard() {
                             log.includes('❌') || log.includes('Error') ? 'text-red-400' : 
                             log.includes('🚀') ? 'text-blue-300 font-bold' : 
                             log.includes('✅') ? 'text-emerald-400' : 
-                            'text-zinc-300'
+                            'text-zinc-800 dark:text-zinc-300'
                           }`}>
                             {msgStr}
                           </span>

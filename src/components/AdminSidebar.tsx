@@ -12,6 +12,7 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
+import { ThemeToggle } from './ThemeToggle';
 
 const adminMenuGroups = [
   {
@@ -65,21 +66,21 @@ export default function AdminSidebar({ userRole }: { userRole: string }) {
 
   return (
     <aside className={`
-      fixed inset-y-0 left-0 w-72 bg-[#030407] border-r border-white/[0.05] flex flex-col overflow-hidden
-      transition-transform duration-300 ease-in-out z-[9998]
+      fixed inset-y-0 left-0 w-72 glass-panel border-r border-[var(--glass-border)] flex flex-col overflow-hidden
+      transition-transform duration-300 ease-in-out z-[9998] !rounded-none !border-y-0 !border-l-0
       ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0
     `}>
       {/* Subtle background glow */}
-      <div className="absolute top-0 left-0 w-full h-64 bg-blue-600/5 blur-[100px] pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-[var(--glow-primary)] to-transparent opacity-20 pointer-events-none" />
       
       <div className="flex flex-col h-full w-full p-6 relative z-10">
         <div className="mb-10 px-2 shrink-0">
-          <h1 className="text-2xl font-black tracking-tighter text-white italic flex items-center gap-2 drop-shadow-md">
-            KIMOO<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">CONSOLE</span>
+          <h1 className="text-3xl font-black tracking-tighter uppercase drop-shadow-md">
+            KIMOO<span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600">CONSOLE</span>
           </h1>
-          <div className="flex items-center gap-1.5 mt-3 px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md w-fit shadow-[0_0_10px_rgba(59,130,246,0.1)]">
-            <ShieldCheck size={10} className="text-blue-400" />
-            <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">{userRole} Access</span>
+          <div className="flex items-center gap-1.5 mt-3 px-2.5 py-1 bg-orange-500/10 border border-orange-500/20 rounded-full w-fit shadow-sm">
+            <ShieldCheck size={10} className="text-orange-500" />
+            <span className="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">{userRole} Access</span>
           </div>
         </div>
 
@@ -96,16 +97,16 @@ export default function AdminSidebar({ userRole }: { userRole: string }) {
                     const isActive = pathname === item.path;
                     return (
                       <Link key={item.path} href={item.path}>
-                        <div className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 border cursor-pointer ${
+                        <div className={`flex items-center justify-between px-4 py-3 rounded-full transition-all duration-300 border cursor-pointer ${
                           isActive 
-                            ? 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
-                            : 'text-zinc-500 border-transparent hover:text-zinc-200 hover:bg-white/[0.02] hover:border-white/[0.05]'
+                            ? 'bg-[var(--glow-primary)] text-[var(--fg)] border-[var(--glass-border-highlight)] shadow-md' 
+                            : 'opacity-70 border-transparent hover:opacity-100 hover:bg-[var(--input-bg)] hover:border-[var(--glass-border)]'
                         }`}>
                           <div className="flex items-center gap-3">
                             <item.icon size={18} />
                             <span className="text-[12px] font-bold tracking-tight">{item.name}</span>
                           </div>
-                          {isActive && <div className="w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_5px_rgba(96,165,250,0.8)]" />}
+                          {isActive && <div className="w-1.5 h-1.5 bg-[var(--fg)] rounded-full shadow-[0_0_5px_rgba(255,255,255,0.8)]" />}
                         </div>
                       </Link>
                     );
@@ -116,8 +117,9 @@ export default function AdminSidebar({ userRole }: { userRole: string }) {
           })}
         </nav>
 
-        <div className="mt-auto pt-6 border-t border-white/5 shrink-0">
-          <button onClick={handleLogout} className="flex items-center justify-center gap-3 px-4 py-3.5 text-zinc-500 bg-white/[0.01] hover:bg-red-500/10 border border-transparent hover:border-red-500/20 hover:text-red-400 transition-all rounded-xl w-full group hover:shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+        <div className="mt-auto pt-6 border-t border-[var(--glass-border)] shrink-0 flex items-center gap-3">
+          <ThemeToggle className="p-3.5 rounded-2xl bg-[var(--input-bg)] border border-[var(--glass-border)] text-zinc-500 hover:text-[var(--fg)] hover:border-blue-500/30 transition-all flex items-center justify-center shrink-0 group" />
+          <button onClick={handleLogout} className="flex-1 flex items-center justify-center gap-3 px-4 py-3.5 opacity-70 hover:opacity-100 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 hover:text-red-400 transition-all rounded-2xl group">
             <LogOut size={16} className="group-hover:scale-110 transition-transform" />
             <span className="text-[10px] font-black uppercase tracking-widest">SIGN OUT</span>
           </button>

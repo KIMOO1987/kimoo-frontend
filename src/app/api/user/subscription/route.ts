@@ -2,10 +2,21 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-static';
+
 export async function GET() {
+  if (process.env.NEXT_EXPORT === 'true') {
+    return NextResponse.json({ message: 'Disabled' });
+  }
   try {
     // 1. Await the cookie store (Requirement for Next.js 15)
-    const cookieStore = await cookies()
+    let cookieStore;
+    try {
+        cookieStore = await cookies();
+    } catch (e) {
+        // Static export fallback
+        return NextResponse.json({ error: 'Static export' });
+    }
 
     // 2. Initialize the Supabase client
     const supabase = createServerClient(

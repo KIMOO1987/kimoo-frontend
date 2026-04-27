@@ -75,7 +75,7 @@ function SetupContent() {
   }, [token, router]);
 
   return (
-    <div className="relative min-h-screen bg-[#030407] flex items-center justify-center p-4 md:p-6 text-white font-sans overflow-hidden">
+    <div className="relative min-h-screen  flex items-center justify-center p-4 md:p-6 text-zinc-900 dark:text-white font-sans overflow-hidden">
       
       {/* Ambient Glowing Backgrounds */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -88,7 +88,7 @@ function SetupContent() {
         {status === 'verifying' && (
           <div className="space-y-6">
             <Loader2 className="animate-spin mx-auto text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.5)]" size={48} />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{message}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 dark:text-zinc-500">{message}</p>
           </div>
         )}
 
@@ -98,10 +98,10 @@ function SetupContent() {
               <AlertCircle className="text-red-400" size={32} />
             </div>
             <h2 className="text-2xl font-black tracking-tighter uppercase italic mb-3">Access <span className="text-red-400 drop-shadow-md">Denied</span></h2>
-            <p className="text-xs text-zinc-400 font-bold leading-relaxed px-4">{message}</p>
+            <p className="text-xs text-zinc-700 dark:text-zinc-400 font-bold leading-relaxed px-4">{message}</p>
             <button 
               onClick={() => router.push('/login')}
-              className="w-full mt-8 py-4 bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] hover:text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all text-zinc-400"
+              className="w-full mt-8 py-4 bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] hover:text-zinc-900 dark:text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all text-zinc-700 dark:text-zinc-400"
             >
               Back to Login
             </button>
@@ -114,10 +114,10 @@ function SetupContent() {
               <ShieldCheck className="text-emerald-400" size={32} />
             </div>
             <h2 className="text-2xl font-black tracking-tighter uppercase italic mb-3">Access <span className="text-emerald-400 drop-shadow-md">Granted</span></h2>
-            <p className="text-xs text-zinc-400 font-bold leading-relaxed px-4">{message}</p>
+            <p className="text-xs text-zinc-700 dark:text-zinc-400 font-bold leading-relaxed px-4">{message}</p>
             <button 
               onClick={() => window.location.href = '/admin/plans'}
-              className="w-full mt-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 border border-blue-500/30 hover:from-blue-500 hover:to-indigo-500 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] flex items-center justify-center gap-3 text-white active:scale-95"
+              className="w-full mt-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 border border-blue-500/30 hover:from-blue-500 hover:to-indigo-500 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] flex items-center justify-center gap-3 text-zinc-900 dark:text-white active:scale-95"
             >
               Enter Console <ArrowRight size={16} className="text-blue-200" />
             </button>
@@ -132,7 +132,7 @@ function SetupContent() {
 // Wrap in Suspense because of useSearchParams
 export default function SetupPage() {
   return (
-    <Suspense fallback={<div className="h-screen bg-black" />}>
+    <Suspense fallback={<div className="h-screen bg-[var(--input-bg)]" />}>
       <SetupContent />
     </Suspense>
   );

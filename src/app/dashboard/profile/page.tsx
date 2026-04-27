@@ -1,32 +1,44 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+"use client";
+
+import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import ProfileClient from './ProfileClient';
 
-export const dynamic = 'force-dynamic';
+export default function ProfilePage() {
+  const router = useRouter();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function ProfilePage() {
-  const cookieStore = await cookies();
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-      },
-    }
-  );
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+      setProfile(profileData);
+      setLoading(false);
+    };
 
-  // Fetching EVERYTHING including tier and plan_type
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+    fetchProfile();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="animate-spin text-orange-500" size={40} />
+      </div>
+    );
+  }
 
   return (
     <ProfileClient 

@@ -34,8 +34,8 @@ export default function TradeHistory() {
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl">
-      <table className="w-full text-left text-sm text-white/70">
-        <thead className="bg-white/10 text-xs uppercase text-white/50">
+      <table className="w-full text-left text-sm text-zinc-900/70 dark:text-white/70">
+        <thead className="bg-white/10 text-xs uppercase text-zinc-900/50 dark:text-white/50">
           <tr>
             <th className="px-6 py-3">Symbol</th>
             <th className="px-6 py-3">Side</th>
@@ -47,7 +47,7 @@ export default function TradeHistory() {
         <tbody className="divide-y divide-white/5">
           {signals.map((signal) => (
             <tr key={signal.id} className="hover:bg-white/5 transition-colors">
-              <td className="px-6 py-4 font-bold text-white">{signal.symbol}</td>
+              <td className="px-6 py-4 font-bold text-zinc-900 dark:text-white">{signal.symbol}</td>
               <td className={`px-6 py-4 font-medium ${signal.side === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
                 {signal.side}
               </td>

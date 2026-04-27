@@ -31,10 +31,10 @@ export default function PasswordRecoveryListener() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#05070a]">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="text-blue-500 animate-spin" size={32} />
-        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em]">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="flex flex-col items-center gap-4 glass-panel p-12 rounded-[2rem] preserve-3d">
+        <Loader2 className="text-orange-500 animate-spin" size={32} />
+        <p className="opacity-70 text-[10px] font-black uppercase tracking-[0.3em]">
           Verifying Recovery Token...
         </p>
       </div>

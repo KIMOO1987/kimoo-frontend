@@ -1,67 +1,73 @@
+"use client";
+
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
 import { Providers } from '@/components/Providers'; 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-// Add these to the top of src/app/layout.tsx
-export const dynamic = 'force-dynamic';
-export const fetchCache = 'force-no-store';
-export const revalidate = 0;
+import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies();
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [userTier, setUserTier] = useState(0);
+  const [userRole, setUserRole] = useState('user');
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Safe to ignore in Server Components
-          }
-        },
-      },
-    }
-  );
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.push('/login');
+        return;
+      }
 
-  // 1. Get user session
-  const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tier, role')
+        .eq('id', session.user.id)
+        .single();
 
-  // 2. If no user, send to login immediately
-  if (!user) {
-    redirect('/login');
+      const role = profile?.role || 'user';
+      const isStaff = role === 'admin' || role === 'moderator';
+      const tier = isStaff ? 3 : (profile?.tier ?? 0);
+
+      setUserRole(role);
+      setUserTier(tier);
+      setLoading(false);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/login');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <Loader2 className="animate-spin text-orange-500" size={40} />
+      </div>
+    );
   }
-
-  // 3. Fetch profile (This is the "Source of Truth")
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('tier, role')
-    .eq('id', user.id)
-    .single();
-
-  // 4. Permission Logic
-  const userRole = profile?.role || 'user';
-  const isStaff = userRole === 'admin' || userRole === 'moderator';
-  const userTier = isStaff ? 3 : (profile?.tier ?? 0);
 
   return (
     <Providers>
-      <div className="flex bg-[#050505] min-h-screen relative overflow-hidden">
-        {/* Pass the data we just fetched directly to the Nav components */}
+      <div className="flex min-h-screen relative overflow-hidden">
         <Sidebar tier={userTier} role={userRole} />
         
         <div className="flex-1 flex flex-col min-w-0">
           <MobileNav tier={userTier} role={userRole} />
 
-          <main className="flex-1 overflow-y-auto w-full custom-scrollbar">
-            <div className="h-full w-full px-4 md:px-0">
+          <main id="main-scroll-container" className="flex-1 overflow-y-auto w-full custom-scrollbar relative">
+            <div className="h-full w-full px-4 md:px-0 flex flex-col">
+              <div className="h-20 shrink-0 lg:hidden w-full"></div>
               {children}
             </div>
           </main>

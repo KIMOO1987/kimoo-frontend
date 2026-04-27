@@ -146,7 +146,7 @@ export default function RadarPage() {
 
   if (isLoading && liveSignals.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#05070a]">
+      <div className="min-h-screen flex items-center justify-center ">
         <div className="flex flex-col items-center justify-center py-20 animate-pulse">
           <Activity size={40} className="text-zinc-700 mb-4" />
           <p className="text-xs font-black uppercase tracking-widest text-zinc-600">Syncing Radar Frequencies...</p>
@@ -157,7 +157,7 @@ export default function RadarPage() {
 
   return (
     <AccessGuard requiredTier={1} tierName="PRO">
-      <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+      <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
         
         {/* Ambient Glowing Backgrounds */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -169,24 +169,24 @@ export default function RadarPage() {
           {/* Header & Filters */}
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 mb-6">
             <div>
-              <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+              <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-zinc-900 dark:text-white">
                 Alpha<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Radar</span>
                 <div className={`w-2.5 h-2.5 rounded-full ${isLoading ? 'bg-amber-400 animate-spin' : 'bg-blue-400 animate-pulse'} shadow-[0_0_10px_rgba(96,165,250,0.8)] mt-1`} />
               </h1>
-              <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
+              <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 dark:text-zinc-500 font-bold mt-3 leading-none">
                 • INSTITUTIONAL LIQUIDITY SCANNER • GLOBAL STREAM •
               </p>
             </div>
             
             <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
               <div className="flex flex-col gap-1 w-full md:w-48">
-                <label className="text-[9px] font-black text-zinc-500 uppercase ml-2 tracking-widest">Asset Class</label>
+                <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-2 tracking-widest">Asset Class</label>
                 <div className="relative">
-                  <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />
+                  <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" size={14} />
                   <select 
                     value={assetClass} 
                     onChange={(e) => setAssetClass(e.target.value)}
-                    className="bg-white/[0.02] border border-white/[0.08] rounded-xl pl-10 pr-4 py-2.5 text-xs font-mono font-bold text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all cursor-pointer appearance-none w-full"
+                    className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-2.5 text-xs font-mono font-bold text-zinc-900 dark:text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all cursor-pointer appearance-none w-full"
                   >
                     <option value="ALL">ALL ASSETS</option>
                     <option value="CRYPTO">CRYPTO</option>
@@ -198,11 +198,11 @@ export default function RadarPage() {
               </div>
 
               <div className="relative flex-grow md:w-64 self-end h-[42px] mb-0.5">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" size={16} />
                 <input 
                   type="text" 
                   placeholder="Search stream..."
-                  className="w-full h-full pl-12 pr-4 bg-white/[0.02] border border-white/[0.08] rounded-xl text-xs font-mono text-white focus:border-blue-500/50 hover:border-white/20 outline-none transition-all"
+                  className="w-full h-full pl-12 pr-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl text-xs font-mono text-zinc-900 dark:text-white focus:border-blue-500/50 hover:border-white/20 outline-none transition-all"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -212,9 +212,9 @@ export default function RadarPage() {
 
           {/* Live Signal Stream */}
           <div className="w-full">
-            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] rounded-2xl md:rounded-[2.5rem] overflow-hidden shadow-2xl backdrop-blur-md">
-              <div className="p-5 md:p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Scanner Stream</h3>
+            <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] rounded-2xl md:rounded-[2.5rem] overflow-hidden shadow-2xl backdrop-blur-md">
+              <div className="p-5 md:p-8 border-b border-[var(--glass-border)] flex justify-between items-center bg-[var(--glass-bg)]">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-400">Scanner Stream</h3>
                 <div className="flex items-center gap-2">
                   <span className="flex h-2 w-2 relative">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -227,7 +227,7 @@ export default function RadarPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[800px]">
                   <thead>
-                    <tr className="text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-white/[0.02] border-b border-white/[0.05]">
+                    <tr className="text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest bg-[var(--glass-bg)] border-b border-[var(--glass-border)]">
                       <th className="px-6 md:px-8 py-5">Instrument</th>
                       <th className="hidden md:table-cell py-5">Category</th>
                       <th className="py-5">Entry Price</th>
@@ -250,11 +250,11 @@ export default function RadarPage() {
                         return (
                           <motion.tr 
                             layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} key={signal.id} 
-                            className="hover:bg-white/[0.03] transition-colors group cursor-pointer"
+                            className="hover:bg-[var(--glass-bg)] transition-colors group cursor-pointer"
                           >
-                            <td className="px-6 md:px-8 py-6 font-black text-lg tracking-tighter text-white uppercase italic drop-shadow-sm">{signal.symbol}</td>
-                            <td className="hidden md:table-cell py-6 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{getSymbolData(signal.symbol).category}</td>
-                            <td className="py-6 text-[13px] font-mono font-black text-zinc-300">{entry.toFixed(5)}</td>
+                            <td className="px-6 md:px-8 py-6 font-black text-lg tracking-tighter text-zinc-900 dark:text-white uppercase italic drop-shadow-sm">{signal.symbol}</td>
+                            <td className="hidden md:table-cell py-6 text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">{getSymbolData(signal.symbol).category}</td>
+                            <td className="py-6 text-[13px] font-mono font-black text-zinc-800 dark:text-zinc-300">{entry.toFixed(5)}</td>
                             <td className="py-6 pr-6">
                               <div className="flex items-center gap-2">
                                 <div className="w-12 md:w-16 h-1 bg-white/5 rounded-full overflow-hidden">
@@ -262,7 +262,7 @@ export default function RadarPage() {
                                     className={`h-full shadow-[0_0_10px_rgba(59,130,246,0.8)] ${signal.confidence.label === 'PRIME' ? 'bg-blue-500' : 'bg-zinc-600'}`} 
                                   />
                                 </div>
-                                <span className={`text-[10px] font-bold font-mono ${signal.confidence.label === 'PRIME' ? 'text-blue-400' : 'text-zinc-500'}`}>{signal.confidence.label}</span>
+                                <span className={`text-[10px] font-bold font-mono ${signal.confidence.label === 'PRIME' ? 'text-blue-400' : 'text-zinc-600 dark:text-zinc-500'}`}>{signal.confidence.label}</span>
                               </div>
                             </td>
                             <td className="py-6 text-center">
@@ -279,7 +279,7 @@ export default function RadarPage() {
                               </div>
                             </td>
                             <td className="px-6 py-6 text-center">
-                              <Link href="/dashboard/active" className="p-2 rounded-xl bg-white/[0.02] border border-white/[0.05] text-zinc-500 hover:bg-white/[0.08] hover:text-white transition-all group-hover:border-white/20 inline-flex">
+                              <Link href="/dashboard/active" className="p-2 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 dark:text-zinc-500 hover:bg-white/[0.08] hover:text-zinc-900 dark:text-white transition-all group-hover:border-white/20 inline-flex">
                                 <ChevronRight size={16} />
                               </Link>
                             </td>
@@ -290,9 +290,9 @@ export default function RadarPage() {
                   </tbody>
                 </table>
                 {filteredRadarSignals.length === 0 && !isLoading && (
-                  <div className="w-full flex flex-col items-center justify-center py-24 border-dashed border-t border-white/[0.05] bg-white/[0.01]">
+                  <div className="w-full flex flex-col items-center justify-center py-24 border-dashed border-t border-[var(--glass-border)] bg-[var(--glass-bg)]">
                     <AlertCircle size={40} className="text-zinc-700 mb-4" />
-                    <h3 className="text-xl font-black italic tracking-tighter uppercase text-white mb-2">Awaiting Prime Setup</h3>
+                    <h3 className="text-xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-white mb-2">Awaiting Prime Setup</h3>
                     <p className="text-xs font-bold text-zinc-600 uppercase tracking-widest">Scanner active. Displacements are being analyzed.</p>
                   </div>
                 )}
@@ -310,7 +310,7 @@ export default function RadarPage() {
                 <h4 className="text-[11px] font-black uppercase tracking-widest text-emerald-400 mb-1 flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Scanner Integrity Active
                 </h4>
-                <p className="text-xs text-zinc-400 leading-relaxed font-bold">
+                <p className="text-xs text-zinc-700 dark:text-zinc-400 leading-relaxed font-bold">
                   Signals are analyzed for institutional delivery. To protect capital, setups older than 4 hours or those exhibiting heavy decay are filtered from the Prime interface.
                 </p>
               </div>

@@ -34,20 +34,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#030407]">
-      <div className="flex flex-col items-center justify-center space-y-6">
-        <Loader2 className="animate-spin mx-auto text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.5)]" size={48} />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Verifying Clearance...</p>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <div className="flex flex-col items-center justify-center space-y-6 glass-panel p-12 rounded-[2rem] preserve-3d">
+        <Loader2 className="animate-spin mx-auto text-blue-500" size={48} />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-70">Verifying Clearance...</p>
       </div>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen bg-[#030407] overflow-x-hidden">
+    <div className="flex min-h-screen relative overflow-x-hidden">
       <AdminSidebar userRole={role || 'user'} />
-      <main className="flex-1 lg:ml-72 overflow-y-auto">
-        {children}
-      </main>
+      <div className="flex-1 flex flex-col min-w-0">
+        <main id="main-scroll-container" className="flex-1 overflow-y-auto relative z-10 custom-scrollbar">
+          <div className="h-full w-full px-4 md:px-0 flex flex-col">
+            <div className="h-20 shrink-0 lg:hidden w-full"></div> {/* Spacer for mobile MENU button */}
+            {children}
+          </div>
+        </main>
+      </div>
       <AdminMobileNav userRole={role || 'user'} />
     </div>
   );

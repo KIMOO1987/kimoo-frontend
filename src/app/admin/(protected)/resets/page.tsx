@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { adminForceResetPassword } from '@/app/login/actions';
+
 import { Loader2, Mail, Lock, CheckCircle2, User, XCircle } from 'lucide-react';
 
 export default function PasswordResets() {
@@ -27,7 +27,13 @@ export default function PasswordResets() {
     if (!newPass || newPass.length < 6) return alert("Password too short.");
 
     try {
-      await adminForceResetPassword(userId, newPass);
+      const response = await fetch('/api/admin/force-reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, newPassword: newPass })
+      });
+      const result = await response.json();
+      if (result.error) throw new Error(result.error);
       await supabase.from('password_reset_requests').update({ status: 'completed' }).eq('id', requestId);
       setRequests(requests.filter(r => r.id !== requestId));
       alert("Identity Access Keys rotated successfully.");
@@ -49,7 +55,7 @@ export default function PasswordResets() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#030407]">
+    <div className="min-h-screen flex items-center justify-center ">
       <div className="flex flex-col items-center justify-center py-20 animate-pulse">
         <Loader2 size={40} className="text-zinc-700 mb-4 animate-spin" />
         <p className="text-xs font-black uppercase tracking-widest text-zinc-600">Loading Recovery Queue...</p>
@@ -58,7 +64,7 @@ export default function PasswordResets() {
   );
 
   return (
-    <div className="relative p-4 md:p-12 lg:p-16 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+    <div className="relative p-4 md:p-12 lg:p-16  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
       
       {/* Ambient Glowing Backgrounds */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -71,10 +77,10 @@ export default function PasswordResets() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-12">
           <div>
-            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-zinc-900 dark:text-white">
               Access<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-500">Recovery</span>
             </h1>
-            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
+            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 dark:text-zinc-500 font-bold mt-3 leading-none">
               • MANUAL PASSWORD INTERVENTION QUEUE •
             </p>
           </div>
@@ -84,7 +90,7 @@ export default function PasswordResets() {
           {requests.length === 0 ? (
             <div className="w-full flex flex-col items-center justify-center py-24 border border-dashed border-white/[0.1] rounded-[2.5rem] bg-white/[0.01]">
               <CheckCircle2 size={40} className="text-zinc-700 mb-4" />
-              <h3 className="text-xl font-black italic tracking-tighter uppercase text-white mb-2">Queue Empty</h3>
+              <h3 className="text-xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-white mb-2">Queue Empty</h3>
               <p className="text-xs font-bold text-zinc-600 uppercase tracking-widest">No pending recovery tickets.</p>
             </div>
           ) : (
@@ -101,7 +107,7 @@ export default function PasswordResets() {
                       <p className="text-lg font-black italic uppercase tracking-tighter drop-shadow-md">{req.full_name}</p>
                       <span className="text-[9px] font-black text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 uppercase tracking-widest shadow-sm">Pending Verification</span>
                     </div>
-                    <p className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">{req.email}</p>
+                    <p className="text-[10px] font-mono font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">{req.email}</p>
                   </div>
                 </div>
                 
@@ -114,7 +120,7 @@ export default function PasswordResets() {
                   </button>
                   <button 
                     onClick={() => handleManualReset(req.id, req.user_id, req.email)}
-                    className="w-full sm:w-auto bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-orange-500 text-white px-8 py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(239,68,68,0.3)] hover:shadow-[0_0_40px_rgba(239,68,68,0.5)] active:scale-95 flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-orange-500 text-zinc-900 dark:text-white px-8 py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(239,68,68,0.3)] hover:shadow-[0_0_40px_rgba(239,68,68,0.5)] active:scale-95 flex items-center justify-center gap-2"
                   >
                     Rotate Access Key
                   </button>

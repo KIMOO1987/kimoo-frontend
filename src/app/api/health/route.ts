@@ -1,7 +1,7 @@
 // src/app/api/public-health/route.ts
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic'; // Ensures it doesn't get cached as a static HTML file
+export const dynamic = 'force-static';
 
 export async function GET() {
   return NextResponse.json({ 

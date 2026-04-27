@@ -1,31 +1,36 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+"use client";
+
+import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import PaymentClient from './PaymentClient';
 
-export default async function PaymentsPage() {
-  const cookieStore = await cookies();
+export default function PaymentsPage() {
+  const router = useRouter();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {}
-        },
-      },
-    }
-  );
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+      setUserId(session.user.id);
+      setLoading(false);
+    };
+    checkAuth();
+  }, [router]);
 
-  // FIXED: Fetch userId server-side — page components cannot receive arbitrary props
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-orange-500" size={40} />
+      </div>
+    );
+  }
 
-  return <PaymentClient userId={user.id} />;
+  return <PaymentClient userId={userId!} />;
 }

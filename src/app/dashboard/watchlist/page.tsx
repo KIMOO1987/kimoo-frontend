@@ -24,11 +24,11 @@ export default function WatchlistPage() {
     <div className="p-8 max-w-4xl mx-auto">
       <header className="mb-12">
         <h1 className="text-3xl font-black tracking-tighter">Watchlist Manager</h1>
-        <p className="text-zinc-500 text-xs uppercase tracking-widest mt-1">Control which assets hit your terminal</p>
+        <p className="text-zinc-600 dark:text-zinc-500 text-xs uppercase tracking-widest mt-1">Control which assets hit your terminal</p>
       </header>
 
       {/* Input Section */}
-      <div className="bg-[#0a0a0a] border border-white/5 p-6 rounded-[2rem] mb-8 flex gap-4">
+      <div className="bg-[var(--input-bg)] border border-white/5 p-6 rounded-[2rem] mb-8 flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
           <input 
@@ -37,7 +37,7 @@ export default function WatchlistPage() {
             onChange={(e) => setNewAsset(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addAsset()}
             placeholder="Search Asset (e.g. NAS100, XAUUSD)"
-            className="w-full bg-black border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
+            className="w-full bg-[var(--input-bg)] border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
           />
         </div>
         <button 
@@ -57,7 +57,7 @@ export default function WatchlistPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0a0a0a] border border-white/5 p-5 rounded-2xl flex items-center justify-between group hover:border-blue-500/30 transition-all"
+              className="bg-[var(--input-bg)] border border-white/5 p-5 rounded-2xl flex items-center justify-between group hover:border-blue-500/30 transition-all"
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 font-black text-xs">

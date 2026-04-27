@@ -11,6 +11,7 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
+import { ThemeToggle } from './ThemeToggle';
 
 const menuGroups = [
   { 
@@ -58,6 +59,7 @@ const menuGroups = [
 
 export default function MobileNav({ tier, role }: { tier: number; role?: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isButtonVisible, setIsButtonVisible] = useState(true);
   const pathname = usePathname();
   const isStaff = role === 'admin' || role === 'moderator';
 
@@ -70,6 +72,45 @@ export default function MobileNav({ tier, role }: { tier: number; role?: string 
     document.body.style.overflow = isOpen ? 'hidden' : 'unset';
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
+
+  useEffect(() => {
+    let lastScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const mainContainer = document.getElementById('main-scroll-container');
+          
+          // Check both window scroll and internal container scroll
+          const currentScrollY = window.scrollY > 0 ? window.scrollY : (mainContainer?.scrollTop || 0);
+          
+          // Hide button if scrolling down and past 50px, show if scrolling up
+          if (currentScrollY > lastScrollY && currentScrollY > 50) {
+            setIsButtonVisible(false);
+          } else {
+            setIsButtonVisible(true);
+          }
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Also listen to internal container just in case it's handling the overflow
+    const mainContainer = document.getElementById('main-scroll-container');
+    if (mainContainer) {
+      mainContainer.addEventListener('scroll', handleScroll, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (mainContainer) mainContainer.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -84,29 +125,44 @@ export default function MobileNav({ tier, role }: { tier: number; role?: string 
 
   return (
     <div className="lg:hidden">
-      <button onClick={() => setIsOpen(true)} className="fixed bottom-8 left-6 z-[999] p-4 bg-blue-600 rounded-full text-white shadow-2xl border border-white/20 active:scale-95 transition-all">
-        <Menu size={24} />
-      </button>
+      <div 
+        className={`fixed top-5 left-4 z-[990] transition-transform duration-300 ease-in-out ${isButtonVisible || isOpen ? 'translate-y-0' : '-translate-y-24'}`}
+      >
+        <button onClick={() => setIsOpen(true)} className="px-4 py-2 bg-[var(--glass-bg)] backdrop-blur-md rounded-xl text-zinc-900 dark:text-white shadow-lg border border-[var(--glass-border)] active:scale-95 transition-all flex items-center gap-2">
+          <Menu size={18} />
+          <span className="text-[10px] font-black uppercase tracking-widest">MENU</span>
+        </button>
+      </div>
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} className="fixed inset-0 z-[1000] bg-[#030407] flex flex-col p-8 w-full h-full">
-            {/* Subtle background glow */}
-            <div className="absolute top-0 left-0 w-full h-64 bg-blue-600/10 blur-[120px] pointer-events-none" />
+          <>
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setIsOpen(false)} 
+              className="fixed inset-0 z-[995] bg-black/60 backdrop-blur-sm" 
+            />
+            
+            {/* Sidebar Drawer */}
+            <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="fixed inset-y-0 left-0 z-[1000] bg-[var(--bg)] border-r border-[var(--glass-border)] flex flex-col p-6 w-80 shadow-2xl">
+              {/* Subtle background glow */}
+              <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-[var(--glow-primary)] to-transparent opacity-20 pointer-events-none" />
             
             <div className="flex justify-between items-center mb-10 shrink-0 relative z-10">
               <div>
-                <h1 className="text-2xl font-black text-white italic tracking-tighter drop-shadow-md">KIMOO<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">PRO</span></h1>
+                <h1 className="text-3xl font-black tracking-tighter uppercase drop-shadow-md">KIMOO<span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600">PRO</span></h1>
                 {isStaff && (
-                  <div className="flex items-center gap-1.5 mt-3 px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md w-fit shadow-[0_0_10px_rgba(59,130,246,0.1)]">
-                    <ShieldCheck size={10} className="text-blue-400" />
-                    <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">{role} Mode</span>
+                  <div className="flex items-center gap-1.5 mt-3 px-2.5 py-1 bg-orange-500/10 border border-orange-500/20 rounded-full w-fit shadow-sm">
+                    <ShieldCheck size={10} className="text-orange-500" />
+                    <span className="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">{role} Mode</span>
                   </div>
                 )}
               </div>
-              <button onClick={() => setIsOpen(false)} className="p-2 text-zinc-500 hover:text-white transition-colors"><X size={32} /></button>
+              <button onClick={() => setIsOpen(false)} className="p-2 opacity-50 hover:opacity-100 transition-colors"><X size={32} /></button>
             </div>
-
             <nav className="flex-1 overflow-y-auto space-y-10 no-scrollbar pb-20 relative z-10">
               {menuGroups.map((group) => (
                 <div key={group.label}>
@@ -118,14 +174,14 @@ export default function MobileNav({ tier, role }: { tier: number; role?: string 
                       
                       return (
                         <Link key={item.name} href={isLocked ? "#" : item.path} onClick={() => !isLocked && setIsOpen(false)}>
-                          <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 border ${
-                            isActive ? 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'text-zinc-500 bg-white/[0.02] border-white/[0.05] hover:text-zinc-200 hover:bg-white/[0.04]'
+                          <div className={`flex items-center justify-between px-4 py-3.5 rounded-full transition-all duration-300 border ${
+                            isActive ? 'bg-[var(--glow-primary)] text-[var(--fg)] border-[var(--glass-border-highlight)] shadow-md' : 'opacity-70 border-transparent hover:opacity-100 bg-[var(--input-bg)] border-[var(--glass-border)]'
                           } ${isLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}>
                             <div className="flex items-center gap-4">
                               <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                               <span className="font-bold text-sm tracking-tight">{item.name}</span>
                             </div>
-                            {isLocked ? <Lock size={14} className="text-zinc-700" /> : isActive && <div className="w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_5px_rgba(96,165,250,0.8)]" />}
+                            {isLocked ? <Lock size={14} className="opacity-50" /> : isActive && <div className="w-1.5 h-1.5 bg-[var(--fg)] rounded-full shadow-[0_0_5px_rgba(255,255,255,0.8)]" />}
                           </div>
                         </Link>
                       );
@@ -135,13 +191,15 @@ export default function MobileNav({ tier, role }: { tier: number; role?: string 
               ))}
             </nav>
 
-            <div className="mt-auto pt-6 border-t border-white/5 shrink-0 relative z-10">
-              <button onClick={handleLogout} className="flex items-center justify-center gap-3 px-4 py-4 text-zinc-500 bg-white/[0.01] hover:bg-red-500/10 border border-transparent hover:border-red-500/20 hover:text-red-400 transition-all rounded-xl w-full group hover:shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+            <div className="mt-auto pt-6 border-t border-[var(--glass-border)] shrink-0 flex items-center gap-3 relative z-10">
+              <ThemeToggle className="p-3.5 rounded-2xl bg-[var(--input-bg)] border border-[var(--glass-border)] text-zinc-500 hover:text-[var(--fg)] hover:border-blue-500/30 transition-all flex items-center justify-center shrink-0 group" />
+              <button onClick={handleLogout} className="flex-1 flex items-center justify-center gap-3 px-4 py-3.5 opacity-70 hover:opacity-100 bg-transparent hover:bg-red-500/10 border border-transparent hover:border-red-500/20 hover:text-red-400 transition-all rounded-2xl group">
                 <LogOut size={16} className="group-hover:scale-110 transition-transform" />
                 <span className="text-[10px] font-black uppercase tracking-widest">SIGN OUT</span>
               </button>
             </div>
           </motion.div>
+        </>
         )}
       </AnimatePresence>
     </div>

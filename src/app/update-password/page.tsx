@@ -69,54 +69,58 @@ export default function UpdatePasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#05070a] p-4">
+    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-[#0a0a0a] border border-white/5 p-8 rounded-[2.5rem] shadow-2xl"
+        initial={{ opacity: 0, y: 20, rotateX: 10 }}
+        animate={{ opacity: 1, y: 0, rotateX: 0 }}
+        transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
+        whileHover={{ scale: 1.02, rotateX: 2, rotateY: -2 }}
+        className="glass-panel w-full max-w-md p-8 md:p-12 relative overflow-hidden preserve-3d"
       >
-        <div className="mb-8 text-center">
-          <div className="inline-flex p-3 rounded-2xl bg-blue-500/10 text-blue-500 mb-4">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-30 pointer-events-none rounded-[2rem]" />
+
+        <div className="mb-10 text-center relative z-10">
+          <div className="inline-flex p-3 rounded-full bg-orange-500/10 text-orange-500 mb-4 border border-orange-500/20">
             <Lock size={24} />
           </div>
-          <h1 className="text-2xl font-black text-white uppercase italic tracking-tighter">
-            Reset <span className="text-blue-500">Security</span>
+          <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter drop-shadow-xl">
+            Reset <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600">Security</span>
           </h1>
-          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">
+          <p className="opacity-70 text-[10px] font-bold uppercase tracking-[0.3em] mt-3">
             Protocol: Update Terminal Access
           </p>
         </div>
 
-        <form onSubmit={handleUpdatePassword} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[8px] font-black text-zinc-500 uppercase ml-2 tracking-widest">New Credentials</label>
+        <form onSubmit={handleUpdatePassword} className="space-y-6 relative z-10">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black opacity-70 uppercase ml-2 tracking-widest">New Credentials</label>
             <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"} 
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white outline-none focus:border-blue-500/50 transition-all placeholder:text-zinc-800"
+                className="input-modern w-full"
                 required
               />
               <button 
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors"
+                className="absolute right-5 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100 transition-colors"
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[8px] font-black text-zinc-500 uppercase ml-2 tracking-widest">Confirm Credentials</label>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black opacity-70 uppercase ml-2 tracking-widest">Confirm Credentials</label>
             <input 
               type={showPassword ? "text" : "password"} 
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white outline-none focus:border-blue-500/50 transition-all placeholder:text-zinc-800"
+              className="input-modern w-full"
               required
             />
           </div>
@@ -125,8 +129,8 @@ export default function UpdatePasswordPage() {
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`flex items-center gap-3 p-4 rounded-2xl text-[11px] font-bold uppercase tracking-wider ${
-                message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+              className={`flex items-center gap-3 p-4 rounded-2xl text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${
+                message.type === 'success' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
               }`}
             >
               {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
@@ -137,17 +141,17 @@ export default function UpdatePasswordPage() {
           <button 
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 uppercase italic tracking-tighter shadow-[0_0_30px_rgba(37,99,235,0.2)]"
+            className="btn-modern w-full flex items-center justify-center gap-2 mt-8 relative overflow-hidden group preserve-3d"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={20} />
             ) : (
-              "Authorize New Credentials"
+              <span className="relative z-10 font-black uppercase text-[12px] tracking-widest group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all">Authorize New Credentials</span>
             )}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-zinc-600 text-[9px] font-bold uppercase tracking-[0.2em]">
+        <p className="mt-8 pt-8 border-t border-[var(--glass-border)] text-center opacity-50 text-[9px] font-bold uppercase tracking-[0.2em] relative z-10">
           KIMOO CRT Security Protocol v2.0
         </p>
       </motion.div>

@@ -62,7 +62,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   }
 
   return (
-    <div className="flex min-h-screen bg-[#05070a] text-zinc-400 font-sans overflow-x-hidden">
+    <div className="flex min-h-screen  text-zinc-700 dark:text-zinc-400 font-sans overflow-x-hidden">
       
       {/* MOBILE MENU TOGGLE */}
       <button 
@@ -80,7 +80,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
           
           <div className="w-full">
             <div className="flex flex-wrap items-center gap-4 mb-6">
-              <h1 className="text-2xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none break-words">
+              <h1 className="text-2xl md:text-5xl font-black text-zinc-900 dark:text-white italic uppercase tracking-tighter leading-none break-words">
                 {userProfile?.full_name || 'KALIM AHMED GILL'}
               </h1>
               <span className="bg-indigo-600 text-white text-[9px] font-black px-3 py-1 rounded-md italic uppercase tracking-widest h-fit">
@@ -92,12 +92,12 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
               <div className="flex items-center gap-3">
                 <Wallet size={20} className="text-emerald-500 shrink-0" />
                 <div className="flex items-center border-b border-white/10 pb-1">
-                   <span className="text-white font-black text-lg md:text-2xl mr-1">$</span>
+                   <span className="text-zinc-900 dark:text-white font-black text-lg md:text-2xl mr-1">$</span>
                    <input 
                      type="number" 
                      value={accountSize} 
                      onChange={(e) => setAccountSize(Number(e.target.value))} 
-                     className="bg-transparent text-white font-black text-lg md:text-2xl w-32 outline-none focus:text-emerald-400" 
+                     className="bg-transparent text-zinc-900 dark:text-white font-black text-lg md:text-2xl w-32 outline-none focus:text-emerald-400" 
                    />
                 </div>
               </div>
@@ -105,9 +105,9 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
               <div className="flex items-center gap-3">
                 <Clock size={20} className="text-indigo-500 shrink-0" />
                 <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                    <span className="text-white font-black text-lg md:text-2xl italic uppercase">{currentTier}</span>
+                    <span className="text-zinc-900 dark:text-white font-black text-lg md:text-2xl italic uppercase">{currentTier}</span>
                     <span className="hidden md:block text-zinc-700">|</span>
-                    <span className="text-zinc-500 font-bold text-xs md:text-sm uppercase tracking-tighter">
+                    <span className="text-zinc-600 dark:text-zinc-500 font-bold text-xs md:text-sm uppercase tracking-tighter">
                       REMAINING: <span className="text-indigo-400">{daysLeft} DAYS</span>
                     </span>
                 </div>
@@ -116,7 +116,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
           </div>
 
           {/* STATUS BOX */}
-          <div className="w-full xl:w-auto bg-black/40 border border-white/10 px-6 py-4 rounded-3xl flex flex-col sm:flex-row items-center gap-4">
+          <div className="w-full xl:w-auto bg-[var(--input-bg)]/40 border border-white/10 px-6 py-4 rounded-3xl flex flex-col sm:flex-row items-center gap-4">
              <div className="flex items-center gap-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">ENGINE: ONLINE</span>
@@ -138,7 +138,7 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
 
         {/* ROADMAP / FEATURES */}
         <div className="w-full border-t border-white/5 pt-12 mb-20">
-          <h2 className="text-3xl md:text-6xl font-black text-white mb-12 tracking-tighter italic uppercase leading-tight">
+          <h2 className="text-3xl md:text-6xl font-black text-zinc-900 dark:text-white mb-12 tracking-tighter italic uppercase leading-tight">
             Institutional <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-600">CRT Intelligence.</span>
           </h2>
@@ -153,12 +153,12 @@ export default function DashboardClient({ isPro, expiryDate, userProfile }: Dash
   );
 }
 
-function StatCard({ label, value, icon, color = "text-white" }: any) {
+function StatCard({ label, value, icon, color = "text-zinc-900 dark:text-white" }: any) {
   return (
     <div className="bg-white/[0.03] border border-white/5 p-6 md:p-8 rounded-[2rem] shadow-xl">
       <div className="flex justify-between items-center mb-4">
         <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{label}</p>
-        <div className="text-zinc-500">{icon}</div>
+        <div className="text-zinc-600 dark:text-zinc-500">{icon}</div>
       </div>
       <p className={`text-2xl md:text-4xl font-black italic tracking-tighter ${color}`}>{value}</p>
     </div>
@@ -168,8 +168,8 @@ function StatCard({ label, value, icon, color = "text-white" }: any) {
 function FeatureItem({ title, desc }: any) {
   return (
     <div className="flex flex-col gap-2 p-6 rounded-3xl bg-white/[0.01] border border-white/5">
-      <h4 className="text-white font-black uppercase italic text-lg md:text-xl tracking-tighter">{title}</h4>
-      <p className="text-zinc-500 text-sm leading-relaxed">{desc}</p>
+      <h4 className="text-zinc-900 dark:text-white font-black uppercase italic text-lg md:text-xl tracking-tighter">{title}</h4>
+      <p className="text-zinc-600 dark:text-zinc-500 text-sm leading-relaxed">{desc}</p>
     </div>
   );
 }

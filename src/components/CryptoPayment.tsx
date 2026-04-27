@@ -43,8 +43,8 @@ export default function CryptoPayment({ userId }: { userId: string }) {
           <Cpu size={20} className="text-orange-500" />
         </div>
         <div>
-          <h3 className="text-white font-black italic uppercase tracking-tighter">Crypto Settlement</h3>
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Manual Verification Protocol</p>
+          <h3 className="text-zinc-900 dark:text-white font-black italic uppercase tracking-tighter">Crypto Settlement</h3>
+          <p className="text-[10px] text-zinc-600 dark:text-zinc-500 font-bold uppercase tracking-widest">Manual Verification Protocol</p>
         </div>
       </div>
 
@@ -53,7 +53,7 @@ export default function CryptoPayment({ userId }: { userId: string }) {
           <div key={w.network} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex justify-between items-center group">
             <div>
               <p className="text-[9px] font-black text-zinc-600 uppercase mb-1">{w.network}</p>
-              <p className="text-[11px] font-mono text-white truncate max-w-[180px] sm:max-w-none">{w.address}</p>
+              <p className="text-[11px] font-mono text-zinc-900 dark:text-white truncate max-w-[180px] sm:max-w-none">{w.address}</p>
             </div>
             <button 
               onClick={() => copyToClipboard(w.address)}
@@ -73,7 +73,7 @@ export default function CryptoPayment({ userId }: { userId: string }) {
             value={hash}
             onChange={(e) => setHash(e.target.value)}
             placeholder="Paste your transaction hash here..."
-            className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-white focus:border-orange-500/50 outline-none transition-all"
+            className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-zinc-900 dark:text-white focus:border-orange-500/50 outline-none transition-all"
           />
         </div>
 
@@ -91,8 +91,8 @@ export default function CryptoPayment({ userId }: { userId: string }) {
       </div>
 
       <div className="flex items-center gap-2 px-2 opacity-50">
-        <ShieldCheck size={12} className="text-zinc-500" />
-        <p className="text-[8px] text-zinc-500 font-bold uppercase">Pro access granted within 1-12 hours of confirmation.</p>
+        <ShieldCheck size={12} className="text-zinc-600 dark:text-zinc-500" />
+        <p className="text-[8px] text-zinc-600 dark:text-zinc-500 font-bold uppercase">Pro access granted within 1-12 hours of confirmation.</p>
       </div>
     </div>
   );

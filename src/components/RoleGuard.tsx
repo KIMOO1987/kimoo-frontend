@@ -12,7 +12,7 @@ export default function RoleGuard({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
         <Activity size={32} className="text-blue-500 animate-spin" />
-        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">
+        <p className="text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.3em]">
           Verifying Access...
         </p>
       </div>
@@ -26,10 +26,10 @@ export default function RoleGuard({ children }: { children: React.ReactNode }) {
         <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 border border-blue-500/20">
           <Lock className="text-blue-500" size={32} />
         </div>
-        <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white">
+        <h2 className="text-3xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-white">
           Alpha <span className="text-blue-500">Access Required</span>
         </h2>
-        <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-4 max-w-md leading-relaxed">
+        <p className="text-zinc-600 dark:text-zinc-500 text-xs font-bold uppercase tracking-widest mt-4 max-w-md leading-relaxed">
           The CRT Institutional protocol for this module is locked for your current subscription level.
         </p>
         <Link

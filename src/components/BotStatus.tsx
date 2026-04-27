@@ -75,7 +75,7 @@ export default function BotStatus({ userId, exchangeName = 'binance', cachedStat
         )}
         <span className={`relative inline-flex rounded-full h-3 w-3 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></span>
       </div>
-      <span className="text-[10px] font-black uppercase tracking-widest text-white/90">
+      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900/90 dark:text-white/90">
         {exchangeName} {isOnline ? 'LIVE' : 'OFFLINE'}
       </span>
     </div>

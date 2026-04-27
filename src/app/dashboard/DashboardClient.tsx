@@ -12,6 +12,17 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip,
   PieChart, Pie, Cell
 } from 'recharts';
+import { motion, Variants } from 'framer-motion';
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20, rotateX: 10 },
+  show: { opacity: 1, y: 0, rotateX: 0, transition: { type: "spring" as const, bounce: 0.4 } }
+};
 
 interface DashboardClientProps {
   tier: number; 
@@ -107,42 +118,43 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
   };
 
   return (
-    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 min-h-screen font-sans overflow-x-hidden">
       
-      {/* Ambience */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[150px] rounded-full" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[150px] rounded-full" />
-      </div>
+      {/* Ambience is now handled by layout.tsx, removed local ambience to prevent overlap */}
 
       <div className="max-w-[1700px] mx-auto relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-12">
           <div>
-            <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic uppercase text-white">Client<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Dashboard</span></h1>
-            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">• KIMOO CRT ENGINE PRO •</p>
+            <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase drop-shadow-md">Client <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500">Dashboard</span></h1>
+            <p className="text-[10px] uppercase tracking-[0.4em] font-bold mt-3 leading-none opacity-70">• KIMOO CRT ENGINE PRO •</p>
           </div>
         </div>
 
         {/* SETTINGS CARD */}
-        <div className="mb-10 p-6 md:p-10 rounded-[2.5rem] bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] backdrop-blur-2xl shadow-2xl">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/5 pb-8 mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="mb-10 p-6 md:p-10 rounded-[2.5rem] glass-panel preserve-3d"
+        >
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-[var(--glass-border)] pb-8 mb-8">
               <div>
                   <div className="flex flex-wrap items-center gap-4 mb-3">
-                     <h2 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter">{userProfile?.full_name || 'TRADER'}</h2>
-                     <span className="bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[10px] font-black px-4 py-1.5 rounded-lg uppercase tracking-widest">{getTierDisplay()}</span>
+                     <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">{userProfile?.full_name || 'TRADER'}</h2>
+                     <span className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/40 text-purple-600 dark:text-purple-400 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest drop-shadow-sm">{getTierDisplay()}</span>
                   </div>
                   
                   {/* Email Row */}
-                  <div className="flex items-center gap-2 text-zinc-500 mb-2">
-                     <Mail size={14} className="text-indigo-400" />
+                  <div className="flex items-center gap-2 opacity-70 mb-2">
+                     <Mail size={14} className="text-purple-500" />
                      <span className="text-[11px] font-bold tracking-widest uppercase font-mono">{userProfile?.email}</span>
                   </div>
 
                   {/* License Key / UUID Row */}
-                  <div className="flex items-center gap-2 text-zinc-500 bg-white/[0.02] border border-white/[0.05] w-fit px-3 py-1.5 rounded-lg">
-                     <Key size={14} className="text-blue-400" />
+                  <div className="flex items-center gap-2 opacity-80 bg-[var(--input-bg)] border border-[var(--glass-border)] w-fit px-4 py-2 rounded-full shadow-inner">
+                     <Key size={14} className="text-pink-500" />
                      <span className="text-[11px] font-bold tracking-widest uppercase font-mono">
-                        LICENSE: <span className="text-zinc-300">{userProfile?.id || 'NO-KEY-FOUND'}</span>
+                        LICENSE: <span className="opacity-70">{userProfile?.id || 'NO-KEY-FOUND'}</span>
                      </span>
                      <button 
                         onClick={handleCopyLicense}
@@ -152,10 +164,10 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                         {copied ? (
                            <Check size={14} className="text-emerald-400" />
                         ) : (
-                           <Copy size={14} className="text-zinc-400 group-hover:text-white transition-colors" />
+                           <Copy size={14} className="text-zinc-700 dark:text-zinc-400 group-hover:text-zinc-900 dark:text-white transition-colors" />
                         )}
                      </button>
-                     {copied && <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest ml-1 animate-pulse">Copied!</span>}
+                     {copied && <span className="text-[9px] text-emerald-500 font-black uppercase tracking-widest ml-1 animate-pulse">Copied!</span>}
                   </div>
                </div>
                <div className="flex items-center gap-3 mt-6 md:mt-0">
@@ -170,28 +182,28 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                 <InputBox label="Reward per TP" icon={<TrendingUp size={16}/>} value={rewardValue} onChange={setRewardValue} suffix="R" color="blue" />
                 <SelectBox label="Result Scope" value={timeframe} onChange={setTimeframe} options={[{v:'all', l:'All Time'}, {v:'daily', l:'Daily'}, {v:'weekly', l:'Weekly'}, {v:'monthly', l:'Monthly'}]} />
                 <SelectBox label="Asset Class" value={assetClass} onChange={setAssetClass} options={[{v:'ALL', l:'All Assets'}, {v:'CRYPTO', l:'Crypto'}, {v:'FOREX', l:'Forex'}, {v:'METALS', l:'Metals'}]} />
-                <button onClick={handleSaveSettings} disabled={isSaving} className="h-[50px] self-end bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(59,130,246,0.3)] active:scale-95 transition-all">
+                <button onClick={handleSaveSettings} disabled={isSaving} className="btn-modern h-[50px] self-end flex items-center justify-center gap-2 w-full md:w-auto">
                    <Save size={16} className={isSaving ? 'animate-spin' : ''} /> {isSaving ? 'Saving' : 'Save Config'}
                 </button>
             </div>
-        </div>
+        </motion.div>
 
         {/* MAIN STATS GRID */}
         {isInitialLoad ? (
-           <div className="w-full py-24 flex flex-col items-center justify-center border border-white/5 rounded-[2.5rem] bg-white/[0.02] animate-pulse mb-12"><Activity size={40} className="text-zinc-700 mb-4" /><p className="text-xs font-black uppercase text-zinc-600">Syncing Intelligence...</p></div>
+           <div className="w-full py-24 flex flex-col items-center justify-center glass-panel rounded-[2.5rem] animate-pulse mb-12"><Activity size={40} className="opacity-50 mb-4" /><p className="text-xs font-black uppercase opacity-70">Syncing Intelligence...</p></div>
         ) : (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 mb-8">
+          <motion.div variants={containerVariants} initial="hidden" animate="show">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 mb-8 perspective-1000">
                <StatCard label="Total Signals" value={realStats.total} icon={<Activity size={18}/>} />
                <StatCard label="Total Wins" value={realStats.totalWins} icon={<CheckCircle2 size={18}/>} color="text-emerald-400" />
                <StatCard label="Total Losses" value={realStats.totalLosses} icon={<XCircle size={18}/>} color="text-red-500" />
-               <StatCard label="Total BE" value={realStats.totalBE} icon={<MinusCircle size={18}/>} color="text-zinc-400" />
+               <StatCard label="Total BE" value={realStats.totalBE} icon={<MinusCircle size={18}/>} color="text-zinc-700 dark:text-zinc-400" />
                <StatCard label="Win Rate" value={realStats.winRate} icon={<TrendingUp size={18}/>} color="text-emerald-400" />
                <StatCard label="Total R:R" value={realStats.totalRR} icon={<Zap size={18}/>} color="text-indigo-400" />
                
                <StatCard label="Net Profit" value={realStats.profitUSD} icon={<Wallet size={18}/>} color="text-emerald-500" />
                <StatCard label="Profit Factor" value={realStats.profitFactor} icon={<Star size={18}/>} color="text-blue-400" />
-               <StatCard label="Expectancy" value={realStats.expectancy} icon={<Layers size={18}/>} color="text-zinc-300" />
+               <StatCard label="Expectancy" value={realStats.expectancy} icon={<Layers size={18}/>} color="text-zinc-800 dark:text-zinc-300" />
                <StatCard label="Max Drawdown" value={realStats.maxDrawdown} icon={<TrendingDown size={18}/>} color="text-red-400" />
                <StatCard label="Long WR" value={realStats.longWR} sub="Buy Side" />
                <StatCard label="Short WR" value={realStats.shortWR} sub="Sell Side" />
@@ -204,8 +216,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                <StatCard label="Integrity" value="100%" sub="Verified" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-                <div className="lg:col-span-2 bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-8 rounded-[2.5rem] shadow-2xl">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12 perspective-1000">
+                <motion.div variants={itemVariants} className="lg:col-span-2 glass-panel p-8 rounded-[2.5rem]">
                    <h3 className="text-xl font-black italic tracking-tighter uppercase mb-6">Equity Curve</h3>
                    <div className="h-[300px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
@@ -217,8 +229,8 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                          </AreaChart>
                       </ResponsiveContainer>
                    </div>
-                </div>
-                <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-8 rounded-[2.5rem] shadow-2xl flex flex-col justify-center text-center">
+                </motion.div>
+                <motion.div variants={itemVariants} className="glass-panel p-8 rounded-[2.5rem] flex flex-col justify-center text-center">
                    <h3 className="text-xl font-black italic tracking-tighter uppercase mb-6">Outcome Split</h3>
                    <div className="h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
@@ -230,9 +242,9 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
                          </PieChart>
                       </ResponsiveContainer>
                    </div>
-                </div>
+                </motion.div>
             </div>
-          </>
+          </motion.div>
         )}
       </div>
     </div>
@@ -243,11 +255,11 @@ export default function DashboardClient({ tier, expiryDate, userProfile }: Dashb
 function InputBox({ label, icon, value, onChange, prefix, suffix, color }: any) {
   return (
     <div className="flex flex-col w-full">
-       <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 ml-1">{label}</span>
-       <div className={`flex items-center bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 transition-all hover:border-white/20`}>
-          {prefix && <span className="text-zinc-500 font-black text-sm mr-2">{prefix}</span>}
-          <input type="number" step="0.1" value={value} onChange={(e) => onChange(Number(e.target.value))} className="bg-transparent text-white font-black text-lg w-full outline-none" />
-          {suffix && <span className="text-zinc-500 font-black text-sm ml-2">{suffix}</span>}
+       <span className="text-[9px] font-black uppercase opacity-70 tracking-widest mb-1.5 ml-2">{label}</span>
+       <div className="flex items-center input-modern">
+          {prefix && <span className="opacity-50 font-black text-sm mr-2">{prefix}</span>}
+          <input type="number" step="0.1" value={value} onChange={(e) => onChange(Number(e.target.value))} className="bg-transparent font-black text-lg w-full outline-none" />
+          {suffix && <span className="opacity-50 font-black text-sm ml-2">{suffix}</span>}
        </div>
     </div>
   );
@@ -256,25 +268,25 @@ function InputBox({ label, icon, value, onChange, prefix, suffix, color }: any) 
 function SelectBox({ label, value, onChange, options }: any) {
   return (
     <div className="flex flex-col w-full">
-       <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 ml-1">{label}</span>
-       <div className="bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-2.5 hover:border-white/20 transition-all">
-          <select value={value} onChange={(e) => onChange(e.target.value)} className="bg-transparent text-white font-black text-lg w-full outline-none appearance-none cursor-pointer">
-            {options.map((o: any) => <option key={o.v} value={o.v} className="bg-[#05070a]">{o.l}</option>)}
+       <span className="text-[9px] font-black uppercase opacity-70 tracking-widest mb-1.5 ml-2">{label}</span>
+       <div className="input-modern relative">
+          <select value={value} onChange={(e) => onChange(e.target.value)} className="bg-transparent font-black text-lg w-full outline-none appearance-none cursor-pointer pr-4">
+            {options.map((o: any) => <option key={o.v} value={o.v} className="bg-[var(--bg)]">{o.l}</option>)}
           </select>
        </div>
     </div>
   );
 }
 
-function StatCard({ label, value, icon, sub, color = "text-white" }: any) {
+function StatCard({ label, value, icon, sub, color = "text-inherit" }: any) {
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 rounded-[2rem] hover:bg-white/[0.06] hover:border-white/10 transition-all duration-300 shadow-xl group">
-       <div className="flex justify-between items-start mb-6">
-          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
-          <div className={`${color} opacity-50`}>{icon}</div>
+    <motion.div variants={itemVariants} whileHover={{ scale: 1.05, rotateX: 5, rotateY: -5, z: 20 }} className="relative overflow-hidden glass-panel p-6 transition-colors duration-300 group preserve-3d rounded-[2rem]">
+       <div className="flex justify-between items-start mb-6 relative z-10">
+          <p className="text-[9px] font-bold opacity-70 uppercase tracking-widest">{label}</p>
+          <div className={`${color} opacity-60 drop-shadow-md`}>{icon}</div>
        </div>
-       <p className={`text-2xl font-black tracking-tight ${color} drop-shadow-md`}>{value ?? '---'}</p>
-       {sub && <p className="text-[8px] font-bold text-zinc-600 mt-2 uppercase tracking-widest">{sub}</p>}
-    </div>
+       <p className={`text-2xl font-black tracking-tight ${color} drop-shadow-md relative z-10`}>{value ?? '---'}</p>
+       {sub && <p className="text-[8px] font-bold opacity-50 mt-2 uppercase tracking-widest relative z-10">{sub}</p>}
+    </motion.div>
   );
 }

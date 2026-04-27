@@ -36,7 +36,7 @@ export default function ErrorModal({ isOpen, onClose, title = "Execution Failed"
                 <ShieldAlert size={12} className="text-red-500" />
                 <span className="text-[9px] font-black uppercase text-red-500 tracking-widest">System Alert</span>
               </div>
-              <button onClick={onClose} className="text-zinc-600 hover:text-white transition-colors">
+              <button onClick={onClose} className="text-zinc-600 hover:text-zinc-900 dark:text-white transition-colors">
                 <X size={14} />
               </button>
             </div>
@@ -48,10 +48,10 @@ export default function ErrorModal({ isOpen, onClose, title = "Execution Failed"
                   <AlertTriangle size={24} className="text-red-500" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black italic tracking-tighter text-white leading-none mb-1">
+                  <h3 className="text-lg font-black italic tracking-tighter text-zinc-900 dark:text-white leading-none mb-1">
                     {title}
                   </h3>
-                  <p className="text-[10px] font-medium text-zinc-500 leading-relaxed uppercase tracking-tight">
+                  <p className="text-[10px] font-medium text-zinc-600 dark:text-zinc-500 leading-relaxed uppercase tracking-tight">
                     {message}
                   </p>
                 </div>

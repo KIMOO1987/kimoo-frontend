@@ -80,7 +80,7 @@ export default function BacktestPage() {
   // ... (UI Code remains the same as your high-quality original)
   return (
     <AccessGuard requiredTier={2} tierName="PRO">
-      <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 bg-[#030407] min-h-screen text-white font-sans overflow-x-hidden">
+      <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
         
         {/* Ambient Backgrounds */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -92,10 +92,10 @@ export default function BacktestPage() {
           {/* Header */}
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 mb-6">
             <div>
-              <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-white">
+              <h1 className="text-2xl md:text-4xl font-black tracking-tighter italic flex items-center gap-3 uppercase text-zinc-900 dark:text-white">
                 Strategy<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Backtest</span>
               </h1>
-              <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-3 leading-none">
+              <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 dark:text-zinc-500 font-bold mt-3 leading-none">
                 • REAL-TIME EQUITY SIMULATION • KIMOO CRT ENGINE •
               </p>
             </div>
@@ -105,11 +105,11 @@ export default function BacktestPage() {
               disabled={isSimulating}
               className={`w-full xl:w-auto flex items-center justify-center gap-3 px-10 py-4 rounded-xl font-black text-[11px] uppercase tracking-[0.2em] transition-all duration-300 active:scale-95 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] border ${
                 isSimulating 
-                  ? 'bg-white/[0.05] border-white/10 text-zinc-500 cursor-not-allowed shadow-none' 
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-blue-500/30 text-white'
+                  ? 'bg-white/[0.05] border-[var(--glass-border)] text-zinc-600 dark:text-zinc-500 cursor-not-allowed shadow-none' 
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-blue-500/30 text-zinc-900 dark:text-white'
               }`}
             >
-              {isSimulating ? <RotateCcw className="animate-spin text-zinc-400" size={16} /> : <Play size={16} className="text-blue-200" />}
+              {isSimulating ? <RotateCcw className="animate-spin text-zinc-700 dark:text-zinc-400" size={16} /> : <Play size={16} className="text-blue-200" />}
               {isSimulating ? "COMPUTING..." : "GENERATE GROWTH GRAPH"}
             </button>
           </div>
@@ -117,15 +117,15 @@ export default function BacktestPage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
             {/* Sidebar Inputs */}
             <div className="space-y-6">
-              <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2.5rem] space-y-6 shadow-2xl backdrop-blur-md">
-                <div className="flex items-center gap-3 text-zinc-400 border-b border-white/5 pb-6 mb-6">
+              <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] space-y-6 shadow-2xl backdrop-blur-md">
+                <div className="flex items-center gap-3 text-zinc-700 dark:text-zinc-400 border-b border-[var(--glass-border)] pb-6 mb-6">
                   <Settings2 size={14} />
                   <h3 className="text-[11px] font-black uppercase tracking-widest">Test Parameters</h3>
                 </div>
                 
                 <div className="space-y-4">
-                  <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 flex items-center gap-2"><Layers size={10} /> Instrument</label>
-                  <select value={selectedSymbol} onChange={(e) => setSelectedSymbol(e.target.value)} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono font-bold text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all cursor-pointer appearance-none">
+                  <label className="text-[9px] font-black uppercase text-zinc-600 dark:text-zinc-500 ml-1 flex items-center gap-2"><Layers size={10} /> Instrument</label>
+                  <select value={selectedSymbol} onChange={(e) => setSelectedSymbol(e.target.value)} className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-xs font-mono font-bold text-zinc-900 dark:text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all cursor-pointer appearance-none">
                     <option value="ALL">ALL PAIRS</option>
                     <option value="EURUSD">EURUSD</option>
                     <option value="GBPUSD">GBPUSD</option>
@@ -136,24 +136,24 @@ export default function BacktestPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 flex items-center gap-1.5"><Wallet size={10}/> Capital ($)</label>
-                    <input type="number" value={accountSize} onChange={(e)=>setAccountSize(Number(e.target.value))} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-blue-400 outline-none focus:border-blue-500/50 hover:border-white/20 transition-all"/>
+                    <label className="text-[9px] font-black uppercase text-zinc-600 dark:text-zinc-500 ml-1 flex items-center gap-1.5"><Wallet size={10}/> Capital ($)</label>
+                    <input type="number" value={accountSize} onChange={(e)=>setAccountSize(Number(e.target.value))} className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-xs font-mono text-blue-400 outline-none focus:border-blue-500/50 hover:border-white/20 transition-all"/>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 flex items-center gap-1.5"><Percent size={10}/> Risk (%)</label>
-                    <input type="number" step="0.1" value={riskPercent} onChange={(e)=>setRiskPercent(Number(e.target.value))} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-blue-400 outline-none focus:border-blue-500/50 hover:border-white/20 transition-all"/>
+                    <label className="text-[9px] font-black uppercase text-zinc-600 dark:text-zinc-500 ml-1 flex items-center gap-1.5"><Percent size={10}/> Risk (%)</label>
+                    <input type="number" step="0.1" value={riskPercent} onChange={(e)=>setRiskPercent(Number(e.target.value))} className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-xs font-mono text-blue-400 outline-none focus:border-blue-500/50 hover:border-white/20 transition-all"/>
                   </div>
                 </div>
 
                 <div className="space-y-4 pt-2">
-                  <label className="text-[9px] font-black uppercase text-zinc-500 ml-1 flex items-center gap-2"><Target size={10}/> Reward Ratio ({rrRatio}:1)</label>
+                  <label className="text-[9px] font-black uppercase text-zinc-600 dark:text-zinc-500 ml-1 flex items-center gap-2"><Target size={10}/> Reward Ratio ({rrRatio}:1)</label>
                   <input type="range" min="1" max="10" step="0.5" value={rrRatio} onChange={(e) => setRrRatio(parseFloat(e.target.value))} className="w-full accent-blue-500 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer" />
                 </div>
 
                 <div className="space-y-2 pt-2">
-                   <label className="text-[9px] font-black uppercase text-zinc-500 ml-1">Date Range</label>
-                   <input type="date" value={startDate} onChange={(e)=>setStartDate(e.target.value)} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-zinc-400 outline-none focus:border-blue-500/50 hover:border-white/20 transition-all mb-3 cursor-pointer"/>
-                   <input type="date" value={endDate} onChange={(e)=>setEndDate(e.target.value)} className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-xs font-mono text-zinc-400 outline-none focus:border-blue-500/50 hover:border-white/20 transition-all cursor-pointer"/>
+                   <label className="text-[9px] font-black uppercase text-zinc-600 dark:text-zinc-500 ml-1">Date Range</label>
+                   <input type="date" value={startDate} onChange={(e)=>setStartDate(e.target.value)} className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-xs font-mono text-zinc-700 dark:text-zinc-400 outline-none focus:border-blue-500/50 hover:border-white/20 transition-all mb-3 cursor-pointer"/>
+                   <input type="date" value={endDate} onChange={(e)=>setEndDate(e.target.value)} className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-xs font-mono text-zinc-700 dark:text-zinc-400 outline-none focus:border-blue-500/50 hover:border-white/20 transition-all cursor-pointer"/>
                 </div>
               </div>
             </div>
@@ -167,12 +167,12 @@ export default function BacktestPage() {
                   <ResultCard label="Equity Gain" value={results ? `+${results.equityGain}R` : "0.0R"} icon={<BarChart3 size={20}/>} color="text-amber-400" />
               </div>
 
-              <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] shadow-2xl backdrop-blur-md rounded-[2.5rem] p-6 md:p-10 min-h-[500px] flex flex-col justify-between overflow-hidden relative">
+              <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] shadow-2xl backdrop-blur-md rounded-[2.5rem] p-6 md:p-10 min-h-[500px] flex flex-col justify-between overflow-hidden relative">
                 <div className="flex justify-between items-start mb-8">
-                  <h4 className="text-[11px] font-black uppercase tracking-widest text-white italic drop-shadow-md">Equity Growth Curve</h4>
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-zinc-900 dark:text-white italic drop-shadow-md">Equity Growth Curve</h4>
                   {results && (
                     <div className="text-right">
-                      <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Avg Expectancy</p>
+                      <p className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">Avg Expectancy</p>
                       <p className="text-sm font-black text-blue-400">+{results.avgTrade}R / Trade</p>
                     </div>
                   )}
@@ -183,7 +183,7 @@ export default function BacktestPage() {
                     {isSimulating ? (
                       <div className="w-full h-full flex flex-col items-center justify-center">
                         <BarChart3 size={40} className="text-zinc-600 animate-bounce mb-4" />
-                        <p className="text-xs font-black uppercase tracking-widest text-zinc-500">Processing Timeline...</p>
+                        <p className="text-xs font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-500">Processing Timeline...</p>
                       </div>
                     ) : results && equityCurve.length > 0 ? (
                       <div 
@@ -253,13 +253,13 @@ export default function BacktestPage() {
 // ResultCard and StatItem components remain the same
 function ResultCard({ label, value, icon, color }: any) {
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.05] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center justify-between">
+    <div className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 group shadow-2xl flex items-center justify-between">
       <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="relative z-10">
-        <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">{label}</p>
+        <p className="text-[9px] md:text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mb-2">{label}</p>
         <p className={`text-2xl md:text-3xl font-black tracking-tighter italic drop-shadow-md ${color}`}>{value}</p>
       </div>
-      <div className={`relative z-10 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] ${color} group-hover:scale-110 transition-transform duration-300 shadow-lg`}>{icon}</div>
+      <div className={`relative z-10 p-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] ${color} group-hover:scale-110 transition-transform duration-300 shadow-lg`}>{icon}</div>
     </div>
   );
 }

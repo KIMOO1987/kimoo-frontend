@@ -2,7 +2,12 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-static';
+
 export async function POST(req: Request) {
+  if (process.env.NEXT_EXPORT === 'true') {
+    return NextResponse.json({ message: 'Disabled' });
+  }
   try {
     const cookieStore = await cookies();
 

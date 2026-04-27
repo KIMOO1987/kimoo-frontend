@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next"; // Added Viewport import
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,19 +34,33 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#050505] text-zinc-100 selection:bg-blue-500/30 overflow-x-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-blue-500/30 overflow-x-hidden`}
         suppressHydrationWarning
       >
-        {/* Subtle Background Glow - Optimized with will-change */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        {/* 3D Ambient Background */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 perspective-1000">
+          {/* Main Glow - Vibrant Pink/Purple */}
           <div 
-            className="absolute -top-[25%] -left-[10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px] rounded-full will-change-transform" 
+            className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-fuchsia-600/20 blur-[120px] rounded-full mix-blend-screen animate-pulse"
+            style={{ animationDuration: '8s' }}
+          />
+          {/* Secondary Glow - Vibrant Violet */}
+          <div 
+            className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] bg-violet-600/20 blur-[120px] rounded-full mix-blend-screen animate-pulse"
+            style={{ animationDuration: '10s', animationDelay: '2s' }}
+          />
+          {/* Subtle Bottom Glow - Vibrant Orange/Amber */}
+          <div 
+            className="absolute -bottom-[20%] left-[20%] w-[40%] h-[40%] bg-amber-500/15 blur-[100px] rounded-full mix-blend-screen animate-pulse"
+            style={{ animationDuration: '12s', animationDelay: '4s' }}
           />
         </div>
         
         {children}
+        </ThemeProvider>
       </body>
     </html>
   );
