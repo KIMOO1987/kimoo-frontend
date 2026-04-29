@@ -333,7 +333,7 @@ export default function MEXCDashboard() {
           </div>
           
           <div className="flex items-center gap-3 px-5 py-2.5 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl backdrop-blur-md shadow-xl">
-            {userId && <BotStatus userId={userId} exchangeName="mexc" />}
+            {userId && <BotStatus userId={userId} exchangeName="mexc" cachedIsBotEnabled={isBotEnabled} />}
           </div>
         </div>
 
