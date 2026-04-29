@@ -8,17 +8,12 @@ interface BotStatusProps {
   exchangeName: string;
   cachedStatus?: any;
   cachedHeartbeat?: string;
-  cachedIsActive?: boolean;
+  cachedIsBotEnabled?: boolean;
 }
 
 // 2. Moved the math helper OUTSIDE the effect so the initial state can use it
-const checkStatus = (isActive: any, statusText: any, heartbeat: string | null | undefined) => {
-  if (isActive === true) return true;
-  if (typeof statusText === 'string') {
-     const s = statusText.toUpperCase();
-     if (s === 'ACTIVE' || s === 'ONLINE') return true;
-  }
-  if (statusText === true) return true; // Just in case it's passed as boolean
+const checkStatus = (isBotEnabled: any, heartbeat: string | null | undefined) => {
+  if (isBotEnabled === true) return true;
   
   if (!heartbeat) return false;
   // Ensure UTC parsing by appending 'Z' if it's missing (Postgres timestamp without timezone fix)
@@ -28,10 +23,10 @@ const checkStatus = (isActive: any, statusText: any, heartbeat: string | null | 
   return (now - lastActive) < 120000; // 2 minutes in ms
 };
 
-export default function BotStatus({ userId, exchangeName = 'binance', cachedStatus, cachedHeartbeat, cachedIsActive }: BotStatusProps) {
+export default function BotStatus({ userId, exchangeName = 'binance', cachedStatus, cachedHeartbeat, cachedIsBotEnabled }: BotStatusProps) {
   
   // 3. THE MAGIC: Start instantly based on the cache instead of blinding guessing "false"
-  const [isOnline, setIsOnline] = useState<boolean>(() => checkStatus(cachedIsActive, cachedStatus, cachedHeartbeat));
+  const [isOnline, setIsOnline] = useState<boolean>(() => checkStatus(cachedIsBotEnabled, cachedHeartbeat));
   
   // 4. Stable Supabase client initialization (Best practice for Next.js)
   const [supabase] = useState(() => createBrowserClient(
@@ -46,13 +41,13 @@ export default function BotStatus({ userId, exchangeName = 'binance', cachedStat
     const getInitialStatus = async () => {
       const { data } = await supabase
         .from('exchange_auth')
-        .select('is_active, status, last_heartbeat')
+        .select('is_bot_enabled, last_heartbeat')
         .eq('user_id', userId)
         .eq('exchange_name', exchangeName)
         .single();
       
       if (data) {
-        setIsOnline(checkStatus(data.is_active, data.status, data.last_heartbeat));
+        setIsOnline(checkStatus(data.is_bot_enabled, data.last_heartbeat));
       }
     };
     getInitialStatus();
@@ -69,7 +64,7 @@ export default function BotStatus({ userId, exchangeName = 'binance', cachedStat
         },
         (payload) => {
           if (payload.new.exchange_name === exchangeName) {
-            setIsOnline(checkStatus(payload.new.is_active, payload.new.status, payload.new.last_heartbeat));
+            setIsOnline(checkStatus(payload.new.is_bot_enabled, payload.new.last_heartbeat));
           }
         }
       ).subscribe();
