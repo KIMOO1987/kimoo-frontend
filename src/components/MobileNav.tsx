@@ -26,15 +26,15 @@ const menuGroups = [
     label: 'RADAR & ANALYSIS',
     items: [
       { name: 'All Signals', icon: Zap, path: '/dashboard/signals', minTier: 1 },
-      { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', minTier: 2 },
-      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', minTier: 2 },
+      { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', minTier: 1 },
+      { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', minTier: 1 },
     ]
   },
   { 
     label: 'STRATEGY LAB', 
     items: [
-      { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', minTier: 3 },
-      { name: 'Performance', icon: LineChart, path: '/dashboard/performance', minTier: 3 },
+      { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', minTier: 1 },
+      { name: 'Performance', icon: LineChart, path: '/dashboard/performance', minTier: 1 },
     ]
   },
   { 
@@ -47,12 +47,12 @@ const menuGroups = [
   { 
     label: 'AUTO EXECUATION PLATFORMS',
     items: [
-      { name: 'MT5', icon: (props: { size?: number }) => <img src="/mt5.png" alt="MT5" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/mt5', minTier: 3 },
-      { name: 'cTrader', icon: (props: { size?: number }) => <img src="/ctrader-logo.png" alt="cTrader" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/ctrader', minTier: 3 },
-      //{ name: 'Binance', icon: (props: { size?: number }) => <img src="/binance.png" alt="Binance" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/binance', minTier: 3 },
-      { name: 'OKX', icon: (props: { size?: number }) => <img src="/okx.png" alt="OKX" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/okx', minTier: 3 },
-      //{ name: 'MEXC', icon: (props: { size?: number }) => <img src="/mexc.png" alt="MEXC" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/mexc', minTier: 3 },
-      //{ name: 'Kraken', icon: (props: { size?: number }) => <img src="/kraken.png" alt="Kraken" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/kraken', minTier: 3 },
+      { name: 'MT5', icon: (props: { size?: number }) => <img src="/mt5.png" alt="MT5" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/mt5', minTier: 2 },
+      { name: 'cTrader', icon: (props: { size?: number }) => <img src="/ctrader-logo.png" alt="cTrader" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/ctrader', minTier: 2 },
+      //{ name: 'Binance', icon: (props: { size?: number }) => <img src="/binance.png" alt="Binance" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/binance', minTier: 2 },
+      { name: 'OKX', icon: (props: { size?: number }) => <img src="/okx.png" alt="OKX" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/okx', minTier: 2 },
+      //{ name: 'MEXC', icon: (props: { size?: number }) => <img src="/mexc.png" alt="MEXC" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/mexc', minTier: 2 },
+      //{ name: 'Kraken', icon: (props: { size?: number }) => <img src="/kraken.png" alt="Kraken" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/kraken', minTier: 2 },
     ]
   }
 ];
