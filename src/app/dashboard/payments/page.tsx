@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { Check, Zap, Crown, Star, CreditCard, Bitcoin, Loader2, Copy, ShieldCheck, X, CheckCircle2, Clock } from 'lucide-react';
+import { Check, Zap, Crown, Star, CreditCard, Bitcoin, Loader2, Copy, ShieldCheck, X, CheckCircle2, Clock, Gift } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { startTrial } from '@/lib/payments';
 
 /** * 1. UPDATED REDIRECTION MAPPING
  * Changed 'ultimate' to match your new naming convention.
@@ -28,6 +29,8 @@ export default function PaymentsPage() {
   const [cryptoHash, setCryptoHash] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
   const [cryptoStatus, setCryptoStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
+  const [trialLoading, setTrialLoading] = useState(false);
+  const [trialSuccess, setTrialSuccess] = useState<string | null>(null);
 
   // --- FETCH DYNAMIC PLANS FROM SUPABASE ---
   useEffect(() => {
@@ -76,6 +79,30 @@ export default function PaymentsPage() {
       setTimeout(() => { window.location.href = checkoutUrl; }, 800);
     } else {
       setLoading(false);
+    }
+  };
+
+  const handleStartTrial = async () => {
+    setTrialLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please login to start trial.");
+      setTrialLoading(false);
+      return;
+    }
+
+    try {
+      const data = await startTrial(user.id);
+      if (data.status === 'success') {
+        setTrialSuccess('15-Day Ultimate Trial Activated!');
+        setTimeout(() => window.location.href = '/dashboard', 2000);
+      } else {
+        alert(data.message || 'Could not activate trial. You might have already used it.');
+      }
+    } catch (err) {
+      alert('Trial request failed. Please try again.');
+    } finally {
+      setTrialLoading(false);
     }
   };
 
@@ -146,7 +173,52 @@ export default function PaymentsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-7xl mx-auto">
+          {/* 15-DAY FREE TRIAL CARD */}
+          <div 
+            onClick={() => handleStartTrial()}
+            className={`relative p-8 md:p-10 flex flex-col cursor-pointer transition-all duration-500 group backdrop-blur-xl rounded-[2.5rem] border border-fuchsia-500/30 bg-fuchsia-500/5 hover:bg-fuchsia-500/10 shadow-[0_0_30px_rgba(217,70,239,0.1)] hover:shadow-[0_0_50px_rgba(217,70,239,0.2)] hover:md:-translate-y-4`}
+          >
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white text-[9px] font-black px-4 py-1.5 rounded-b-xl uppercase tracking-widest shadow-lg">
+              Limited Offer
+            </div>
+            
+            <div className="mb-8 p-4 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20 w-fit shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <Gift size={24} className="text-fuchsia-400 animate-bounce" />
+            </div>
+            <h3 className="text-xl font-black italic tracking-tighter uppercase drop-shadow-md mb-2 text-fuchsia-400">15-Day Trial</h3>
+            <div className="flex items-baseline gap-2 mb-8">
+              <span className="text-5xl md:text-6xl font-black tracking-tighter">FREE</span>
+              <span className="text-[10px] font-bold text-fuchsia-500/60 uppercase tracking-widest">NO COST</span>
+            </div>
+
+            <div className="space-y-4 mb-10 flex-1">
+              {[
+                "FULL TIER 3 (ULTIMATE) ACCESS",
+                "ALL EXCHANGES & STRATEGIES",
+                "INSTANT SIGNAL DELIVERY",
+                "24/7 SUPPORT ACCESS"
+              ].map((feature) => (
+                <div key={feature} className="flex items-center gap-4">
+                  <div className="p-1 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400 shadow-[0_0_10px_rgba(217,70,239,0.2)]">
+                    <Check size={12} strokeWidth={3} />
+                  </div>
+                  <span className="text-xs font-bold text-zinc-800 dark:text-zinc-300 uppercase tracking-widest leading-relaxed">{feature}</span>
+                </div>
+              ))}
+            </div>
+
+            <button 
+              disabled={trialLoading || !!trialSuccess}
+              className={`py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 mt-auto flex items-center justify-center gap-2 ${
+                trialSuccess 
+                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.2)]'
+                : 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white shadow-[0_0_30px_rgba(217,70,239,0.4)] border border-fuchsia-500/50 group-hover:scale-[1.02]'
+              }`}
+            >
+              {trialLoading ? <Loader2 size={16} className="animate-spin" /> : trialSuccess ? <><CheckCircle2 size={16}/> Activated</> : 'Start Free Trial'}
+            </button>
+          </div>
           {plans.map((plan) => (
             <div 
               key={plan.id} 
