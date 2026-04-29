@@ -315,12 +315,12 @@ const saveAllSettings = async () => {
     </div>
   );
 
-  if (error || (userTier !== null && userTier < 3)) {
+  if (error || (userTier !== null && userTier < 2)) {
     return (
       <div className="min-h-screen  flex flex-col items-center justify-center p-6 text-center">
         <ShieldAlert className="text-red-500 mb-4" size={48} />
         <h2 className="text-2xl font-black text-zinc-900 dark:text-white uppercase italic tracking-tighter">Access Denied</h2>
-        <p className="text-zinc-600 dark:text-zinc-500 text-sm mt-2 max-w-xs">{error || "This feature requires a Lifetime Pro (Tier 3) subscription."}</p>
+        <p className="text-zinc-600 dark:text-zinc-500 text-sm mt-2 max-w-xs">{error || "This feature requires a PRO (Tier 2) subscription."}</p>
       </div>
     );
   }

@@ -171,7 +171,7 @@ export default function MT5Dashboard() {
   const fullUrl = botToken ? `${apiBaseUrl}?botId=${botToken}` : "Generating Token...";
 
   return (
-    <AccessGuard requiredTier={3} tierName="Lifetime Pro">
+    <AccessGuard requiredTier={2} tierName="PRO">
       <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
         
         {/* Ambient Glowing Backgrounds */}

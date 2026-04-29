@@ -207,7 +207,7 @@ export default function PerformancePage() {
   }
 
   return (
-    <AccessGuard requiredTier={1} tierName="Active Member">
+    <AccessGuard requiredTier={1} tierName="PRO">
       <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
         
         {/* Ambient Glowing Backgrounds */}
