@@ -6,14 +6,18 @@ import { createBrowserClient } from '@supabase/ssr';
 interface BotStatusProps {
   userId: string;
   exchangeName: string;
-  cachedStatus?: string;
+  cachedStatus?: any;
   cachedHeartbeat?: string;
 }
 
 // 2. Moved the math helper OUTSIDE the effect so the initial state can use it
-const checkStatus = (heartbeat: string | null | undefined) => {
+const checkStatus = (status: any, heartbeat: string | null | undefined) => {
+  if (status === true || status === 'active' || status === 'ONLINE') return true;
+  
   if (!heartbeat) return false;
-  const lastActive = new Date(heartbeat).getTime();
+  // Ensure UTC parsing by appending 'Z' if it's missing (Postgres timestamp without timezone fix)
+  const heartbeatStr = heartbeat.endsWith('Z') || heartbeat.includes('+') ? heartbeat : heartbeat + 'Z';
+  const lastActive = new Date(heartbeatStr).getTime();
   const now = new Date().getTime();
   return (now - lastActive) < 120000; // 2 minutes in ms
 };
@@ -21,7 +25,7 @@ const checkStatus = (heartbeat: string | null | undefined) => {
 export default function BotStatus({ userId, exchangeName = 'binance', cachedStatus, cachedHeartbeat }: BotStatusProps) {
   
   // 3. THE MAGIC: Start instantly based on the cache instead of blinding guessing "false"
-  const [isOnline, setIsOnline] = useState<boolean>(() => checkStatus(cachedHeartbeat));
+  const [isOnline, setIsOnline] = useState<boolean>(() => checkStatus(cachedStatus, cachedHeartbeat));
   
   // 4. Stable Supabase client initialization (Best practice for Next.js)
   const [supabase] = useState(() => createBrowserClient(
@@ -36,18 +40,18 @@ export default function BotStatus({ userId, exchangeName = 'binance', cachedStat
     const getInitialStatus = async () => {
       const { data } = await supabase
         .from('exchange_auth')
-        .select('last_heartbeat')
+        .select('status, last_heartbeat')
         .eq('user_id', userId)
         .eq('exchange_name', exchangeName)
         .single();
       
       if (data) {
-        setIsOnline(checkStatus(data.last_heartbeat));
+        setIsOnline(checkStatus(data.status, data.last_heartbeat));
       }
     };
     getInitialStatus();
 
-    // 2. Realtime Subscription (Listens to Python Heartbeat)
+    // 2. Realtime Subscription (Listens to Python Heartbeat or Status changes)
     const channel = supabase
       .channel(`status-${exchangeName}-${userId}`)
       .on('postgres_changes',
@@ -59,7 +63,7 @@ export default function BotStatus({ userId, exchangeName = 'binance', cachedStat
         },
         (payload) => {
           if (payload.new.exchange_name === exchangeName) {
-            setIsOnline(checkStatus(payload.new.last_heartbeat));
+            setIsOnline(checkStatus(payload.new.status, payload.new.last_heartbeat));
           }
         }
       ).subscribe();
