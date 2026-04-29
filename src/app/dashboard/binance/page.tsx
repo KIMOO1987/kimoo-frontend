@@ -332,7 +332,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
           </div>
           
           <div className="flex items-center gap-3 px-5 py-2.5 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl backdrop-blur-md shadow-xl">
-            {userId && <BotStatus userId={userId} exchangeName="binance" />}
+            {userId && <BotStatus userId={userId} exchangeName="binance" cachedIsBotEnabled={isBotEnabled} />}
           </div>
         </div>
 
