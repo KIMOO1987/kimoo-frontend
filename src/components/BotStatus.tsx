@@ -13,6 +13,7 @@ interface BotStatusProps {
 
 // 2. Moved the math helper OUTSIDE the effect so the initial state can use it
 const checkStatus = (isBotEnabled: any, heartbeat: string | null | undefined) => {
+  if (isBotEnabled === false) return false;
   if (isBotEnabled === true) return true;
   
   if (!heartbeat) return false;
