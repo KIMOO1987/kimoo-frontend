@@ -18,3 +18,15 @@ export async function createCryptoPayment(userId: string, amount: number, planNa
 
   return await res.json();
 }
+
+export async function startTrial(userId: string) {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kimoo-frontend.vercel.app'}/api/start-trial`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ userId }),
+  });
+
+  return await res.json();
+}
