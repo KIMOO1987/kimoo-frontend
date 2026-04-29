@@ -21,7 +21,7 @@ export default function DashboardPage() {
 
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('id, tier, role, plan_type, expiry_date, full_name, country, email, account_size, risk_value, reward_value')
+        .select('id, tier, role, plan_type, subscription_type, is_pro, expiry_date, full_name, country, email, account_size, risk_value, reward_value')
         .eq('id', session.user.id)
         .single();
 
@@ -45,6 +45,30 @@ export default function DashboardPage() {
           .single();
 
         activeProfile = newProfile;
+      }
+
+      // --- EXPIRATION CHECK ---
+      if (profileData?.is_pro && profileData?.expiry_date) {
+        const expiryDate = new Date(profileData.expiry_date);
+        if (new Date() > expiryDate) {
+          console.log("🔒 Subscription Expired. Reverting to free tier...");
+          const { data: expiredProfile } = await supabase
+            .from('profiles')
+            .update({
+              is_pro: false,
+              plan_type: 'free',
+              subscription_type: 'free',
+              subscription_status: 'free',
+              tier: 0
+            })
+            .eq('id', session.user.id)
+            .select()
+            .single();
+          
+          if (expiredProfile) {
+            activeProfile = expiredProfile;
+          }
+        }
       }
 
       setProfile(activeProfile);
