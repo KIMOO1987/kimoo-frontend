@@ -41,18 +41,24 @@ export default function DashboardPage() {
             risk_value: 1.0,
             reward_value: 2.0
           })
-          .select('id, tier, role, plan_type, expiry_date, full_name, country, email, account_size, risk_value, reward_value')
+          .select('id, tier, role, plan_type, subscription_type, is_pro, expiry_date, full_name, country, email, account_size, risk_value, reward_value')
           .single();
 
         activeProfile = newProfile;
       }
 
       // --- EXPIRATION CHECK ---
-      if (profileData?.is_pro && profileData?.expiry_date) {
+      const now = new Date();
+      console.log("Current Time:", now.toISOString());
+      console.log("Profile Expiry:", profileData?.expiry_date);
+      console.log("Is Pro:", profileData?.is_pro);
+
+      if (profileData?.expiry_date) {
         const expiryDate = new Date(profileData.expiry_date);
-        if (new Date() > expiryDate) {
+        
+        if (now > expiryDate && profileData?.is_pro) {
           console.log("🔒 Subscription Expired. Reverting to free tier...");
-          const { data: expiredProfile } = await supabase
+          const { data: expiredProfile, error: updateError } = await supabase
             .from('profiles')
             .update({
               is_pro: false,
@@ -65,9 +71,14 @@ export default function DashboardPage() {
             .select()
             .single();
           
-          if (expiredProfile) {
+          if (updateError) {
+            console.error("❌ Failed to update expired profile:", updateError.message);
+          } else if (expiredProfile) {
+            console.log("✅ Profile successfully reset to free.");
             activeProfile = expiredProfile;
           }
+        } else {
+          console.log("✅ Subscription is still active or already free.");
         }
       }
 
