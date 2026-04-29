@@ -34,6 +34,13 @@ export default function BotStatus({ userId, exchangeName = 'binance', cachedStat
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   ));
 
+  // 5. Instantly reflect prop changes (e.g. user toggles checkbox before saving)
+  useEffect(() => {
+    if (cachedIsBotEnabled !== undefined) {
+      setIsOnline(checkStatus(cachedIsBotEnabled, cachedHeartbeat));
+    }
+  }, [cachedIsBotEnabled, cachedHeartbeat]);
+
   useEffect(() => {
     if (!userId) return;
 
