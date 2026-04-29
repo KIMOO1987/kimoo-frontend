@@ -355,6 +355,7 @@ const saveAllSettings = async () => {
                 exchangeName="okx" 
                 cachedStatus={botConfig?.status} 
                 cachedHeartbeat={botConfig?.last_heartbeat} 
+                cachedIsBotEnabled={isBotEnabled}
               />
             )}
           </div>
