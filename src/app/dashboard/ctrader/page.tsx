@@ -20,7 +20,6 @@ export default function CTraderDashboard() {
   );
 
   useEffect(() => {
-    // 1. Restore the bridge running status so it survives page refreshes
     const savedStatus = sessionStorage.getItem('ctrader_bridge_status');
     if (savedStatus === 'running') {
       setStatus('running');
@@ -29,22 +28,21 @@ export default function CTraderDashboard() {
     async function initializeBridge(isSilentRefresh = false) {
       try {
         if (!isSilentRefresh) {
-          // 2. Optimistic Cache Load (Stale-While-Revalidate) to skip loading screen
           const cached = sessionStorage.getItem('ctrader_data_cache');
           if (cached) {
             try {
               const parsed = JSON.parse(cached);
               setUserTier(parsed.tier);
               setBotToken(parsed.botToken);
-              setLoading(false); // Instantly hide initialization screen
-            } catch (e) {}
+              setLoading(false);
+            } catch (e) { }
           } else {
             setLoading(true);
           }
         }
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
+
         if (authError || !user) {
           if (!isSilentRefresh) setError("Authentication required. Please log in.");
           setLoading(false);
@@ -52,16 +50,14 @@ export default function CTraderDashboard() {
         }
         if (!isSilentRefresh) setUserId(user.id);
 
-        // 1. Fetch User Tier (Verify they are PRO / Tier 2)
         const { data: profile } = await supabase
           .from('profiles')
           .select('tier')
           .eq('id', user.id)
           .single();
-        
+
         if (!isSilentRefresh) setUserTier(profile?.tier || 0);
 
-        // 2. Fetch or Create Bot Token
         let { data, error: tokenError } = await supabase
           .from('bot_signals')
           .select('bot_token, is_active')
@@ -87,7 +83,6 @@ export default function CTraderDashboard() {
             setStatus('stopped');
             sessionStorage.setItem('ctrader_bridge_status', 'stopped');
           }
-          // Update cache silently in the background for the next refresh
           sessionStorage.setItem('ctrader_data_cache', JSON.stringify({
             tier: profile?.tier || 0,
             botToken: data.bot_token
@@ -102,50 +97,55 @@ export default function CTraderDashboard() {
     }
 
     initializeBridge();
-
-    // Silent background refresh every 30 seconds
-    const refreshInterval = setInterval(() => {
-      initializeBridge(true);
-    }, 30000);
-
+    const refreshInterval = setInterval(() => initializeBridge(true), 30000);
     return () => clearInterval(refreshInterval);
   }, [supabase]);
 
-  const addLog = useCallback((msg: string) => {
-    setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-100));
+  const addLog = useCallback((msg: string, timestamp?: string, type?: string) => {
+    setLogs((prev) => {
+      const time = timestamp ? new Date(timestamp) : new Date();
+      const prefix = type ? `[${type}] ` : '';
+      const newLog = `[${time.toLocaleTimeString()}] ${prefix}${msg}`;
+      const uniqueLogs = Array.from(new Set([...prev, newLog]));
+      return uniqueLogs.slice(-100);
+    });
   }, []);
 
-  // Dedicated listener for User's Private cBot Logs
   useEffect(() => {
-    if (!botToken) return;
+    if (!botToken || !userId) return;
 
-    // Fetch historical logs on initial load
     const fetchRecentLogs = async () => {
       const { data } = await supabase
         .from('cbot_logs')
-        .select('message, created_at')
+        .select('message, created_at, log_type')
         .eq('user_id', userId)
         .eq('bot_token', botToken)
         .order('created_at', { ascending: false })
         .limit(30);
-        
+
       if (data) {
-        const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
-        setLogs(history.reverse());
+        const history = data.map((log: any) => {
+          const typePrefix = log.log_type ? `[${log.log_type}] ` : '';
+          return `[${new Date(log.created_at).toLocaleTimeString()}] ${typePrefix}${log.message}`;
+        });
+        setLogs((prev) => {
+          const uniqueLogs = Array.from(new Set([...history.reverse(), ...prev]));
+          return uniqueLogs.slice(-100);
+        });
       }
     };
     fetchRecentLogs();
 
     const logChannel = supabase
-      .channel(`private-cbot-logs-${userId}`)
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'cbot_logs', filter: `user_id=eq.${userId}` }, 
-        (payload) => { addLog(payload.new.message); }
+      .channel(`private-cbot-logs-${botToken}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'cbot_logs', filter: `bot_token=eq.${botToken}` },
+        (payload) => { addLog(payload.new.message, payload.new.created_at, payload.new.log_type); }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(logChannel); }
-  }, [botToken, addLog, supabase]);
+  }, [botToken, userId, addLog, supabase]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -158,8 +158,6 @@ export default function CTraderDashboard() {
 
   const handleControl = async (action: 'start' | 'stop') => {
     addLog(`Sending ${action.toUpperCase()} command to Cloud Bridge...`);
-    
-    // Simulate API call - Replace with your actual /api/terminal/control
     try {
       const res = await fetch('/api/terminal/control', {
         method: 'POST',
@@ -169,11 +167,8 @@ export default function CTraderDashboard() {
 
       if (res.ok) {
         setStatus(action === 'start' ? 'running' : 'stopped');
-        // Save the status to sessionStorage so it survives page refreshes
         sessionStorage.setItem('ctrader_bridge_status', action === 'start' ? 'running' : 'stopped');
         addLog(`cTrader Bridge: ${action === 'start' ? 'ACTIVE & LISTENING' : 'OFFLINE'}.`);
-        
-        // Sync the new status to the Supabase Database
         if (botToken) {
           await supabase.from('bot_signals').update({ is_active: action === 'start' }).eq('bot_token', botToken);
         }
@@ -184,8 +179,6 @@ export default function CTraderDashboard() {
       addLog("Connection Error: Check your internet or API route.");
     }
   };
-
-  // --- UI STATES ---
 
   if (loading) {
     return (
@@ -212,8 +205,8 @@ export default function CTraderDashboard() {
   const fullUrl = botToken ? `${apiBaseUrl}?botId=${botToken}` : "Generating Token...";
 
   return (
-    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
-      
+    <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72 min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
+
       {/* Ambient Glowing Backgrounds */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-cyan-600/10 blur-[150px] rounded-full mix-blend-screen" />
@@ -221,7 +214,7 @@ export default function CTraderDashboard() {
       </div>
 
       <div className="max-w-[1700px] mx-auto relative z-10 space-y-6 md:space-y-8">
-        
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-12">
           <div>
@@ -233,8 +226,7 @@ export default function CTraderDashboard() {
               • CLOUD EXECUTION BRIDGE •
             </p>
           </div>
-          
-          {/* Status Pill */}
+
           <div className="flex items-center gap-3 px-5 py-2.5 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl backdrop-blur-md shadow-xl">
             <div className={`w-2.5 h-2.5 rounded-full ${status === 'running' ? 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]' : 'bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.8)]'} animate-pulse`} />
             <span className={`text-[10px] font-black uppercase tracking-widest ${status === 'running' ? 'text-cyan-400' : 'text-red-400'}`}>
@@ -244,35 +236,30 @@ export default function CTraderDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-          {/* Controls & Config Column */}
           <div className="lg:col-span-4 space-y-6 md:space-y-8">
-            
-            {/* Bridge Control Panel */}
             <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
               <h2 className="text-[11px] font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-3">
                 <Settings2 size={16} className="text-cyan-400" /> Bridge Controls
               </h2>
-              
-              <button 
+
+              <button
                 onClick={() => handleControl('start')}
                 disabled={status === 'running'}
-                className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 mb-4 active:scale-95 ${
-                  status === 'running' 
-                    ? 'bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 cursor-not-allowed shadow-none' 
-                    : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-zinc-900 dark:text-white shadow-[0_0_30px_rgba(6,182,212,0.3)] hover:shadow-[0_0_40px_rgba(6,182,212,0.5)] border border-cyan-500/30'
-                }`}
+                className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 mb-4 active:scale-95 ${status === 'running'
+                  ? 'bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 cursor-not-allowed shadow-none'
+                  : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-zinc-900 dark:text-white shadow-[0_0_30px_rgba(6,182,212,0.3)] hover:shadow-[0_0_40px_rgba(6,182,212,0.5)] border border-cyan-500/30'
+                  }`}
               >
                 <Power size={16} className={status === 'running' ? 'text-zinc-600' : 'text-cyan-200'} /> START BRIDGE
               </button>
 
-              <button 
+              <button
                 onClick={() => handleControl('stop')}
                 disabled={status === 'stopped'}
-                className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 ${
-                  status === 'stopped' 
-                    ? 'bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 cursor-not-allowed shadow-none' 
-                    : 'bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:shadow-[0_0_30px_rgba(239,68,68,0.2)]'
-                }`}
+                className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 ${status === 'stopped'
+                  ? 'bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 cursor-not-allowed shadow-none'
+                  : 'bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:shadow-[0_0_30px_rgba(239,68,68,0.2)]'
+                  }`}
               >
                 <Power size={16} /> STOP BRIDGE
               </button>
@@ -282,12 +269,12 @@ export default function CTraderDashboard() {
                   <Server size={14} className="text-cyan-400" /> Unique Signal URL
                 </label>
                 <div className="relative group">
-                  <input 
-                    readOnly 
-                    value={fullUrl} 
+                  <input
+                    readOnly
+                    value={fullUrl}
                     className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-4 pr-12 py-4 text-[10px] md:text-xs font-mono text-cyan-400 outline-none hover:border-white/20 transition-all cursor-text overflow-hidden text-ellipsis"
                   />
-                  <button 
+                  <button
                     onClick={() => {
                       navigator.clipboard.writeText(fullUrl);
                       addLog("URL Copied to clipboard.");
@@ -297,29 +284,20 @@ export default function CTraderDashboard() {
                     <Copy size={14} />
                   </button>
                 </div>
-                <p className="mt-5 text-[10px] text-zinc-600 dark:text-zinc-500 font-bold uppercase tracking-widest leading-relaxed">
-                  Paste this endpoint into your <span className="text-zinc-900 dark:text-white border-b border-white/20 pb-0.5">Kimoo cBot</span> parameters within the cTrader application.
-                </p>
               </div>
             </div>
           </div>
 
-          {/* Terminal Output Window */}
           <div className="lg:col-span-8">
             <div className="bg-[var(--input-bg)] border border-[var(--glass-border)] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[600px] relative">
               <div className="absolute top-0 left-0 w-full h-full bg-cyan-500/5 blur-[100px] pointer-events-none" />
-              
+
               <div className="bg-[var(--glass-bg)] border-b border-[var(--glass-border)] px-6 py-4 flex justify-between items-center relative z-10 backdrop-blur-md">
                 <div className="flex items-center gap-3 text-[10px] font-black text-zinc-700 dark:text-zinc-400 uppercase tracking-widest">
                   <Terminal size={14} className="text-cyan-400" /> CTRADER_CLOUD_STREAM
                 </div>
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/50 border border-red-500/20"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/50 border border-yellow-500/20"></div>
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/50 border border-emerald-500/20"></div>
-                </div>
               </div>
-              
+
               <div ref={terminalRef} className="p-6 md:p-8 overflow-y-auto flex-1 font-mono text-[11px] md:text-[13px] leading-relaxed space-y-3 relative z-10 scroll-smooth">
                 {logs.length === 0 ? (
                   <div className="flex items-center justify-center h-full flex-col text-zinc-600 gap-4 opacity-50">
@@ -328,29 +306,140 @@ export default function CTraderDashboard() {
                   </div>
                 ) : (
                   logs.map((log, i) => {
-                  const firstBracket = log.indexOf(']');
-                  const timeStr = log.substring(0, firstBracket + 1);
-                  const msgStr = log.substring(firstBracket + 2);
-                  return (
-                    <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-cyan-500/5 border-l-2 border-cyan-500 pl-3 py-1' : ''}`}>
-                      <span className="text-zinc-600 shrink-0 select-none">{timeStr}</span>
-                      <span className="shrink-0 font-bold select-none text-cyan-500">BRIDGE:</span>
-                      <span className={`break-words ${
-                        log.includes('❌') || log.includes('Error') ? 'text-red-400' : 
-                        log.includes('🚀') ? 'text-cyan-300 font-bold' : 
-                        log.includes('✅') ? 'text-emerald-400' : 
-                        'text-zinc-800 dark:text-zinc-300'
-                      }`}>
-                        {msgStr}
-                      </span>
-                    </div>
-                  );
+                    const firstBracket = log.indexOf(']');
+                    const timeStr = log.substring(0, firstBracket + 1);
+                    const msgStr = log.substring(firstBracket + 2);
+                    return (
+                      <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-cyan-500/5 border-l-2 border-cyan-500 pl-3 py-1' : ''}`}>
+                        <span className="text-zinc-600 shrink-0 select-none">{timeStr}</span>
+                        <span className="shrink-0 font-bold select-none text-cyan-500">BRIDGE:</span>
+                        <span className={`break-words ${log.includes('❌') || log.includes('Error') ? 'text-red-400' :
+                          log.includes('🚀') ? 'text-cyan-300 font-bold' :
+                            log.includes('✅') ? 'text-emerald-400' :
+                              'text-zinc-800 dark:text-zinc-300'
+                          }`}>
+                          {msgStr}
+                        </span>
+                      </div>
+                    );
                   })
                 )}
               </div>
             </div>
           </div>
+        </div>
 
+        <div className="mt-20 md:mt-32 space-y-20 relative">
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tighter italic uppercase">
+              Guardian<span className="text-cyan-500">Deployment</span> Guide
+            </h2>
+            <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold max-w-2xl mx-auto">
+              Select your license tier and follow the institutional setup protocol for cTrader.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="group relative bg-gradient-to-br from-zinc-900/50 to-zinc-950/50 border border-white/5 p-8 md:p-12 rounded-[3rem] overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Activity size={120} className="text-cyan-400" />
+              </div>
+              <div className="relative z-10 space-y-6">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest">
+                  Standard Access
+                </div>
+                <h3 className="text-3xl font-black italic tracking-tighter uppercase">Kimoo<span className="text-cyan-500">Pro</span></h3>
+                <p className="text-zinc-400 text-sm leading-relaxed">
+                  Automated trend-following for cTrader users. Focuses on safe execution and capital preservation.
+                </p>
+                <ul className="space-y-4 pt-4">
+                  {[
+                    'Simplified Market Orders',
+                    'Trend-Alignment Auto-Filter',
+                    'Prop-Firm Risk Management',
+                    'Standard High-Quality Sweeps',
+                    '3 Max Concurrent Setups'
+                  ].map((feat, i) => (
+                    <li key={i} className="flex items-center gap-3 text-xs font-bold text-zinc-300">
+                      <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" /> {feat}
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bot-files/KimooGuardian_Pro.algo`}
+                  download
+                  className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all text-center block"
+                >
+                  Download Pro cBot
+                </a>
+              </div>
+            </div>
+
+            <div className="group relative bg-gradient-to-br from-cyan-600/10 to-blue-600/5 border border-cyan-500/20 p-8 md:p-12 rounded-[3rem] overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.1)]">
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Terminal size={120} className="text-blue-400" />
+              </div>
+              <div className="relative z-10 space-y-6">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-full text-[10px] font-black text-blue-300 uppercase tracking-widest">
+                  Elite Access
+                </div>
+                <h3 className="text-3xl font-black italic tracking-tighter uppercase">Kimoo<span className="text-blue-400">Ultimate</span></h3>
+                <p className="text-zinc-300 text-sm leading-relaxed">
+                  Maximum precision for cTrader. Use institutional-grade limit entries and deep confluence filtering.
+                </p>
+                <ul className="space-y-4 pt-4">
+                  {[
+                    'OTE Zone Limit Orders (Auto-R:R)',
+                    'Full Confluence Controls',
+                    'Advanced AI Filter Matrix',
+                    'Dynamic Risk Scaling',
+                    '5+ Max Concurrent Setups'
+                  ].map((feat, i) => (
+                    <li key={i} className="flex items-center gap-3 text-xs font-bold text-blue-200">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400" /> {feat}
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bot-files/KimooGuardian_Ultimate.algo`}
+                  download
+                  className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl text-center block"
+                >
+                  Download Ultimate cBot
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900/30 border border-white/5 rounded-[3rem] p-8 md:p-16">
+            <div className="max-w-4xl mx-auto space-y-12">
+              <div className="space-y-4">
+                <h3 className="text-2xl md:text-3xl font-black italic tracking-tighter uppercase">Installation <span className="text-cyan-500">Protocol</span></h3>
+                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Follow these steps to synchronize your cTrader terminal with the Kimoo Cloud.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
+                {[
+                  { title: 'Files Deployment', desc: 'Download the .algo file and double-click it. cTrader will automatically install the bot into your cBot library.' },
+                  { title: 'Instance Creation', desc: 'In cTrader Automate tab, find "Kimoo Guardian" and click the "+" button to create a new instance on your chosen symbol.' },
+                  { title: 'Access Rights', desc: 'Ensure the bot has "Full Access" rights enabled. This is required for the bot to communicate with our Cloud API.' },
+                  { title: 'Cloud Sync', desc: 'Copy your Unique Signal URL from this dashboard and paste it into the "Signal URL" parameter in the cBot settings.' },
+                  { title: 'Auth Protocol', desc: 'Enter your registered Email and License Key (UserID) into the cBot parameters to unlock your tier features.' },
+                  { title: 'Engine Start', desc: 'Click the "Start Bridge" button at the top of this page, then click "Start" on your cBot instance in cTrader.' }
+                ].map((step, i) => (
+                  <div key={i} className="flex gap-6">
+                    <div className="shrink-0 w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-black italic">
+                      0{i + 1}
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-black uppercase tracking-tight text-white">{step.title}</h4>
+                      <p className="text-xs text-zinc-500 leading-relaxed font-medium">{step.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

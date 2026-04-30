@@ -55,7 +55,7 @@ export default function DashboardPage() {
 
       if (profileData?.expiry_date) {
         const expiryDate = new Date(profileData.expiry_date);
-        
+
         if (now > expiryDate && profileData?.is_pro) {
           console.log("🔒 Subscription Expired. Reverting to free tier...");
           const { data: expiredProfile, error: updateError } = await supabase
@@ -70,7 +70,7 @@ export default function DashboardPage() {
             .eq('id', session.user.id)
             .select()
             .single();
-          
+
           if (updateError) {
             console.error("❌ Failed to update expired profile:", updateError.message);
           } else if (expiredProfile) {

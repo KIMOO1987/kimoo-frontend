@@ -35,12 +35,13 @@ export default function TradeHistory() {
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl">
       <table className="w-full text-left text-sm text-zinc-900/70 dark:text-white/70">
-        <thead className="bg-white/10 text-xs uppercase text-zinc-900/50 dark:text-white/50">
+        <thead className="bg-white/10 text-[9px] uppercase text-zinc-900/50 dark:text-white/50">
           <tr>
             <th className="px-6 py-3">Symbol</th>
             <th className="px-6 py-3">Side</th>
             <th className="px-6 py-3">Entry</th>
-            <th className="px-6 py-3">TP 1/2</th>
+            <th className="px-6 py-3">R:R</th>
+            <th className="px-6 py-3">Align</th>
             <th className="px-6 py-3">Status</th>
           </tr>
         </thead>
@@ -52,9 +53,11 @@ export default function TradeHistory() {
                 {signal.side}
               </td>
               <td className="px-6 py-4">${signal.entry_price}</td>
-              <td className="px-6 py-4 text-xs">
-                <span className="text-green-300">${signal.tp}</span> / 
-                <span className="text-green-500 ml-1">${signal.tp_secondary}</span>
+              <td className="px-6 py-4 font-mono text-indigo-400">{signal.rr ? signal.rr + 'R' : '---'}</td>
+              <td className="px-6 py-4">
+                <span className={`text-[10px] font-bold ${signal.alignment === 'Aligned' ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {signal.alignment === 'Aligned' ? '✅' : '⚠️'}
+                </span>
               </td>
               <td className="px-6 py-4">
                 <span className="rounded-full bg-blue-500/20 px-2 py-1 text-[10px] text-blue-300 border border-blue-500/30">

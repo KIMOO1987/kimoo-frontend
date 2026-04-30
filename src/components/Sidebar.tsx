@@ -1,9 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutGrid, Clock, History, Zap, Compass, BarChart3, 
-  CheckSquare, LineChart, User, CreditCard, 
+import {
+  LayoutGrid, Clock, History, Zap, Compass, BarChart3,
+  CheckSquare, LineChart, User, CreditCard,
   LogOut, Lock, X, Menu, ShieldCheck,
   Terminal, Activity, Cpu
 } from 'lucide-react';
@@ -14,15 +14,15 @@ import { useEffect, useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 
 const menuGroups = [
-  { 
-    label: 'TERMINAL', 
+  {
+    label: 'TERMINAL',
     items: [
       { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', minTier: 0 },
       { name: 'Active Trades', icon: Clock, path: '/dashboard/active', minTier: 1 },
       { name: 'Trade History', icon: History, path: '/dashboard/history', minTier: 1 },
     ]
   },
-  { 
+  {
     label: 'RADAR & ANALYSIS',
     items: [
       { name: 'All Signals', icon: Zap, path: '/dashboard/signals', minTier: 1 },
@@ -30,29 +30,35 @@ const menuGroups = [
       { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', minTier: 1 },
     ]
   },
-  { 
-    label: 'STRATEGY LAB', 
+  {
+    label: 'STRATEGY LAB',
     items: [
       { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', minTier: 1 },
       { name: 'Performance', icon: LineChart, path: '/dashboard/performance', minTier: 1 },
     ]
   },
-  { 
+  {
     label: 'ACCOUNT & SETTINGS',
     items: [
       { name: 'Profile', icon: User, path: '/dashboard/profile', minTier: 0 },
       { name: 'Payments', icon: CreditCard, path: '/dashboard/payments', minTier: 0 },
     ]
   },
-  { 
-    label: 'AUTO EXECUTION PLATFORMS',
+  {
+    label: 'CFD Bots',
     items: [
+      { name: 'CFD Bot', icon: Cpu, path: '/dashboard/bot/cfd', minTier: 2 },
       { name: 'MT5', icon: (props: { size?: number }) => <img src="/mt5.png" alt="MT5" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/mt5', minTier: 2 },
       { name: 'cTrader', icon: (props: { size?: number }) => <img src="/ctrader-logo.png" alt="cTrader" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/ctrader', minTier: 2 },
-      //{ name: 'Binance', icon: (props: { size?: number }) => <img src="/binance.png" alt="Binance" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/binance', minTier: 2 },
+    ]
+  },
+  {
+    label: 'Crypto Bots',
+    items: [
+      // { name: 'Binance', icon: (props: { size?: number }) => <img src="/binance.png" alt="Binance" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/binance', minTier: 2 },
       { name: 'OKX', icon: (props: { size?: number }) => <img src="/okx.png" alt="OKX" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/okx', minTier: 2 },
-      //{ name: 'MEXC', icon: (props: { size?: number }) => <img src="/mexc.png" alt="MEXC" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/mexc', minTier: 2 },
-      //{ name: 'Kraken', icon: (props: { size?: number }) => <img src="/kraken.png" alt="Kraken" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/kraken', minTier: 2 },
+      // { name: 'MEXC', icon: (props: { size?: number }) => <img src="/mexc.png" alt="MEXC" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/mexc', minTier: 2 },
+      // { name: 'Kraken', icon: (props: { size?: number }) => <img src="/kraken.png" alt="Kraken" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/kraken', minTier: 2 },
     ]
   }
 ];
@@ -94,7 +100,7 @@ export default function Sidebar({ tier, role }: { tier: number; role?: string })
       `}>
         {/* Subtle background glow */}
         <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-[var(--glow-primary)] to-transparent opacity-20 pointer-events-none" />
-        
+
         <div className="flex flex-col h-full w-full p-6 relative z-10">
           <div className="mb-10 px-2 shrink-0">
             <h1 className="text-3xl font-black tracking-tighter uppercase drop-shadow-md">
@@ -120,11 +126,10 @@ export default function Sidebar({ tier, role }: { tier: number; role?: string })
 
                     return (
                       <Link key={item.name} href={isLocked ? "#" : item.path} onClick={() => !isLocked && setIsOpen(false)}>
-                        <div className={`flex items-center justify-between px-4 py-3 rounded-full transition-all duration-300 border ${
-                          isActive 
-                            ? 'bg-[var(--glow-primary)] text-[var(--fg)] border-[var(--glass-border-highlight)] shadow-md' 
-                            : 'opacity-70 border-transparent hover:opacity-100 hover:bg-[var(--input-bg)] hover:border-[var(--glass-border)]'
-                        } ${isLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}>
+                        <div className={`flex items-center justify-between px-4 py-3 rounded-full transition-all duration-300 border ${isActive
+                          ? 'bg-[var(--glow-primary)] text-[var(--fg)] border-[var(--glass-border-highlight)] shadow-md'
+                          : 'opacity-70 border-transparent hover:opacity-100 hover:bg-[var(--input-bg)] hover:border-[var(--glass-border)]'
+                          } ${isLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}>
                           <div className="flex items-center gap-3">
                             <item.icon size={18} />
                             <span className="text-[12px] font-bold tracking-tight">{item.name}</span>

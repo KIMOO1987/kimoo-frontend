@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   if (process.env.NEXT_EXPORT === 'true') {
@@ -81,21 +81,21 @@ export async function POST(req: Request) {
       .eq('user_id', user.id);
 
     if (dbError) {
-        // If this fails, the column likely doesn't exist yet
-        console.error("Database Update Failed:", dbError.message);
-        throw new Error(dbError.message);
+      // If this fails, the column likely doesn't exist yet
+      console.error("Database Update Failed:", dbError.message);
+      throw new Error(dbError.message);
     }
 
-    return NextResponse.json({ 
-        success: true, 
-        message: `KIMOO Engine: ${action.toUpperCase()} command deployed.` 
+    return NextResponse.json({
+      success: true,
+      message: `KIMOO Engine: ${action.toUpperCase()} command deployed.`
     });
 
   } catch (err: any) {
     console.error("Terminal Control Error:", err.message);
     return NextResponse.json(
-        { error: `Integration Error: ${err.message}` }, 
-        { status: 500 }
+      { error: `Integration Error: ${err.message}` },
+      { status: 500 }
     );
   }
 }

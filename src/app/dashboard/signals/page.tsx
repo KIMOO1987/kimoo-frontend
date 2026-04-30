@@ -109,7 +109,13 @@ const SignalModal = ({ signal, onClose }: { signal: any, onClose: () => void }) 
           </div>
           <div className="grid grid-cols-2 gap-3 mb-8">
             <DetailBox label="Setup Time" value={new Date(signal.created_at).toLocaleTimeString()} />
-            <DetailBox label="confluences" value={signal.confluences || 'Institutional Bias Confirmed'} />
+            <DetailBox label="Confluences" value={signal.confluences || 'Institutional Bias Confirmed'} />
+            <DetailBox label="Regime" value={signal.regime || 'Trending'} color={signal.regime === 'Trending' ? 'text-blue-400' : 'text-amber-400'} />
+            <DetailBox label="Alignment" value={signal.alignment || 'Aligned'} color={signal.alignment === 'Aligned' ? 'text-emerald-400' : 'text-red-400'} />
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-8">
+             <DetailBox label="OTE Zone" value={signal.ote_zone || '---'} highlight={true} />
+             <DetailBox label="Sweep Quality" value={signal.sweep_quality || 'Normal'} color={signal.sweep_quality === 'High' ? 'text-emerald-400' : 'text-zinc-500'} />
           </div>
           <div className="space-y-3">
             <PriceRow label="ENTRY ZONE" value={signal.entry_price} color="text-blue-400" />
@@ -161,6 +167,18 @@ const SignalCard = ({ signal, onClick }: { signal: any, onClick: () => void }) =
           <TradeDataRow icon={<Target size={12} className="text-emerald-400"/>} label="TP-1 (EQ)" value={`${Number(signal.tp || 0).toFixed(5)} (${calculateTargetRR(signal.tp, signal.entry_price, signal.sl)})`} valueClass="text-emerald-400" />
           <TradeDataRow icon={<Zap size={12} className="text-yellow-500"/>} label="TP-2 (TARGET)" value={signal.tp_secondary ? `${Number(signal.tp_secondary).toFixed(5)} (${calculateTargetRR(signal.tp_secondary, signal.entry_price, signal.sl)})` : '---'} valueClass="text-yellow-500" />
           <div className="my-2 border-t border-[var(--glass-border)]" />
+          
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <div className="flex flex-col gap-1 p-2 bg-white/5 rounded-xl border border-white/5">
+                <span className="text-[7px] font-black uppercase text-zinc-500 tracking-widest">OTE Zone</span>
+                <span className="text-[10px] font-mono font-black text-blue-400">{signal.ote_zone || '---'}</span>
+            </div>
+            <div className="flex flex-col gap-1 p-2 bg-white/5 rounded-xl border border-white/5">
+                <span className="text-[7px] font-black uppercase text-zinc-500 tracking-widest">Sweep Qual</span>
+                <span className={`text-[10px] font-black uppercase ${signal.sweep_quality === 'High' ? 'text-emerald-400' : 'text-zinc-500'}`}>{signal.sweep_quality || 'Normal'}</span>
+            </div>
+          </div>
+
           <TradeDataRow icon={<Layout size={12} className="text-zinc-600 dark:text-zinc-500"/>} label="Confluences" value={signal.confluences || 'Institutional Bias Confirmed'} valueClass="text-zinc-700 dark:text-zinc-400 text-[11px] italic" />
           <div className="flex justify-between items-center pt-4 mt-2">
             <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Time Elapsed</span>

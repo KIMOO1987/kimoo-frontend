@@ -33,14 +33,14 @@ export default function MT5Dashboard() {
               const parsed = JSON.parse(cached);
               setBotToken(parsed.botToken);
               setLoading(false);
-            } catch (e) {}
+            } catch (e) { }
           } else {
             setLoading(true);
           }
         }
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
+
         if (authError || !user) {
           setLoading(false);
           return;
@@ -88,8 +88,14 @@ export default function MT5Dashboard() {
     return () => clearInterval(refreshInterval);
   }, [supabase]);
 
-  const addLog = useCallback((msg: string) => {
-    setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-100));
+  const addLog = useCallback((msg: string, timestamp?: string, type?: string) => {
+    setLogs((prev) => {
+      const time = timestamp ? new Date(timestamp) : new Date();
+      const prefix = type ? `[${type}] ` : '';
+      const newLog = `[${time.toLocaleTimeString()}] ${prefix}${msg}`;
+      const uniqueLogs = Array.from(new Set([...prev, newLog]));
+      return uniqueLogs.slice(-100);
+    });
   }, []);
 
   useEffect(() => {
@@ -98,23 +104,29 @@ export default function MT5Dashboard() {
     const fetchRecentLogs = async () => {
       const { data } = await supabase
         .from('cbot_logs')
-        .select('message, created_at')
+        .select('message, created_at, log_type')
         .eq('bot_token', botToken)
         .order('created_at', { ascending: false })
         .limit(30);
-        
+
       if (data) {
-        const history = data.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
-        setLogs(history.reverse());
+        const history = data.map((log: any) => {
+          const typePrefix = log.log_type ? `[${log.log_type}] ` : '';
+          return `[${new Date(log.created_at).toLocaleTimeString()}] ${typePrefix}${log.message}`;
+        });
+        setLogs((prev) => {
+          const uniqueLogs = Array.from(new Set([...history.reverse(), ...prev]));
+          return uniqueLogs.slice(-100);
+        });
       }
     };
     fetchRecentLogs();
 
     const logChannel = supabase
       .channel(`private-mt5-logs-${botToken}`)
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'cbot_logs', filter: `bot_token=eq.${botToken}` }, 
-        (payload) => { addLog(payload.new.message); }
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'cbot_logs', filter: `bot_token=eq.${botToken}` },
+        (payload) => { addLog(payload.new.message, payload.new.created_at, payload.new.log_type); }
       )
       .subscribe();
 
@@ -134,7 +146,7 @@ export default function MT5Dashboard() {
         setStatus(action === 'start' ? 'running' : 'stopped');
         sessionStorage.setItem('mt5_bridge_status', action === 'start' ? 'running' : 'stopped');
         addLog(`MT5 Bridge: ${action === 'start' ? 'ACTIVE & LISTENING' : 'OFFLINE'}.`);
-        
+
         if (botToken) {
           await supabase.from('bot_signals').update({ is_active: action === 'start' }).eq('bot_token', botToken);
         }
@@ -173,7 +185,7 @@ export default function MT5Dashboard() {
   return (
     <AccessGuard requiredTier={2} tierName="PRO">
       <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
-        
+
         {/* Ambient Glowing Backgrounds */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
           <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[150px] rounded-full mix-blend-screen" />
@@ -181,7 +193,7 @@ export default function MT5Dashboard() {
         </div>
 
         <div className="max-w-[1700px] mx-auto relative z-10 space-y-6 md:space-y-8">
-          
+
           {/* Header Section */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-12">
             <div>
@@ -193,7 +205,7 @@ export default function MT5Dashboard() {
                 • HIGH-FREQUENCY EXECUTION BRIDGE •
               </p>
             </div>
-            
+
             {/* VPS Status Pill */}
             <div className="flex items-center gap-3 px-5 py-2.5 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl backdrop-blur-md shadow-xl">
               <div className={`w-2.5 h-2.5 rounded-full ${status === 'running' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.8)]'} animate-pulse`} />
@@ -206,30 +218,28 @@ export default function MT5Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
             {/* Controls & Config Column */}
             <div className="lg:col-span-4 space-y-6 md:space-y-8">
-              
+
               {/* Terminal Control Panel */}
               <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
                 <h2 className="text-[11px] font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-3">
                   <Settings2 size={16} className="text-blue-400" /> Engine Controls
                 </h2>
-                <button 
+                <button
                   onClick={() => handleControl('start')}
-                  className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 mb-4 active:scale-95 ${
-                    status === 'running' 
-                      ? 'bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 cursor-not-allowed shadow-none' 
-                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] border border-blue-500/30'
-                  }`}
+                  className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 mb-4 active:scale-95 ${status === 'running'
+                    ? 'bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 cursor-not-allowed shadow-none'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] border border-blue-500/30'
+                    }`}
                   disabled={status === 'running'}
                 >
                   <Power size={16} className={status === 'running' ? 'text-zinc-600' : 'text-blue-200'} /> CONNECT ENGINE
                 </button>
-                <button 
+                <button
                   onClick={() => handleControl('stop')}
-                  className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 ${
-                    status === 'stopped' 
-                      ? 'bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 cursor-not-allowed shadow-none' 
-                      : 'bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:shadow-[0_0_30px_rgba(239,68,68,0.2)]'
-                  }`}
+                  className={`w-full py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 ${status === 'stopped'
+                    ? 'bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 cursor-not-allowed shadow-none'
+                    : 'bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:shadow-[0_0_30px_rgba(239,68,68,0.2)]'
+                    }`}
                   disabled={status === 'stopped'}
                 >
                   <Power size={16} /> DISCONNECT
@@ -240,12 +250,12 @@ export default function MT5Dashboard() {
                     <Server size={14} className="text-blue-400" /> Unique Signal URL
                   </label>
                   <div className="relative group">
-                    <input 
-                      readOnly 
-                      value={fullUrl} 
+                    <input
+                      readOnly
+                      value={fullUrl}
                       className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-4 pr-12 py-4 text-[10px] md:text-xs font-mono text-blue-400 outline-none hover:border-white/20 transition-all cursor-text overflow-hidden text-ellipsis"
                     />
-                    <button 
+                    <button
                       onClick={() => {
                         navigator.clipboard.writeText(fullUrl);
                         addLog("URL Copied to clipboard.");
@@ -266,7 +276,7 @@ export default function MT5Dashboard() {
             <div className="lg:col-span-8">
               <div className="bg-[var(--input-bg)] border border-[var(--glass-border)] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[600px] relative">
                 <div className="absolute top-0 left-0 w-full h-full bg-blue-500/5 blur-[100px] pointer-events-none" />
-                
+
                 <div className="bg-[var(--glass-bg)] border-b border-[var(--glass-border)] px-6 py-4 flex justify-between items-center relative z-10 backdrop-blur-md">
                   <div className="flex items-center gap-3 text-[10px] font-black text-zinc-700 dark:text-zinc-400 uppercase tracking-widest">
                     <Terminal size={14} className="text-blue-400" /> MT5_EXECUTION_STREAM
@@ -293,12 +303,11 @@ export default function MT5Dashboard() {
                         <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-blue-500/5 border-l-2 border-blue-500 pl-3 py-1' : ''}`}>
                           <span className="text-zinc-600 shrink-0 select-none">{timeStr}</span>
                           <span className="shrink-0 font-bold select-none text-blue-500">BRIDGE:</span>
-                          <span className={`break-words ${
-                            log.includes('❌') || log.includes('Error') ? 'text-red-400' : 
-                            log.includes('🚀') ? 'text-blue-300 font-bold' : 
-                            log.includes('✅') ? 'text-emerald-400' : 
-                            'text-zinc-800 dark:text-zinc-300'
-                          }`}>
+                          <span className={`break-words ${log.includes('❌') || log.includes('Error') ? 'text-red-400' :
+                            log.includes('🚀') ? 'text-blue-300 font-bold' :
+                              log.includes('✅') ? 'text-emerald-400' :
+                                'text-zinc-800 dark:text-zinc-300'
+                            }`}>
                             {msgStr}
                           </span>
                         </div>
@@ -310,8 +319,128 @@ export default function MT5Dashboard() {
             </div>
 
           </div>
+
+          {/* User Guide & Tier Comparison Section */}
+          <div className="mt-20 md:mt-32 space-y-20 relative">
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl md:text-5xl font-black tracking-tighter italic uppercase">
+                Guardian<span className="text-blue-500">Deployment</span> Guide
+              </h2>
+              <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold max-w-2xl mx-auto">
+                Select your license tier and follow the institutional setup protocol.
+              </p>
+            </div>
+
+            {/* Tier Comparison Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Pro Tier Card */}
+              <div className="group relative bg-gradient-to-br from-zinc-900/50 to-zinc-950/50 border border-white/5 p-8 md:p-12 rounded-[3rem] overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <ShieldCheck size={120} className="text-blue-400" />
+                </div>
+                <div className="relative z-10 space-y-6">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                    Standard Access
+                  </div>
+                  <h3 className="text-3xl font-black italic tracking-tighter uppercase">Kimoo<span className="text-blue-500">Pro</span></h3>
+                  <p className="text-zinc-400 text-sm leading-relaxed">
+                    Designed for traders who want a simplified, automated experience. Pro tier focuses on trend-following stability.
+                  </p>
+                  <ul className="space-y-4 pt-4">
+                    {[
+                      'Direct Market Execution',
+                      'Trend-Alignment Auto-Filter',
+                      'High-Quality Sweep Priority',
+                      'Standard Risk Management',
+                      '3 Max Concurrent Setups'
+                    ].map((feat, i) => (
+                      <li key={i} className="flex items-center gap-3 text-xs font-bold text-zinc-300">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> {feat}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bot-files/KimooGuardian_Pro.ex5`}
+                    download
+                    className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all text-center block"
+                  >
+                    Download Pro EA
+                  </a>
+                </div>
+              </div>
+
+              {/* Ultimate Tier Card */}
+              <div className="group relative bg-gradient-to-br from-blue-600/10 to-indigo-600/5 border border-blue-500/20 p-8 md:p-12 rounded-[3rem] overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.1)]">
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Terminal size={120} className="text-indigo-400" />
+                </div>
+                <div className="relative z-10 space-y-6">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-full text-[10px] font-black text-indigo-300 uppercase tracking-widest">
+                    Elite Access
+                  </div>
+                  <h3 className="text-3xl font-black italic tracking-tighter uppercase">Kimoo<span className="text-indigo-400">Ultimate</span></h3>
+                  <p className="text-zinc-300 text-sm leading-relaxed">
+                    The ultimate institutional toolkit. Take full control of entry precision and confluence matrix filtering.
+                  </p>
+                  <ul className="space-y-4 pt-4">
+                    {[
+                      'OTE Zone Limit Entry (Best R:R)',
+                      'Full Confluence Control (Regime/Sweep)',
+                      'Advanced AI Volume/VWAP Filter',
+                      'Dynamic Risk Auto-Scaling',
+                      '5+ Max Concurrent Setups'
+                    ].map((feat, i) => (
+                      <li key={i} className="flex items-center gap-3 text-xs font-bold text-indigo-200">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" /> {feat}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bot-files/KimooGuardian_Ultimate.ex5`}
+                    download
+                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl text-center block"
+                  >
+                    Download Ultimate EA
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Installation Guide */}
+            <div className="bg-zinc-900/30 border border-white/5 rounded-[3rem] p-8 md:p-16">
+              <div className="max-w-4xl mx-auto space-y-12">
+                <div className="space-y-4">
+                  <h3 className="text-2xl md:text-3xl font-black italic tracking-tighter uppercase">Installation <span className="text-blue-500">Protocol</span></h3>
+                  <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Follow these steps to synchronize your terminal with the Kimoo Cloud.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
+                  {[
+                    { title: 'MT5 Configuration', desc: 'Go to Tools > Options > Expert Advisors. Check "Allow WebRequest" and add: https://kimoocrt.vercel.app and https://kimoocrt.onrender.com' },
+                    { title: 'Files Deployment', desc: 'Copy your downloaded .ex5 file. In MT5, go to File > Open Data Folder > MQL5 > Experts, and paste the file.' },
+                    { title: 'Expert Activation', desc: 'Drag the Kimoo Guardian onto any chart. Ensure "Allow Algorithmic Trading" is enabled in the common tab.' },
+                    { title: 'Cloud Sync', desc: 'Copy your Signal URL from this dashboard and paste it into the "Signal URL" parameter in the EA settings.' },
+                    { title: 'Auth Protocol', desc: 'Enter your registered Email and License Key (UserID) into the EA parameters to unlock your tier features.' },
+                    { title: 'Engine Start', desc: 'Click the "Connect Engine" button at the top of this page to allow the cloud to start sending signals.' }
+                  ].map((step, i) => (
+                    <div key={i} className="flex gap-6">
+                      <div className="shrink-0 w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-black italic">
+                        0{i + 1}
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-black uppercase tracking-tight text-white">{step.title}</h4>
+                        <p className="text-xs text-zinc-500 leading-relaxed font-medium">{step.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </AccessGuard>
+
   );
 }

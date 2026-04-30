@@ -32,7 +32,13 @@ export async function POST(req: Request) {
     // 2. Insert Log securely into cbot_logs
     const body = await req.json();
     if (body.message) {
-      await supabase.from('cbot_logs').insert({ user_id: userProfile.user_id, message: body.message });
+      await supabase.from('cbot_logs').insert({ 
+        user_id: userProfile.user_id, 
+        bot_token: cleanToken,
+        message: body.message,
+        log_type: body.log_type || 'INFO',
+        symbol: body.symbol || null
+      });
     }
 
     return NextResponse.json({ success: true });
