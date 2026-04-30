@@ -10,7 +10,8 @@ import {
   Download, ExternalLink, HelpCircle,
   ArrowUpRight, Info, BookOpen, Globe,
   TrendingUp, Shield, MousePointer2,
-  ListFilter, ZapOff
+  ListFilter, ZapOff, Clock, Gauge,
+  ShieldAlert, RefreshCcw, LayoutDashboard
 } from 'lucide-react';
 import AccessGuard from '@/components/AccessGuard';
 
@@ -18,6 +19,14 @@ const fadeInUp = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.5 }
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
 };
 
 export default function CFDBotDocumentation() {
@@ -41,14 +50,14 @@ export default function CFDBotDocumentation() {
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] font-black uppercase tracking-widest mb-8">
                 <ShieldCheck size={12} />
-                Kimoo Guardian Ecosystem
+                Kimoo Guardian Infrastructure
               </div>
               <h1 className="text-5xl lg:text-7xl font-black italic tracking-tighter uppercase mb-6 leading-tight">
                 Kimoo Guardian <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400">Professional Documentation</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400">Institutional SaaS Receiver</span>
               </h1>
               <p className="text-zinc-500 text-sm md:text-base font-medium max-w-3xl leading-relaxed">
-                Welcome to the Kimoo Guardian ecosystem. This document provides a deep-dive into the operational flow, technical architecture, and strategic configurations of our tiered trading bots.
+                High-performance trading infrastructure for cTrader and MT5. Synchronized with Kimoo AI backend to execute signals with microsecond precision and tier-gated risk management.
               </p>
             </motion.div>
           </div>
@@ -57,88 +66,92 @@ export default function CFDBotDocumentation() {
         <div className="max-w-[1600px] mx-auto px-8 lg:px-16 relative z-10">
           <div className="space-y-32">
             
-            {/* 1. BOT TIERS */}
-            <section id="bot-tiers">
+            {/* 1. TIER DIFFERENTIATION */}
+            <section id="tier-differentiation">
               <div className="flex items-center gap-4 mb-16">
                 <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
                   <Layers className="text-blue-500" size={24} />
                 </div>
-                <h2 className="text-3xl font-black uppercase tracking-tighter italic">1. Bot Tiers: Pro vs. Ultimate</h2>
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">1. Tier Differentiation</h2>
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                {/* PRO */}
+                {/* KIMOO PRO */}
                 <motion.div {...fadeInUp} className="glass-panel p-10 rounded-[2.5rem] border border-[var(--glass-border)] relative overflow-hidden group">
                   <div className="flex flex-col gap-10 relative z-10">
                     <div>
                       <div className="p-5 bg-zinc-500/10 rounded-[2rem] border border-zinc-500/20 w-fit mb-8">
                         <Zap className="text-zinc-500" size={32} />
                       </div>
-                      <h3 className="text-4xl font-black italic uppercase mb-2 tracking-tighter">Guardian <span className="text-zinc-500">PRO</span></h3>
-                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-8 italic">Efficiency & Speed</p>
+                      <h3 className="text-4xl font-black italic uppercase mb-2 tracking-tighter">Kimoo <span className="text-zinc-500">PRO</span></h3>
+                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-8 italic">Standard Tier Execution</p>
                     </div>
                     <div className="border-t border-[var(--glass-border)] pt-8 space-y-6">
-                      <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest italic leading-relaxed">Designed for high-speed trend following and efficient execution.</p>
                       <ul className="space-y-5">
                         <li className="flex items-start gap-4">
                           <div className="mt-1 p-1 bg-blue-500/10 rounded-full border border-blue-500/20">
                             <CheckCircle2 size={12} className="text-blue-500" />
                           </div>
-                          <span className="text-[13px] leading-relaxed"><strong>Execution:</strong> Pure Market Orders for instant participation.</span>
+                          <span className="text-[13px] leading-relaxed"><strong>Target:</strong> High-speed, high-frequency signal execution.</span>
                         </li>
                         <li className="flex items-start gap-4">
                           <div className="mt-1 p-1 bg-blue-500/10 rounded-full border border-blue-500/20">
                             <CheckCircle2 size={12} className="text-blue-500" />
                           </div>
-                          <span className="text-[13px] leading-relaxed"><strong>Safety:</strong> Built-in "Trend Alignment" gate (blocks Counter-trend signals).</span>
+                          <span className="text-[13px] leading-relaxed"><strong>Execution:</strong> Immediate Market orders for instant entry.</span>
                         </li>
                         <li className="flex items-start gap-4">
                           <div className="mt-1 p-1 bg-blue-500/10 rounded-full border border-blue-500/20">
                             <CheckCircle2 size={12} className="text-blue-500" />
                           </div>
-                          <span className="text-[13px] leading-relaxed"><strong>Ideal For:</strong> Traders who want to capture momentum as soon as it is confirmed by the SaaS engine.</span>
+                          <span className="text-[13px] leading-relaxed"><strong>Safety Gate:</strong> <strong>Counter-Trend Block</strong>. Skips signals conflicting with primary trend.</span>
+                        </li>
+                        <li className="flex items-start gap-4">
+                          <div className="mt-1 p-1 bg-blue-500/10 rounded-full border border-blue-500/20">
+                            <CheckCircle2 size={12} className="text-blue-500" />
+                          </div>
+                          <span className="text-[13px] leading-relaxed"><strong>Capacity:</strong> Up to 3 concurrent active setups.</span>
                         </li>
                       </ul>
                     </div>
                   </div>
                 </motion.div>
 
-                {/* ULTIMATE */}
+                {/* KIMOO ULTIMATE */}
                 <motion.div {...fadeInUp} className="glass-panel p-10 rounded-[2.5rem] border border-blue-500/20 bg-blue-500/[0.02] relative overflow-hidden group">
                   <div className="flex flex-col gap-10 relative z-10">
                     <div>
                       <div className="p-5 bg-blue-500/10 rounded-[2rem] border border-blue-500/20 w-fit mb-8">
                         <Cpu className="text-blue-500" size={32} />
                       </div>
-                      <h3 className="text-4xl font-black italic uppercase mb-2 tracking-tighter">Guardian <span className="text-blue-500">ULTIMATE</span></h3>
-                      <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-8 italic">Institutional Standard</p>
+                      <h3 className="text-4xl font-black italic uppercase mb-2 tracking-tighter">Kimoo <span className="text-blue-500">ULTIMATE</span></h3>
+                      <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-8 italic">Premium Tier Elite Precision</p>
                     </div>
                     <div className="border-t border-blue-500/10 pt-8 space-y-6">
-                      <p className="text-sm font-bold text-blue-400 uppercase tracking-widest italic leading-relaxed">The institutional standard, offering granular control over entry and market context.</p>
                       <ul className="space-y-5">
                         <li className="flex items-start gap-4">
                           <div className="mt-1 p-1 bg-blue-500/10 rounded-full border border-blue-500/20">
                             <CheckCircle2 size={12} className="text-blue-500" />
                           </div>
-                          <span className="text-[13px] leading-relaxed"><strong>Execution:</strong> Supports <strong>OTE (Optimal Trade Entry)</strong> Limit Orders. Allows you to "snipe" the best price within a liquidity sweep zone.</span>
+                          <span className="text-[13px] leading-relaxed"><strong>Elite Precision:</strong> Designed to avoid institutional liquidity traps.</span>
                         </li>
                         <li className="flex items-start gap-4">
                           <div className="mt-1 p-1 bg-blue-500/10 rounded-full border border-blue-500/20">
                             <CheckCircle2 size={12} className="text-blue-500" />
                           </div>
-                          <span className="text-[13px] leading-relaxed"><strong>Market Regime Filter:</strong> Granular selection of Trending, Ranging, or Both market conditions.</span>
+                          <span className="text-[13px] leading-relaxed"><strong>Execution:</strong> Market + <strong>OTE Limit Zones</strong> (Top, Mid, or Bottom entries).</span>
                         </li>
                         <li className="flex items-start gap-4">
                           <div className="mt-1 p-1 bg-blue-500/10 rounded-full border border-blue-500/20">
                             <CheckCircle2 size={12} className="text-blue-500" />
                           </div>
-                          <span className="text-[13px] leading-relaxed"><strong>Sweep Quality Filter:</strong> Differentiates between Normal and High-impact liquidity grabs.</span>
+                          <span className="text-[13px] leading-relaxed"><strong>Pro AI Gatekeeper:</strong> Matrix utilizing Daily Anchored VWAP and Volume Spike Ratio.</span>
                         </li>
                         <li className="flex items-start gap-4">
                           <div className="mt-1 p-1 bg-blue-500/10 rounded-full border border-blue-500/20">
                             <CheckCircle2 size={12} className="text-blue-500" />
                           </div>
-                          <span className="text-[13px] leading-relaxed"><strong>Ideal For:</strong> Professional fund managers and high-capital traders requiring maximum precision.</span>
+                          <span className="text-[13px] leading-relaxed"><strong>Capacity:</strong> Up to 5 concurrent active setups.</span>
                         </li>
                       </ul>
                     </div>
@@ -147,25 +160,33 @@ export default function CFDBotDocumentation() {
               </div>
             </section>
 
-            {/* 2. THE PROCESS FLOW */}
-            <section id="process">
+            {/* 2. CORE TECHNOLOGIES */}
+            <section id="core-technologies">
               <div className="flex items-center gap-4 mb-16">
                 <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
-                  <Radio className="text-blue-500" size={24} />
+                  <Database className="text-blue-500" size={24} />
                 </div>
-                <h2 className="text-3xl font-black uppercase tracking-tighter italic">2. The Process Flow (Cloud-to-Broker)</h2>
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">2. Core Technologies</h2>
               </div>
               
-              <p className="text-zinc-500 text-sm mb-12 font-medium tracking-wide">The Kimoo Guardian follows a strict 5-stage pipeline to ensure capital protection:</p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {[
-                  { stage: "Stage 1", title: "Authentication & Tier Sync", desc: "The bot connects to Datebase. It checks your email/license and retrieves your tier (Pro/Ultimate).", icon: Lock },
-                  { stage: "Stage 2", title: "Signal Acquisition", desc: "The bot polls the SaaS signal stream every second. It checks for new IDs that haven't been processed.", icon: Radio },
-                  { stage: "Stage 3", title: "Symbol Mapping (Auto-Sync)", desc: "The bot automatically detects your broker's specific naming convention. Example: US100 -> NAS100.", icon: Database },
-                  { stage: "Stage 4", title: "The Filter Gate (The \"No-Trade\" Zone)", desc: "It checks Market Regime (Trend/Range/Both), HTF Alignment, RR minimums, and Exposure limits.", icon: ShieldCheck },
-                  { stage: "Stage 5", title: "Execution & Management", desc: "Pro fires market orders. Ultimate places OTE Limit Orders. Runner management to Breakeven.", icon: Activity }
-                ].map((item, i) => (
+                  { 
+                    title: "Robust JSON Engine", 
+                    desc: "Upgraded parsing logic handles string-quoted and numeric values. Eliminates \"Invalid Levels\" errors.", 
+                    icon: ZapIcon 
+                  },
+                  { 
+                    title: "Multi-Alias Mapping", 
+                    desc: "Institutional resolution matrix: NAS100 -> US100, USTEC, NDX100. GOLD -> XAUUSD, XAUUSDm.", 
+                    icon: Globe 
+                  },
+                  { 
+                    title: "Time Synchronization", 
+                    desc: "SaaS-Broker clock offset calc using HTTP Date header. Accurate 10-minute signal age guarding.", 
+                    icon: Clock 
+                  }
+                ].map((tech, i) => (
                   <motion.div 
                     key={i} 
                     initial={{ opacity: 0, y: 10 }}
@@ -174,131 +195,177 @@ export default function CFDBotDocumentation() {
                     className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col gap-6 group hover:border-blue-500/20 transition-all duration-500"
                   >
                     <div className="w-16 h-16 rounded-[1.5rem] bg-blue-500/5 border border-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/10 transition-all">
-                      <item.icon className="text-blue-500" size={28} />
+                      <tech.icon className="text-blue-500" size={28} />
                     </div>
                     <div>
-                      <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em] mb-2 block">{item.stage}</span>
-                      <h4 className="text-xl font-black uppercase tracking-tighter mb-2 italic">{item.title}</h4>
-                      <p className="text-sm text-zinc-500 leading-relaxed">{item.desc}</p>
+                      <h4 className="text-xl font-black uppercase tracking-tighter mb-2 italic">{tech.title}</h4>
+                      <p className="text-sm text-zinc-500 leading-relaxed">{tech.desc}</p>
                     </div>
                   </motion.div>
                 ))}
               </div>
             </section>
 
-            {/* 3. HIGH PROBABILITY SETUPS */}
-            <section id="setups">
-              <div className="flex items-center gap-4 mb-16">
-                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
-                  <Target className="text-blue-500" size={24} />
-                </div>
-                <h2 className="text-3xl font-black uppercase tracking-tighter italic">3. High-Probability Combinations</h2>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                {/* SETUP A */}
-                <div className="glass-panel p-10 rounded-[2.5rem] border border-blue-500/20 bg-blue-500/[0.01]">
-                  <h4 className="text-xl font-black uppercase tracking-tighter italic mb-4">A. Institutional Trend Snipe</h4>
-                  <p className="text-[11px] text-zinc-500 italic mb-10 font-medium uppercase tracking-widest">High Accuracy Strategy</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      { l: "Market Regime", v: "Trending" },
-                      { l: "Allow Counter-Trend", v: "False" },
-                      { l: "Min Sweep Quality", v: "High" },
-                      { l: "Entry Mode", v: "OTE_Mid" },
-                      { l: "Min RR", v: "1.5" }
-                    ].map((s, i) => (
-                      <div key={i} className="flex justify-between items-center p-4 rounded-2xl bg-zinc-500/5 border border-zinc-500/10">
-                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{s.l}</span>
-                        <span className="text-xs font-black text-blue-500 uppercase tracking-tighter">{s.v}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* SETUP B */}
-                <div className="glass-panel p-10 rounded-[2.5rem] border border-zinc-500/20">
-                  <h4 className="text-xl font-black uppercase tracking-tighter italic mb-4">B. Range Boundary Reversal</h4>
-                  <p className="text-[11px] text-zinc-500 italic mb-10 font-medium uppercase tracking-widest">Mean Reversion Play</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      { l: "Market Regime", v: "Ranging" },
-                      { l: "Allow Counter-Trend", v: "True" },
-                      { l: "Min Sweep Quality", v: "Normal" },
-                      { l: "Entry Mode", v: "OTE_Top" },
-                      { l: "Min RR", v: "1.2" }
-                    ].map((s, i) => (
-                      <div key={i} className="flex justify-between items-center p-4 rounded-2xl bg-zinc-500/5 border border-zinc-500/10">
-                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{s.l}</span>
-                        <span className="text-xs font-black text-zinc-900 dark:text-zinc-200 uppercase tracking-tighter">{s.v}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* 4. PARAMETERS */}
-            <section id="settings">
+            {/* 3. OPERATIONAL MODES */}
+            <section id="operational-modes">
               <div className="flex items-center gap-4 mb-16">
                 <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
                   <Settings2 className="text-blue-500" size={24} />
                 </div>
-                <h2 className="text-3xl font-black uppercase tracking-tighter italic">4. Control Panel Reference</h2>
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">3. Operational Modes</h2>
               </div>
 
-              <div className="overflow-hidden rounded-[2.5rem] border border-[var(--glass-border)] shadow-2xl">
-                <table className="w-full text-left">
-                  <thead className="bg-zinc-500/5 border-b border-[var(--glass-border)]">
-                    <tr>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Parameter</th>
-                      <th className="px-8 py-4 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Type</th>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--glass-border)] bg-zinc-500/[0.01]">
-                    {[
-                      { p: "Market Regime", t: "Dropdown", d: "Choose Trending for trend following or Ranging for mean reversion." },
-                      { p: "Allow Counter-Trend", t: "Boolean", d: "Set to False to only trade signals moving with the HTF Trend." },
-                      { p: "Min Sweep Quality", t: "Dropdown", d: "High filters for the most violent and clear liquidity grabs." },
-                      { p: "Entry Execution", t: "Dropdown", d: "OTE_Mid is the institutional sweet spot for limit orders." },
-                      { p: "Daily Risk Wallet", t: "Currency", d: "Total $ amount you are willing to lose in one day before the Kill-Switch activates." },
-                      { p: "Max Concurrent", t: "Integer", d: "Limits active symbols to prevent over-exposure." },
-                      { p: "Signal Cooldown", t: "Minutes", d: "Minimum time between signals for the same symbol." }
-                    ].map((row, i) => (
-                      <tr key={i} className="hover:bg-blue-500/[0.02] transition-colors">
-                        <td className="px-8 py-6 font-black uppercase italic tracking-tighter text-blue-500 text-lg">{row.p}</td>
-                        <td className="px-8 py-6 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{row.t}</td>
-                        <td className="px-8 py-6 text-sm text-zinc-500 leading-relaxed font-medium">{row.d}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                {/* HEDGING */}
+                <div className="glass-panel p-10 rounded-[2.5rem] border border-blue-500/20 bg-blue-500/[0.01]">
+                  <h4 className="text-2xl font-black uppercase tracking-tighter italic mb-4">Hedging <span className="text-zinc-500">(2 Trades)</span></h4>
+                  <div className="space-y-6">
+                    <p className="text-sm text-zinc-500 leading-relaxed">Opens two identical positions for strategic management.</p>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="flex justify-between items-center p-5 rounded-2xl bg-zinc-500/5 border border-zinc-500/10">
+                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">TP1 Hit</span>
+                        <span className="text-xs font-black text-blue-500 uppercase tracking-tighter">Close Position 1</span>
+                      </div>
+                      <div className="flex justify-between items-center p-5 rounded-2xl bg-zinc-500/5 border border-zinc-500/10">
+                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Runner Management</span>
+                        <span className="text-xs font-black text-blue-500 uppercase tracking-tighter">Lock at Breakeven (BE)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* NETTING */}
+                <div className="glass-panel p-10 rounded-[2.5rem] border border-zinc-500/20">
+                  <h4 className="text-2xl font-black uppercase tracking-tighter italic mb-4">Netting <span className="text-zinc-500">(1 Trade)</span></h4>
+                  <div className="space-y-6">
+                    <p className="text-sm text-zinc-500 leading-relaxed">Opens a single position with dynamic partial management.</p>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="flex justify-between items-center p-5 rounded-2xl bg-zinc-500/5 border border-zinc-500/10">
+                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">TP1 Level Reach</span>
+                        <span className="text-xs font-black text-zinc-900 dark:text-zinc-200 uppercase tracking-tighter">50% Partial Close</span>
+                      </div>
+                      <div className="flex justify-between items-center p-5 rounded-2xl bg-zinc-500/5 border border-zinc-500/10">
+                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Remaining Position</span>
+                        <span className="text-xs font-black text-zinc-900 dark:text-zinc-200 uppercase tracking-tighter">Shift SL to Breakeven</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
 
-            {/* 5. TROUBLESHOOTING */}
+            {/* 4. RISK & SAFETY MATRIX */}
+            <section id="safety-matrix">
+              <div className="flex items-center gap-4 mb-16">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                  <ShieldAlert className="text-blue-500" size={24} />
+                </div>
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">4. Risk & Safety Matrix</h2>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {[
+                  { 
+                    title: "Daily Risk Wallet", 
+                    desc: "Automatic KILL-SWITCH mode when realized + floating PnL exceeds risk limit. Halts all trading until next day.", 
+                    icon: ZapOff 
+                  },
+                  { 
+                    title: "ATR Late Entry", 
+                    desc: "Uses 14-day ATR to calculate drift. Skips signals if price has moved too far from origin to avoid chasing.", 
+                    icon: ListFilter 
+                  },
+                  { 
+                    title: "Crash Protection", 
+                    desc: "Strict validation using MathIsValidNumber. Prevents terminal crashes from zero-volume or malformed broker data.", 
+                    icon: ShieldCheck 
+                  }
+                ].map((risk, i) => (
+                  <motion.div 
+                    key={i} 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    className="glass-panel p-8 rounded-[2.5rem] border border-[var(--glass-border)] flex flex-col gap-6"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-zinc-500/5 border border-zinc-500/10 flex items-center justify-center">
+                      <risk.icon className="text-zinc-500" size={24} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-black uppercase tracking-tighter mb-2 italic">{risk.title}</h4>
+                      <p className="text-sm text-zinc-500 leading-relaxed font-medium">{risk.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </section>
+
+            {/* 5. DASHBOARD TELEMETRY */}
+            <section id="telemetry">
+              <div className="flex items-center gap-4 mb-16">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                  <LayoutDashboard className="text-blue-500" size={24} />
+                </div>
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">5. Dashboard Telemetry</h2>
+              </div>
+
+              <div className="overflow-hidden rounded-[2.5rem] border border-[var(--glass-border)] shadow-2xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-x divide-y md:divide-y-0 divide-[var(--glass-border)] bg-zinc-500/[0.01]">
+                  {[
+                    { label: "Bot Status", value: "Seeking Signals", detail: "Active polling mode" },
+                    { label: "Buffer Left", value: "Risk Capital", detail: "Remaining daily wallet" },
+                    { label: "Active Pairs", value: "Exposure Check", detail: "Active vs Max Allowed" },
+                    { label: "Time Sync", value: "Clock Verification", detail: "SaaS offset validation" }
+                  ].map((stat, i) => (
+                    <div key={i} className="p-10 flex flex-col gap-4 hover:bg-blue-500/[0.02] transition-colors">
+                      <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em]">{stat.label}</span>
+                      <h4 className="text-2xl font-black italic uppercase tracking-tighter text-blue-500">{stat.value}</h4>
+                      <p className="text-xs text-zinc-400 font-medium">{stat.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* 6. TROUBLESHOOTING */}
             <section id="troubleshooting" className="pb-32">
               <div className="flex items-center gap-4 mb-16">
                 <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
                   <Terminal className="text-blue-500" size={24} />
                 </div>
-                <h2 className="text-3xl font-black uppercase tracking-tighter italic">5. Troubleshooting & Logs</h2>
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">6. Troubleshooting</h2>
               </div>
 
-              <div className="bg-[#0a0c10] rounded-[3rem] p-12 border border-zinc-800 shadow-2xl">
-                <p className="text-zinc-500 text-[11px] mb-12 font-bold uppercase tracking-[0.2em] italic">Check Experts Tab (MT5) or Algo (cTrader) for indicators:</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 font-mono">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-[#0a0c10] rounded-[3rem] p-12 border border-zinc-800 shadow-2xl">
+                  <h4 className="text-xl font-black italic uppercase text-white mb-8 flex items-center gap-3">
+                    <Radio size={20} className="text-blue-500" />
+                    Terminal Log Indicators
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 font-mono">
+                    {[
+                      { code: "✅ EXECUTED", desc: "Trade successful.", color: "text-green-500" },
+                      { code: "🔄 SYNC", desc: "Symbol mapped successfully.", color: "text-blue-500" },
+                      { code: "⏭️ SKIP", desc: "Filter rejected the trade.", color: "text-orange-500" },
+                      { code: "🔴 KILL-SWITCH", desc: "Daily loss limit hit.", color: "text-red-500" }
+                    ].map((item, i) => (
+                      <div key={i} className="space-y-3">
+                        <p className={`text-[11px] font-bold uppercase tracking-widest ${item.color}`}>{item.code}</p>
+                        <p className="text-[10px] text-zinc-600 leading-relaxed">{item.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
                   {[
-                    { code: "✅ EXECUTED", desc: "Trade successful.", color: "green" },
-                    { code: "🔄 SYNC", desc: "Symbol mapped successfully.", color: "blue" },
-                    { code: "⏭️ SKIP", desc: "Filter rejected the trade.", color: "orange" },
-                    { code: "🔴 KILL-SWITCH", desc: "Daily loss limit hit.", color: "red" }
+                    { q: "Auth Failed", a: "Verify Email and License. Ensure 'Allow WebRequest' is enabled for Kimoo domain in Expert Advisor options." },
+                    { q: "Skip Signal (RR low)", a: "Bot skips trades where projected Reward-to-Risk ratio is below your InpMinRR setting." },
+                    { q: "Symbol Not Found", a: "Check for unique broker suffixes (e.g. NAS100.x) and add them to the Symbol Map function." }
                   ].map((item, i) => (
-                    <div key={i} className="space-y-3">
-                      <p className={`text-[11px] font-bold uppercase tracking-widest text-${item.color}-500`}>{item.code}</p>
-                      <p className="text-[10px] text-zinc-600 leading-relaxed">{item.desc}</p>
+                    <div key={i} className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)]">
+                      <h4 className="text-sm font-black uppercase italic mb-3 text-blue-500">{item.q}</h4>
+                      <p className="text-xs text-zinc-500 leading-relaxed font-medium">{item.a}</p>
                     </div>
                   ))}
                 </div>
@@ -312,7 +379,7 @@ export default function CFDBotDocumentation() {
         <div className="max-w-[1600px] mx-auto px-16 mt-32 opacity-30 text-center">
           <div className="h-px bg-gradient-to-r from-transparent via-zinc-500/20 to-transparent mb-8" />
           <p className="text-[10px] font-black uppercase tracking-[0.5em] text-zinc-500">
-            © 2026 Kimoo SaaS Guardian. Institutional Documentation.
+            © 2026 Kimoo Guardian Infrastructure. Institutional Documentation.
           </p>
         </div>
       </div>
