@@ -27,6 +27,7 @@ export default function UserDetailClient() {
     if (!id) return;
     setSaving(true);
     
+    // EXCLUDE id and other immutable system fields from the update payload
     const updateData = {
       full_name: user.full_name,
       email: user.email,
@@ -45,16 +46,26 @@ export default function UserDetailClient() {
       age: Number(user.age) || 0
     };
     
-    const { data, error } = await supabase.from('profiles').update(updateData).eq('id', id).select();
-    
-    if (error) {
-      alert(`Sync Error: ${error.message}`);
-    } else if (!data || data.length === 0) {
-      alert("Sync Failed: No records were updated. Check permissions or ID.");
-    } else {
-      alert("Member profile synchronized with database.");
+    try {
+      const { data, error } = await supabase.from('profiles').update(updateData).eq('id', id).select();
+      
+      if (error) {
+        alert(`Sync Error: ${error.message}`);
+      } else if (!data || data.length === 0) {
+        alert("Sync Failed: No records were updated. Check permissions or ID.");
+      } else {
+        alert("Member profile synchronized with database.");
+      }
+    } catch (err: any) {
+      console.error("Fetch Error:", err);
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        alert("Sync Error: Network connection failed or was blocked by CORS. Please check your internet or Supabase configuration.");
+      } else {
+        alert(`Sync Error: ${err.message || 'An unexpected error occurred'}`);
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (loading) return (

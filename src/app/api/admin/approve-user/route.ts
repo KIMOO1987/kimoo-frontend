@@ -13,11 +13,19 @@ export async function POST(req: Request) {
     const { userId, requestedPlan } = await req.json();
 
     const planToAssign = requestedPlan?.toLowerCase() || 'pro';
-    const tierMap: Record<string, number> = { 'alpha': 1, 'pro': 2, 'ultimate': 3 };
+    const tierMap: Record<string, number> = { 'alpha': 1, 'pro': 2, 'ultimate': 3, 'trial': 3 };
     const tierLevel = tierMap[planToAssign] || 2;
 
+    // Fetch the duration from the plans table
+    const { data: planData } = await supabaseAdmin
+      .from('plans')
+      .select('duration')
+      .eq('id', planToAssign)
+      .single();
+
+    const durationDays = planData?.duration || 30;
     const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 30);
+    expiryDate.setDate(expiryDate.getDate() + durationDays);
 
     const { error } = await supabaseAdmin
       .from('profiles')

@@ -45,7 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen relative overflow-x-hidden">
       <AdminSidebar userRole={role || 'user'} />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 lg:ml-72 flex flex-col min-w-0">
         <main id="main-scroll-container" className="flex-1 overflow-y-auto relative z-10 custom-scrollbar">
           <div className="h-full w-full px-4 md:px-0 flex flex-col">
             <div className="h-20 shrink-0 lg:hidden w-full"></div> {/* Spacer for mobile MENU button */}

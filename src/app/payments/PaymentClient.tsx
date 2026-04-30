@@ -1,14 +1,29 @@
 'use client';
 
 import { useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { createCryptoPayment, startTrial } from '@/lib/payments';
 import { Loader2, Gift, CheckCircle2 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function PaymentClient({ userId }: { userId: string }) {
+  const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [trialLoading, setTrialLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchPlans() {
+      const { data } = await supabase.from('plans').select('*');
+      if (data) setPlans(data);
+    }
+    fetchPlans();
+  }, []);
+
+  const trialPlan = useMemo(() => {
+    return plans.find(p => p.id?.toLowerCase().includes('trial') || Number(p.price) === 0);
+  }, [plans]);
 
   const handleCryptoPayment = async () => {
     setLoading(true);
@@ -54,24 +69,22 @@ export default function PaymentClient({ userId }: { userId: string }) {
         
         <div className="relative z-10 flex flex-col h-full">
           <div className="flex justify-between items-start">
-            <h3 className="text-xl font-black uppercase tracking-tighter text-fuchsia-400">15-Day Trial</h3>
+            <h3 className="text-xl font-black uppercase tracking-tighter text-fuchsia-400">{trialPlan?.name || '15-Day Trial'}</h3>
             <Gift className="text-fuchsia-400 animate-bounce" size={24} />
           </div>
-          <p className="text-4xl font-black mt-2 drop-shadow-md">FREE <span className="text-sm opacity-50 font-bold">ACCESS</span></p>
+          <p className="text-4xl font-black mt-2 drop-shadow-md">{trialPlan?.price === 0 ? 'FREE' : `$${trialPlan?.price || 'FREE'}`} <span className="text-sm opacity-50 font-bold uppercase">{trialPlan?.duration_text || 'ACCESS'}</span></p>
           
           <ul className="mt-6 space-y-3 flex-grow">
-            <li className="flex items-center gap-2 text-xs font-bold opacity-80">
-              <CheckCircle2 size={14} className="text-fuchsia-500" />
-              FULL TIER 3 (ULTIMATE) ACCESS
-            </li>
-            <li className="flex items-center gap-2 text-xs font-bold opacity-80">
-              <CheckCircle2 size={14} className="text-fuchsia-500" />
-              ALL EXCHANGES & STRATEGIES
-            </li>
-            <li className="flex items-center gap-2 text-xs font-bold opacity-80">
-              <CheckCircle2 size={14} className="text-fuchsia-500" />
-              INSTANT SIGNAL DELIVERY
-            </li>
+            {(trialPlan?.features || [
+              "FULL TIER 3 (ULTIMATE) ACCESS",
+              "ALL EXCHANGES & STRATEGIES",
+              "INSTANT SIGNAL DELIVERY"
+            ]).map((feature: string) => (
+              <li key={feature} className="flex items-center gap-2 text-xs font-bold opacity-80">
+                <CheckCircle2 size={14} className="text-fuchsia-500" />
+                {feature}
+              </li>
+            ))}
           </ul>
 
           {success && (
