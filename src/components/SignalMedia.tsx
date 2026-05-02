@@ -50,7 +50,11 @@ export default function SignalMedia({ symbol, screenshotUrl, status }: SignalMed
         <div ref={container} className="w-full h-full" />
       ) : (
         screenshotUrl ? (
-          <img src={screenshotUrl} className="w-full h-full object-cover" alt="Trade Result" />
+          <img 
+            src={screenshotUrl.startsWith('http') ? screenshotUrl : `https://www.tradingview.com/x/${screenshotUrl}/`} 
+            className="w-full h-full object-cover" 
+            alt="Trade Result" 
+          />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 italic text-[10px] uppercase tracking-widest font-black">
             <Camera size={40} className="mb-4 opacity-20" />
