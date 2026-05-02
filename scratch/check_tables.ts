@@ -1,4 +1,4 @@
-import { supabase } from './src/lib/supabaseClient';
+import { supabase } from '../src/lib/supabaseClient';
 
 async function listAllTables() {
   // This is a hacky way to guess tables
