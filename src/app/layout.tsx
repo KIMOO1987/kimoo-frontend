@@ -28,6 +28,8 @@ export const metadata: Metadata = {
   description: "Advanced Trade Execution Terminal",
 };
 
+import { Toaster } from "react-hot-toast";
+
 export default function RootLayout({
   children,
 }: {
@@ -40,6 +42,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <Toaster position="top-right" reverseOrder={false} />
         {/* 3D Ambient Background */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 perspective-1000">
           {/* Main Glow - Vibrant Pink/Purple */}
