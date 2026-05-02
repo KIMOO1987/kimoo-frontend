@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-static'; // For build, but we will handle logic dynamically
+export const dynamic = 'force-dynamic'; // We will handle logic dynamically
 
 export async function POST(req: Request) {
   try {
