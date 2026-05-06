@@ -159,8 +159,8 @@ export default function SignalsPage() {
 
     let query = supabase.from('signals').select('*', { count: 'exact' });
 
-    // History page should not show active/pending signals
-    query = query.neq('status', 'PENDING').neq('status', 'ACTIVE');
+    // Filter by is_active = false for historical data
+    query = query.eq('is_active', false);
 
     if (searchTerm) {
       query = query.ilike('symbol', `%${searchTerm}%`);
