@@ -8,12 +8,13 @@ import {
   Clock, Activity, Zap, ArrowUpRight, TrendingUp, 
   TrendingDown, Layout, Target, Shield, AlertCircle
 } from 'lucide-react';
+import SignalModal from '@/components/SignalModal';
 
 export default function ActiveSignalsPage() {
   const [activeSignals, setActiveSignals] = useState<any[]>([]);
   const [loadingSignals, setLoadingSignals] = useState(true);
-  // State to hold live prices, keyed by symbol
   const [livePrices, setLivePrices] = useState<{ [key: string]: number }>({});
+  const [selectedSignal, setSelectedSignal] = useState<any | null>(null);
 
   // --- SYMBOL CATEGORIZATION HELPER ---
   const getSymbolData = (symbol: string) => {
@@ -162,14 +163,6 @@ export default function ActiveSignalsPage() {
     };
   }, [activeSignals]); 
 
-  // 2. UI HANDLERS
-  const handleViewSetup = (symbol: string) => {
-    const myLayoutId = "TWlqcP20"; 
-    const cleanSymbol = symbol.includes(':') ? symbol.split(':')[1] : symbol;
-    const tvUrl = `https://www.tradingview.com/chart/${myLayoutId}/?symbol=${cleanSymbol.toUpperCase()}`;
-    window.open(tvUrl, '_blank');
-  };
-
   return (
     <AccessGuard requiredTier={1} tierName="PRO">
       <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
@@ -298,7 +291,7 @@ export default function ActiveSignalsPage() {
                     </div>
 
                     <button 
-                      onClick={() => handleViewSetup(signal.symbol)}
+                      onClick={() => setSelectedSignal(signal)}
                       className="relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn mt-4"
                     >
                       <Layout size={16} className="text-blue-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" /> 
@@ -321,6 +314,10 @@ export default function ActiveSignalsPage() {
               )}
             </AnimatePresence>
           </div>
+          
+          <AnimatePresence>
+            {selectedSignal && <SignalModal signal={selectedSignal} onClose={() => setSelectedSignal(null)} />}
+          </AnimatePresence>
         </div>
       </div>
     </AccessGuard>

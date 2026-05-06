@@ -14,20 +14,7 @@ import {
 
 const ITEMS_PER_PAGE = 12;
 
-// --- 1. HELPER COMPONENTS ---
-const DetailBox = ({ label, value, color = "text-zinc-900 dark:text-white", highlight = false }: any) => (
-  <div className={`p-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] ${highlight ? 'border-blue-500/20 bg-blue-500/[0.02]' : ''}`}>
-    <p className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-1">{label}</p>
-    <p className={`text-[11px] font-bold truncate tracking-tight ${color}`}>{value}</p>
-  </div>
-);
-
-const PriceRow = ({ label, value, color }: any) => (
-  <div className="flex justify-between items-center py-3 border-b border-[var(--glass-border)] last:border-0">
-    <span className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">{label}</span>
-    <span className={`font-mono text-sm font-black ${color}`}>{Number(value || 0).toFixed(5)}</span>
-  </div>
-);
+import SignalModal from '@/components/SignalModal';
 
 function TradeDataRow({ icon, label, value, valueClass = "text-zinc-900 dark:text-white" }: any) {
   return (
@@ -40,7 +27,6 @@ function TradeDataRow({ icon, label, value, valueClass = "text-zinc-900 dark:tex
   );
 }
 
-// --- 2. LOGIC HELPERS ---
 function getTimeAgo(timestamp: string) {
   const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
   if (diff < 1) return 'JUST NOW';
@@ -83,59 +69,49 @@ function getDynamicRR(signal: any) {
   return `1:${(Math.abs((tp2 || tp1) - entry) / risk).toFixed(1)}`;
 }
 
-// --- 3. MODAL COMPONENT ---
-const SignalModal = ({ signal, onClose }: { signal: any, onClose: () => void }) => {
-  if (!signal) return null;
-  const isBuy = signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH';
+import * as htmlToImage from 'html-to-image';
 
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 /80 backdrop-blur-2xl"
-      onClick={onClose}
-    >
-      <motion.div 
-        initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-        className="bg-gradient-to-br from-[#0a0c10] to-[#030407] border border-[var(--glass-border)] w-full max-w-6xl rounded-[2.5rem] overflow-hidden flex flex-col lg:flex-row shadow-[0_0_100px_rgba(0,0,0,0.8)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="lg:w-[35%] p-8 overflow-y-auto max-h-[50vh] lg:max-h-none border-b lg:border-b-0 lg:border-r border-[var(--glass-border)] relative">
-          <div className="absolute top-0 left-0 w-full h-full bg-blue-500/5 blur-[100px] pointer-events-none" />
-          <div className="flex justify-between items-start mb-8">
-            <div className="relative z-10">
-              <h2 className="text-3xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-white drop-shadow-md">{signal.symbol}</h2>
-              <p className="text-[10px] text-blue-500 font-bold tracking-[0.2em] mt-1">CRT NEURAL SETUP</p>
-            </div>
-            <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all"><X size={20} className="text-zinc-600 dark:text-zinc-500" /></button>
-          </div>
-          <div className="grid grid-cols-2 gap-3 mb-8">
-            <DetailBox label="Setup Time" value={new Date(signal.created_at).toLocaleTimeString()} />
-            <DetailBox label="confluences" value={signal.confluences || 'Institutional Bias Confirmed'} />
-          </div>
-          <div className="space-y-3">
-            <PriceRow label="ENTRY ZONE" value={signal.entry_price} color="text-blue-400" />
-            <PriceRow label="STOP LOSS" value={signal.sl} color="text-red-400" />
-            <PriceRow label="TP 1 (EQ)" value={signal.tp} color="text-green-400" />
-            <PriceRow label="TP 2 (TARGET)" value={signal.tp_secondary} color="text-green-400" />
-          </div>
-        </div>
-        <div className="lg:w-[65%] bg-[var(--input-bg)] relative flex flex-col min-h-[450px]">
-          <div className="absolute top-6 left-6 z-10 flex gap-2">
-             <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest shadow-lg ${isBuy ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>{isBuy ? 'LONG' : 'SHORT'}</span>
-             <span className="px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/30 flex items-center gap-2 shadow-lg"><Activity size={12} /> HISTORY TRACE</span>
-          </div>
-          <SignalChart symbol={signal.symbol} />
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-// --- 4. SIGNAL CARD COMPONENT ---
 const SignalCard = ({ signal, onClick }: { signal: any, onClick: () => void }) => {
+  const [isCapturing, setIsCapturing] = useState(false);
   const isBuy = signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH';
+  const isCompleted = ['TP1', 'TP2', 'WIN', 'SL'].includes(signal.status?.toUpperCase());
+
+  const captureAndUpload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsCapturing(true);
+    try {
+      const cardEl = document.getElementById(`signal-card-${signal.id}`);
+      if (!cardEl) return;
+      
+      // Temporarily hide the button during capture
+      const btn = cardEl.querySelector('.action-btn') as HTMLElement;
+      if (btn) btn.style.display = 'none';
+      
+      const dataUrl = await htmlToImage.toPng(cardEl, { backgroundColor: '#0a0c10', pixelRatio: 2 });
+      if (btn) btn.style.display = 'flex';
+      
+      const blob = await fetch(dataUrl).then(res => res.blob());
+      if (!blob) return;
+      
+      const fileName = `screenshot_${signal.id}_${Date.now()}.png`;
+      const { data, error } = await supabase.storage.from('screenshots').upload(fileName, blob, { upsert: true });
+      if (error) throw error;
+      
+      const { data: urlData } = supabase.storage.from('screenshots').getPublicUrl(fileName);
+      await supabase.from('signals').update({ screenshot_url: urlData.publicUrl }).eq('id', signal.id);
+      
+      signal.screenshot_url = urlData.publicUrl;
+      // Force re-render (hacky but works since signal is passed by reference)
+      setIsCapturing(false);
+    } catch (error) {
+      console.error('Screenshot error:', error);
+      setIsCapturing(false);
+    }
+  };
+
   return (
     <motion.div 
+      id={`signal-card-${signal.id}`}
       layout onClick={onClick} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
       className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-500 group shadow-2xl flex flex-col justify-between min-h-[500px] cursor-pointer"
     >
@@ -169,9 +145,27 @@ const SignalCard = ({ signal, onClick }: { signal: any, onClick: () => void }) =
           </div>
         </div>
       </div>
-      <button onClick={(e) => { e.stopPropagation(); onClick(); }} className="relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn mt-4">
-        <Layout size={16} className="text-blue-200 group-hover/btn:text-zinc-900 dark:text-white" /> Open Live Setup <ArrowUpRight size={16} className="text-blue-200 group-hover/btn:translate-x-1" />
-      </button>
+      
+      {isCompleted ? (
+        signal.screenshot_url ? (
+          <a href={signal.screenshot_url} target="_blank" rel="noreferrer" onClick={(e) => { e.stopPropagation(); }} className="action-btn relative z-10 w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-emerald-500/30 group/btn mt-4">
+            <Layout size={16} className="text-emerald-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" /> 
+            OPEN SCREENSHOT
+            <ArrowUpRight size={16} className="text-emerald-200 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
+          </a>
+        ) : (
+          <button onClick={captureAndUpload} disabled={isCapturing} className="action-btn relative z-10 w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-amber-500/30 group/btn mt-4">
+            {isCapturing ? <Activity size={16} className="animate-spin text-amber-200" /> : <Layout size={16} className="text-amber-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" />}
+            {isCapturing ? 'CAPTURING...' : 'CAPTURE SCREENSHOT'}
+          </button>
+        )
+      ) : (
+        <button onClick={(e) => { e.stopPropagation(); onClick(); }} className="action-btn relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn mt-4">
+          <Layout size={16} className="text-blue-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" /> 
+          Open Live Setup 
+          <ArrowUpRight size={16} className="text-blue-200 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
+        </button>
+      )}
     </motion.div>
   );
 };
@@ -190,26 +184,52 @@ export default function SignalsPage() {
   const [assetClass, setAssetClass] = useState('ALL');
 
   const fetchSignals = useCallback(async (page: number, isSilent = false) => {
-    if (!user) return;
     if (!isSilent) setLoading(true);
 
-    const { data } = await supabase.rpc('get_paginated_signals', {
-      p_user_id: user.id,
-      p_search: searchTerm,
-      p_asset_class: assetClass,
-      p_date_from: dateFrom ? new Date(dateFrom).toISOString() : null,
-      p_date_to: dateTo ? new Date(dateTo).toISOString() : null,
-      p_page: page,
-      p_page_size: ITEMS_PER_PAGE
-    });
+    let query = supabase.from('signals').select('*', { count: 'exact' });
+
+    // History page should not show active/pending signals
+    query = query.neq('status', 'PENDING').neq('status', 'ACTIVE');
+
+    if (searchTerm) {
+      query = query.ilike('symbol', `%${searchTerm}%`);
+    }
+
+    if (assetClass !== 'ALL') {
+      query = query.eq('category', assetClass);
+    }
+
+    if (dateFrom) {
+      query = query.gte('created_at', new Date(dateFrom).toISOString());
+    }
+
+    if (dateTo) {
+      // Add one day to dateTo to include the entire day
+      const toDate = new Date(dateTo);
+      toDate.setDate(toDate.getDate() + 1);
+      query = query.lte('created_at', toDate.toISOString());
+    }
+
+    query = query.order('created_at', { ascending: false });
+
+    const from = (page - 1) * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+    
+    query = query.range(from, to);
+
+    const { data, count, error } = await query;
+
+    if (error) {
+      console.error("Error fetching signals:", error);
+    }
 
     if (data) {
-      setSignals(data.signals);
-      setTotalCount(data.totalCount);
-      if (page === 1 && !searchTerm && assetClass === 'ALL') localStorage.setItem('history_cache', JSON.stringify(data.signals));
+      setSignals(data);
+      setTotalCount(count || 0);
+      if (page === 1 && !searchTerm && assetClass === 'ALL') localStorage.setItem('history_cache', JSON.stringify(data));
     }
     setLoading(false);
-  }, [user, searchTerm, assetClass, dateFrom, dateTo]);
+  }, [searchTerm, assetClass, dateFrom, dateTo]);
 
   useEffect(() => {
     const delay = setTimeout(() => fetchSignals(currentPage), 400);

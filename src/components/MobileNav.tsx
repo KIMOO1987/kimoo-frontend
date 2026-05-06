@@ -25,7 +25,7 @@ const menuGroups = [
   {
     label: 'RADAR & ANALYSIS',
     items: [
-      { name: 'All Signals', icon: Zap, path: '/dashboard/signals', minTier: 1 },
+
       { name: 'Alpha Radar', icon: Compass, path: '/dashboard/radar', minTier: 1 },
       { name: 'Symbol Audit', icon: BarChart3, path: '/dashboard/audit', minTier: 1 },
     ]
@@ -33,7 +33,7 @@ const menuGroups = [
   {
     label: 'STRATEGY LAB',
     items: [
-      { name: 'Backtest Simulator', icon: CheckSquare, path: '/dashboard/backtest', minTier: 1 },
+
       { name: 'Performance', icon: LineChart, path: '/dashboard/performance', minTier: 1 },
     ]
   },

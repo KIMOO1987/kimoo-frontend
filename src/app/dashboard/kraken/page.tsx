@@ -43,10 +43,7 @@ export default function KrakenDashboard() {
   const [passphrase, setPassphrase] = useState(''); // NEW: Unified Passphrase State
   const [isBotEnabled, setIsBotEnabled] = useState(true);
   
-  // NEW: Grade Filters
-  const AVAILABLE_GRADES = ['A++', 'A+', 'GOOD', 'NORMAL'];
-  const [allowedGrades, setAllowedGrades] = useState<string[]>(['A++', 'A+', 'GOOD']);
-  const [isGradeDropdownOpen, setIsGradeDropdownOpen] = useState(false);
+
 
   // NEW: Symbol Filter
   const POPULAR_SYMBOLS = [
@@ -87,12 +84,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
             setEnvironment(parsed.data.environment || 'testnet');
             setAllowedSymbols(parsed.data.allowed_symbols ?? POPULAR_SYMBOLS);
             
-            const parsedGrades = [];
-            if (parsed.data.allow_aplusplus ?? true) parsedGrades.push('A++');
-            if (parsed.data.allow_aplus ?? true) parsedGrades.push('A+');
-            if (parsed.data.allow_good ?? true) parsedGrades.push('GOOD');
-            if (parsed.data.allow_normal ?? false) parsedGrades.push('NORMAL');
-            setAllowedGrades(parsedGrades);
+
           }
           setLoading(false); // 🚀 Screen renders immediately here
         } catch (e) {}
@@ -144,12 +136,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
         setEnvironment(config.environment || 'testnet');
         setAllowedSymbols(config.allowed_symbols ?? POPULAR_SYMBOLS);
         
-        const dbGrades = [];
-        if (config.allow_aplusplus ?? true) dbGrades.push('A++');
-        if (config.allow_aplus ?? true) dbGrades.push('A+');
-        if (config.allow_good ?? true) dbGrades.push('GOOD');
-        if (config.allow_normal ?? false) dbGrades.push('NORMAL');
-        setAllowedGrades(dbGrades);
+
       }
       
       // Cache the config
@@ -270,10 +257,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
         passphrase: encryptedPass, // SAVE ENCRYPTED PASSPHRASE
         environment: environment,
         allowed_symbols: allowedSymbols,
-        allow_aplusplus: allowedGrades.includes('A++'),
-        allow_aplus: allowedGrades.includes('A+'),
-        allow_good: allowedGrades.includes('GOOD'),
-        allow_normal: allowedGrades.includes('NORMAL'),
+
         updated_at: new Date().toISOString()
     };
 
@@ -468,43 +452,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
                   </label>
               </div>
 
-              {/* SETUP FILTERS */}
-              <div className="relative">
-                <h3 className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2 mb-3">
-                  <ShieldCheck size={10} /> Setup Filters
-                </h3>
-                <div 
-                  className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3.5 text-xs font-mono text-zinc-900 dark:text-white flex justify-between items-center cursor-pointer hover:border-white/20 transition-all"
-                  onClick={() => setIsGradeDropdownOpen(!isGradeDropdownOpen)}
-                >
-                  <span className="font-black tracking-widest uppercase text-[10px]">
-                    {allowedGrades.length === AVAILABLE_GRADES.length ? 'ALL GRADES SELECTED' : `${allowedGrades.length} GRADES SELECTED`}
-                  </span>
-                  <ChevronDown size={14} className={`transition-transform ${isGradeDropdownOpen ? 'rotate-180' : ''}`} />
-                </div>
-                
-                {isGradeDropdownOpen && (
-                  <div className="absolute z-50 top-[100%] left-0 w-full mt-2 bg-[var(--input-bg)] border border-[var(--glass-border)] rounded-xl shadow-2xl p-3 max-h-[250px] overflow-y-auto flex flex-col gap-1">
-                    <div className="flex gap-2 mb-2 pb-2 border-b border-[var(--glass-border)]">
-                      <button onClick={() => setAllowedGrades(AVAILABLE_GRADES)} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-zinc-900 dark:text-white font-bold tracking-widest transition-all">ALL</button>
-                      <button onClick={() => setAllowedGrades([])} className="text-[9px] bg-white/[0.05] hover:bg-white/[0.1] px-3 py-1.5 rounded text-zinc-900 dark:text-white font-bold tracking-widest transition-all">NONE</button>
-                    </div>
-                    {AVAILABLE_GRADES.map(grade => (
-                      <label key={grade} className="flex items-center gap-3 cursor-pointer group hover:bg-[var(--glass-bg)] p-2 rounded-lg transition-all border border-transparent hover:border-[var(--glass-border)]">
-                        <input 
-                          type="checkbox" 
-                          checked={allowedGrades.includes(grade)}
-                          onChange={() => {
-                            setAllowedGrades(prev => prev.includes(grade) ? prev.filter(g => g !== grade) : [...prev, grade]);
-                          }}
-                          className="accent-purple-500 w-4 h-4 cursor-pointer"
-                        />
-                        <span className="text-[10px] uppercase font-black tracking-widest text-zinc-800 dark:text-zinc-300 group-hover:text-purple-400">{grade} Setup</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
+
 
               {/* ALLOWED SYMBOLS */}
               <div className="relative">
