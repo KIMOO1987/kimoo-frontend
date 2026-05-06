@@ -29,22 +29,12 @@ const ITEMS_PER_PAGE = 20;
 
 // --- 1. UI HELPERS ---
 const getSymbolData = (symbol: string) => {
-  const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  // METALS: OANDA
-  if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) {
-    return { category: 'METALS', provider: 'OANDA', clean: upper };
-  }
-  // Indices: CAPITALCOM
-  if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) {
-    return { category: 'INDICES', provider: 'CAPITALCOM', clean: upper };
-  }
-  // Forex: FOREXCOM
-  const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY'];
-  if (forexPairs.includes(upper)) {
-    return { category: 'FOREX', provider: 'FOREXCOM', clean: upper };
-  }
-  // Default to Crypto: BINANCE
-  return { category: 'CRYPTO', provider: 'BINANCE', clean: upper };
+  const { getSymbolCategory, SYMBOL_MAP } = require('@/lib/symbol-mapper');
+  const category = getSymbolCategory(symbol);
+  const clean = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const provider = SYMBOL_MAP[clean]?.binance ? 'BINANCE' : 'OANDA';
+  
+  return { category, provider, clean };
 };
 
 const DetailBox = ({ label, value, color = "text-zinc-900 dark:text-white", highlight = false }: any) => (
@@ -205,11 +195,22 @@ export default function PerformancePage() {
 
       if (data) {
         // 2. Fetch ALL signals for this user/public to calculate AGGREGATE stats
-        // We do this once to get total win rate etc accurately
-        const { data: allData } = await supabase
+        // We apply the same filters here so stats reflect the current view
+        let statsQuery = supabase
           .from('signals')
-          .select('status, entry_price, sl, tp, tp_secondary')
+          .select('status, entry_price, sl, tp, tp_secondary, symbol, category')
           .eq('is_active', false);
+
+        if (searchTerm) statsQuery = statsQuery.ilike('symbol', `%${searchTerm}%`);
+        if (assetClass !== 'ALL') statsQuery = statsQuery.eq('category', assetClass);
+        if (dateFrom) statsQuery = statsQuery.gte('created_at', new Date(dateFrom).toISOString());
+        if (dateTo) {
+          const toDate = new Date(dateTo);
+          toDate.setDate(toDate.getDate() + 1);
+          statsQuery = statsQuery.lte('created_at', toDate.toISOString());
+        }
+
+        const { data: allData } = await statsQuery;
 
         let totalNetR = 0;
         let wins = 0;

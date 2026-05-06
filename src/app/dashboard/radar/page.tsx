@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { normalizeSymbol, getSymbolCategory, deduplicateSignals } from '@/lib/symbol-mapper';
+import { fetchFinnhubQuote } from '@/lib/finnhub';
 import { supabase } from '@/lib/supabaseClient';
 import AccessGuard from '@/components/AccessGuard';
 import { Shield, Activity, Radio, Search, Layers, ChevronRight, AlertCircle } from 'lucide-react';
@@ -29,14 +31,6 @@ export default function RadarPage() {
   const [assetClass, setAssetClass] = useState('ALL');
 
   // --- SYMBOL CATEGORIZATION HELPER (No change) ---
-  const getSymbolData = (symbol: string) => {
-    const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) return { category: 'METALS', provider: 'OANDA', clean: upper };
-    if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) return { category: 'INDICES', provider: 'CAPITALCOM', clean: upper };
-    const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY'];
-    if (forexPairs.includes(upper)) return { category: 'FOREX', provider: 'FOREXCOM', clean: upper };
-    return { category: 'CRYPTO', provider: 'BINANCE', clean: upper };
-  };
 
   // 2. REFINED RADAR DATA FETCHING
   const fetchRadarData = useCallback(async (isSilent = false) => {
@@ -50,8 +44,9 @@ export default function RadarPage() {
       .limit(50);
 
     if (data) {
-      setLiveSignals(data);
-      localStorage.setItem('radar_signals_cache', JSON.stringify(data));
+      const unique = deduplicateSignals(data);
+      setLiveSignals(unique);
+      localStorage.setItem('radar_signals_cache', JSON.stringify(unique));
     }
     setIsLoading(false);
   }, [liveSignals.length]);
@@ -70,10 +65,10 @@ export default function RadarPage() {
   // --- REAL-TIME PRICE UPDATES (Keep existing Logic) ---
   useEffect(() => {
     if (liveSignals.length === 0) return;
-    const cryptoPairs = liveSignals.filter(s => getSymbolData(s.symbol).category === 'CRYPTO');
+    const cryptoPairs = liveSignals.filter(s => getSymbolCategory(s.symbol) === 'CRYPTO');
     let socket: WebSocket | null = null;
     if (cryptoPairs.length > 0) {
-      const streams = cryptoPairs.map(s => `${getSymbolData(s.symbol).clean.toLowerCase()}@ticker`).join('/');
+      const streams = cryptoPairs.map(s => `${normalizeSymbol(s.symbol).toLowerCase()}@ticker`).join('/');
       const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
       
       socket = new WebSocket(url);
@@ -85,26 +80,24 @@ export default function RadarPage() {
         } catch (err) {}
       };
     }
-    const otherSignals = liveSignals.filter(s => getSymbolData(s.symbol).category !== 'CRYPTO');
+    const otherSignals = liveSignals.filter(s => getSymbolCategory(s.symbol) !== 'CRYPTO');
     const pollInterval = setInterval(async () => {
       if (otherSignals.length === 0) return;
-      const FINNHUB_KEY = 'd78oc2pr01qp0fl5vgi0d78oc2pr01qp0fl5vgig';
-      for (const s of otherSignals) {
-        const { clean, category } = getSymbolData(s.symbol);
-        let finnhubSymbol = clean;
-        
-        // Sync with Active Signals Prefixing Logic
-        if (category === 'FOREX') finnhubSymbol = `OANDA:${clean.replace(/(USD|JPY|GBP|AUD|NZD|EUR|CHF)/, '$1_').replace(/_$/, '')}`;
-        if (category === 'METALS') finnhubSymbol = `OANDA:${clean.replace('USD', '_USD')}`;
-        if (category === 'INDICES') finnhubSymbol = `OANDA:${clean}`; 
+      
+      const uniqueSymbols = Array.from(new Set(otherSignals.map(s => s.symbol)));
 
-        try {
-          const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${FINNHUB_KEY}`);
-          const data = await response.json();
-          if (data.c) setLivePrices(prev => ({ ...prev, [clean]: parseFloat(data.c) }));
-        } catch (err) { }
+      try {
+        for (const symbol of uniqueSymbols) {
+          const quote = await fetchFinnhubQuote(symbol);
+          if (quote) {
+            const clean = normalizeSymbol(symbol);
+            setLivePrices(prev => ({ ...prev, [clean]: quote.price }));
+          }
+        }
+      } catch (err) {
+        console.error(`Finnhub Polling Error:`, err);
       }
-    }, 10000);
+    }, 8000); // Update every 8 seconds (Safe for free tier)
     return () => { if (socket) socket.close(); clearInterval(pollInterval); };
   }, [liveSignals]);
 
@@ -115,7 +108,7 @@ export default function RadarPage() {
     // NORMALIZE LIVE PRICE
     const entry = Number(signal.entry_price || 0);
     const sl = Number(signal.sl || 0);
-    const cleanSym = signal.symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const cleanSym = normalizeSymbol(signal.symbol);
     const current = livePrices[cleanSym] ?? entry;
     const risk = Math.abs(entry - sl);
     const isBuy = signal.side === 'BUY' || signal.side === 'BULLISH';
@@ -151,7 +144,7 @@ export default function RadarPage() {
       // Show PRIME and STABLE only
       const isHighProb = s.confidence.label === 'PRIME' || s.confidence.label === 'STABLE';
       const symbolMatch = s.symbol.toLowerCase().includes(searchTerm.toLowerCase());
-      const assetMatch = assetClass === 'ALL' || getSymbolData(s.symbol).category === assetClass;
+      const assetMatch = assetClass === 'ALL' || getSymbolCategory(s.symbol) === assetClass;
       return isHighProb && symbolMatch && assetMatch;
     })
     .sort((a, b) => b.confidence.val - a.confidence.val);
@@ -252,7 +245,7 @@ export default function RadarPage() {
                   <tbody className="divide-y divide-white/[0.05]">
                     <AnimatePresence>
                       {filteredRadarSignals.map((signal) => {
-                        const cleanSym = signal.symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                        const cleanSym = normalizeSymbol(signal.symbol);
                         const status = signal.status?.toUpperCase();
                         const entry = Number(signal.entry_price);
                         const sl = Number(signal.sl);
@@ -282,7 +275,7 @@ export default function RadarPage() {
                             className="hover:bg-[var(--glass-bg)] transition-colors group cursor-pointer"
                           >
                             <td className="px-6 md:px-8 py-6 font-black text-lg tracking-tighter text-zinc-900 dark:text-white uppercase italic drop-shadow-sm">{signal.symbol}</td>
-                            <td className="hidden md:table-cell py-6 text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">{getSymbolData(signal.symbol).category}</td>
+                            <td className="hidden md:table-cell py-6 text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">{getSymbolCategory(signal.symbol)}</td>
                             <td className="py-6 text-[13px] font-mono font-black text-zinc-800 dark:text-zinc-300">{entry.toFixed(5)}</td>
                             <td className="py-6 pr-6">
                               <div className="flex items-center gap-2">
@@ -300,12 +293,30 @@ export default function RadarPage() {
                               </span>
                             </td>
                             <td className="px-6 py-6">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-1.5 h-1.5 rounded-full ${rr >= 0 ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                                <span className={`text-[11px] font-mono font-black ${rr >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                  {rr >= 0 ? `+${rr.toFixed(2)}R` : `${rr.toFixed(2)}R`}
-                                </span>
-                              </div>
+                              {(() => {
+                                const current = livePrices[cleanSym] ?? Number(signal.current_price || entry);
+                                const pnlPercent = entry ? ((isBuy ? (current - entry) : (entry - current)) / entry) * 100 : 0;
+                                
+                                return (
+                                  <motion.div 
+                                    key={`${signal.id}-${current}`}
+                                    initial={{ scale: 1 }}
+                                    animate={{ scale: [1, 1.05, 1] }}
+                                    transition={{ duration: 0.3 }}
+                                    className="flex flex-col gap-0.5"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-1.5 h-1.5 rounded-full ${rr >= 0 ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                                      <span className={`text-[12px] font-mono font-black ${rr >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {rr >= 0 ? `+${rr.toFixed(2)}R` : `${rr.toFixed(2)}R`}
+                                      </span>
+                                    </div>
+                                    <span className={`text-[9px] font-black font-mono ml-3.5 ${rr >= 0 ? 'text-emerald-500/60' : 'text-red-500/60'}`}>
+                                      {rr >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
+                                    </span>
+                                  </motion.div>
+                                );
+                              })()}
                             </td>
                             <td className="px-6 py-6 text-center">
                               <Link href="/dashboard/active" className="p-2 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-zinc-600 dark:text-zinc-500 hover:bg-white/[0.08] hover:text-zinc-900 dark:text-white transition-all group-hover:border-white/20 inline-flex">

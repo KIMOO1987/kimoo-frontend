@@ -15,22 +15,45 @@ import {
 // --- SYMBOL CATEGORIZATION HELPER ---
 const getSymbolData = (symbol: string) => {
   const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  
-  // METALS: OANDA
-  if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) {
-    return { category: 'METALS', provider: 'OANDA', clean: upper };
+
+  // METALS
+  if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU') || upper === 'GOLD' || upper === 'SILVER') {
+    const clean = upper.replace('GOLD', 'XAUUSD').replace('SILVER', 'XAGUSD');
+    return { category: 'METALS', provider: 'OANDA', clean };
   }
-  // Indices: CAPITALCOM
-  if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) {
-    return { category: 'INDICES', provider: 'CAPITALCOM', clean: upper };
+
+  // INDICES (Map to OANDA CFD tickers)
+  const indexMap: { [key: string]: string } = {
+    'NAS100': 'NAS100_USD', 'US100': 'NAS100_USD', 'USTEC': 'NAS100_USD', 'NDX': 'NAS100_USD',
+    'US30': 'US30_USD', 'DJI': 'US30_USD', 'WALLSTREET': 'US30_USD',
+    'SPX500': 'SPX500_USD', 'US500': 'SPX500_USD', 'SPX': 'SPX500_USD',
+    'GER40': 'DE30_EUR', 'DE30': 'DE30_EUR', 'GER30': 'DE30_EUR', 'DAX': 'DE30_EUR', 'DAX40': 'DE30_EUR',
+    'UK100': 'UK100_GBP', 'FTSE': 'UK100_GBP',
+    'FR40': 'FR40_EUR', 'CAC': 'FR40_EUR',
+    'US2000': 'US2000_USD', 'RUSSELL': 'US2000_USD'
+  };
+
+  if (indexMap[upper]) {
+    return { category: 'INDICES', provider: 'OANDA', clean: upper };
   }
-  // Forex: FOREXCOM
-  const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY'];
-  if (forexPairs.includes(upper)) {
-    return { category: 'FOREX', provider: 'FOREXCOM', clean: upper };
+
+  // FOREX (Generic 6-character check for major pairs)
+  const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'];
+  const isForex = upper.length === 6 && (currencies.some(c => upper.startsWith(c)) || currencies.some(c => upper.endsWith(c)));
+
+  if (isForex) {
+    return { category: 'FOREX', provider: 'OANDA', clean: upper };
   }
-  // Default to Crypto: BINANCE
+
+  // Default to Crypto
   return { category: 'CRYPTO', provider: 'BINANCE', clean: upper };
+};
+
+const handleViewSetup = (symbol: string) => {
+  const myLayoutId = "TWlqcP20"; 
+  const cleanSymbol = symbol.includes(':') ? symbol.split(':')[1] : symbol;
+  const tvUrl = `https://www.tradingview.com/chart/${myLayoutId}/?symbol=${cleanSymbol.toUpperCase()}`;
+  window.open(tvUrl, '_blank');
 };
 
 const ITEMS_PER_PAGE = 12;
@@ -130,13 +153,13 @@ const SignalCard = ({ signal, onClick }: { signal: any, onClick: () => void }) =
         </div>
       </div>
       
-      {getSymbolData(signal.symbol).category === 'CRYPTO' && (
-        <button onClick={(e) => { e.stopPropagation(); onClick(); }} className="action-btn relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn mt-4">
+      <div className="flex flex-col gap-3 mt-4">
+        <button onClick={(e) => { e.stopPropagation(); onClick(); }} className="action-btn relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn">
           <Layout size={16} className="text-blue-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" /> 
           Open Live Setup 
           <ArrowUpRight size={16} className="text-blue-200 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
         </button>
-      )}
+      </div>
     </motion.div>
   );
 };

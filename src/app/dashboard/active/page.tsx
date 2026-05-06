@@ -10,32 +10,23 @@ import {
 } from 'lucide-react';
 import SignalModal from '@/components/SignalModal';
 
+// --- SYMBOL CATEGORIZATION HELPER ---
+import { normalizeSymbol, getSymbolCategory, deduplicateSignals } from '@/lib/symbol-mapper';
+import { fetchFinnhubQuote } from '@/lib/finnhub';
+
+// --- UI HANDLERS ---
+const handleViewSetup = (symbol: string) => {
+  const myLayoutId = "TWlqcP20"; 
+  const cleanSymbol = symbol.includes(':') ? symbol.split(':')[1] : symbol;
+  const tvUrl = `https://www.tradingview.com/chart/${myLayoutId}/?symbol=${cleanSymbol.toUpperCase()}`;
+  window.open(tvUrl, '_blank');
+};
+
 export default function ActiveSignalsPage() {
   const [activeSignals, setActiveSignals] = useState<any[]>([]);
   const [loadingSignals, setLoadingSignals] = useState(true);
   const [livePrices, setLivePrices] = useState<{ [key: string]: number }>({});
   const [selectedSignal, setSelectedSignal] = useState<any | null>(null);
-
-  // --- SYMBOL CATEGORIZATION HELPER ---
-  const getSymbolData = (symbol: string) => {
-    const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
-
-    // METALS: OANDA
-    if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) {
-      return { category: 'METALS', provider: 'OANDA', clean: upper };
-    }
-    // Indices: CAPITALCOM
-    if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) {
-      return { category: 'INDICES', provider: 'CAPITALCOM', clean: upper };
-    }
-    // Forex: FOREXCOM
-    const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY'];
-    if (forexPairs.includes(upper)) {
-      return { category: 'FOREX', provider: 'FOREXCOM', clean: upper };
-    }
-    // Default to Crypto: BINANCE
-    return { category: 'CRYPTO', provider: 'BINANCE', clean: upper };
-  };
 
   // 1. SIGNAL DATA FETCHING & REALTIME
   useEffect(() => {
@@ -44,12 +35,12 @@ export default function ActiveSignalsPage() {
       const cached = sessionStorage.getItem('active_signals_cache');
       if (cached) {
         try {
-          const parsedSignals = JSON.parse(cached);
+          const parsedSignals = deduplicateSignals(JSON.parse(cached));
           setActiveSignals(parsedSignals);
           setLivePrices(prev => {
             const next = { ...prev };
             parsedSignals.forEach((s: any) => {
-              const clean = s.symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+              const clean = normalizeSymbol(s.symbol);
               if (next[clean] === undefined) next[clean] = Number(s.entry_price || 0);
             });
             return next;
@@ -75,15 +66,16 @@ export default function ActiveSignalsPage() {
       if (error) {
         console.error("Signal Fetch Error:", error.message);
       } else if (data) {
-        setActiveSignals(data);
+        const unique = deduplicateSignals(data);
+        setActiveSignals(unique);
         // Save the fresh signals to cache for the next refresh
-        sessionStorage.setItem('active_signals_cache', JSON.stringify(data));
+        sessionStorage.setItem('active_signals_cache', JSON.stringify(unique));
 
         // Initialize live prices only for symbols we aren't tracking yet
         setLivePrices(prev => {
           const next = { ...prev };
           data.forEach(s => {
-            const clean = s.symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            const clean = normalizeSymbol(s.symbol);
             if (next[clean] === undefined) next[clean] = Number(s.entry_price || 0);
           });
           return next;
@@ -108,11 +100,11 @@ export default function ActiveSignalsPage() {
     if (activeSignals.length === 0) return;
 
     // --- A. CRYPTO WEBSOCKET (BINANCE) ---
-    const cryptoPairs = activeSignals.filter(s => getSymbolData(s.symbol).category === 'CRYPTO');
+    const cryptoPairs = activeSignals.filter(s => getSymbolCategory(s.symbol) === 'CRYPTO');
     let socket: WebSocket | null = null;
 
     if (cryptoPairs.length > 0) {
-      const streams = cryptoPairs.map(s => `${getSymbolData(s.symbol).clean.toLowerCase()}@ticker`).join('/');
+      const streams = cryptoPairs.map(s => `${normalizeSymbol(s.symbol).toLowerCase()}@ticker`).join('/');
       const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
       
       socket = new WebSocket(url);
@@ -130,40 +122,26 @@ export default function ActiveSignalsPage() {
       };
     }
 
-    // --- B. NON-CRYPTO POLLING (FOREX, METALS, INDICES) ---
-    const otherSignals = activeSignals.filter(s => getSymbolData(s.symbol).category !== 'CRYPTO');
+    // --- B. NON-CRYPTO POLLING (FINNHUB) ---
+    const otherSignals = activeSignals.filter(s => getSymbolCategory(s.symbol) !== 'CRYPTO');
 
     const pollInterval = setInterval(async () => {
       if (otherSignals.length === 0) return;
 
-      // Finnhub API Key integrated
-      const FINNHUB_KEY = 'd78oc2pr01qp0fl5vgi0d78oc2pr01qp0fl5vgig';
+      const uniqueSymbols = Array.from(new Set(otherSignals.map(s => s.symbol)));
 
-      for (const s of otherSignals) {
-        const { category, provider, clean } = getSymbolData(s.symbol);
-        let finnhubSymbol = clean;
-
-        // Format symbols for Finnhub according to provider logic
-        if (category === 'FOREX') finnhubSymbol = `OANDA:${clean.replace(/(USD|JPY|GBP|AUD|NZD|EUR|CHF)/, '$1_').replace(/_$/, '')}`;
-        if (category === 'FOREX' && provider === 'FOREXCOM') finnhubSymbol = `FX:${clean}`;
-        if (category === 'METALS') finnhubSymbol = `OANDA:${clean.replace('USD', '_USD')}`;
-        if (category === 'INDICES') finnhubSymbol = `${provider}:${clean}`;
-
-        try {
-          const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${FINNHUB_KEY}`);
-          const data = await response.json();
-
-          if (data.c) { // 'c' is the current price in Finnhub
-            setLivePrices(prev => ({
-              ...prev,
-              [clean]: parseFloat(data.c)
-            }));
+      try {
+        for (const symbol of uniqueSymbols) {
+          const quote = await fetchFinnhubQuote(symbol);
+          if (quote) {
+            const clean = normalizeSymbol(symbol);
+            setLivePrices(prev => ({ ...prev, [clean]: quote.price }));
           }
-        } catch (err) {
-          console.error(`Finnhub Fetch Error for ${clean}:`, err);
         }
+      } catch (err) {
+        console.error(`Finnhub Polling Error:`, err);
       }
-    }, 10000); // Polling every 10 seconds to respect free tier limits
+    }, 8000); // Update every 8 seconds (Safe for free tier)
 
     return () => {
       if (socket) socket.close();
@@ -241,11 +219,11 @@ export default function ActiveSignalsPage() {
                           <div className="flex items-center gap-3 text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">
                             <Activity size={14} className="text-blue-400 animate-pulse" /> Status
                           </div>
-                          <span className={`text-xs font-black uppercase tracking-widest ${getDisplayStatus(signal.status, livePrices[getSymbolData(signal.symbol).clean], signal).includes('SL HIT')
+                          <span className={`text-xs font-black uppercase tracking-widest ${getDisplayStatus(signal.status, livePrices[normalizeSymbol(signal.symbol)], signal).includes('SL HIT')
                             ? 'text-red-500 animate-pulse'
                             : 'text-blue-400'
                             }`}>
-                            {getDisplayStatus(signal.status, livePrices[getSymbolData(signal.symbol).clean], signal)}
+                            {getDisplayStatus(signal.status, livePrices[normalizeSymbol(signal.symbol)], signal)}
                           </span>
                         </div>
 
@@ -278,17 +256,40 @@ export default function ActiveSignalsPage() {
                           valueClass="text-zinc-700 dark:text-zinc-400 text-[11px] italic"
                         />
 
-                        {/* Live Realtime RR */}
+                        {/* Live Realtime RR & PnL */}
                         {(() => {
+                          const cleanSymbol = normalizeSymbol(signal.symbol);
+                          const current = livePrices[cleanSymbol] ?? Number(signal.current_price || signal.entry_price);
+                          const entry = Number(signal.entry_price);
+                          const isBuy = signal.side === 'BUY' || signal.side === 'BULLISH';
+                          const pnlPercent = entry ? ((isBuy ? (current - entry) : (entry - current)) / entry) * 100 : 0;
+                          
                           const liveRRValue = calculateLiveRR(signal, livePrices);
-                          const isProfit = parseFloat(liveRRValue) >= 0;
+                          const isProfit = pnlPercent >= 0;
+
                           return (
-                            <div className={`mt-4 p-4 rounded-2xl border flex justify-between items-center transition-colors duration-500 ${isProfit ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
-                              <div className="text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-400 flex items-center gap-2">
-                                <Activity size={14} className={isProfit ? 'text-emerald-400' : 'text-red-400'} /> Live PnL
+                            <motion.div 
+                              key={`${signal.id}-${current}`}
+                              initial={{ scale: 1 }}
+                              animate={{ scale: [1, 1.02, 1] }}
+                              transition={{ duration: 0.3 }}
+                              className={`mt-4 p-4 rounded-2xl border flex justify-between items-center transition-all duration-500 ${
+                                isProfit ? 'bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]' 
+                                         : 'bg-red-500/5 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
+                              }`}
+                            >
+                              <div className="flex flex-col">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-500 flex items-center gap-2 mb-1">
+                                  <Activity size={14} className={isProfit ? 'text-emerald-400' : 'text-red-400'} /> Live PnL
+                                </div>
+                                <span className={`text-xs font-black font-mono ${isProfit ? 'text-emerald-500/60' : 'text-red-500/60'}`}>
+                                  {isProfit ? '+' : ''}{pnlPercent.toFixed(2)}%
+                                </span>
                               </div>
-                              <span className={`text-lg font-black font-mono tracking-tight drop-shadow-md ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>{liveRRValue}</span>
-                            </div>
+                              <span className={`text-xl font-black font-mono tracking-tight drop-shadow-md ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {liveRRValue}
+                              </span>
+                            </motion.div>
                           );
                         })()}
 
@@ -301,16 +302,16 @@ export default function ActiveSignalsPage() {
                       </div>
                     </div>
 
-                    {getSymbolData(signal.symbol).category === 'CRYPTO' && (
+                    <div className="flex flex-col gap-3 mt-4">
                       <button
                         onClick={() => setSelectedSignal(signal)}
-                        className="relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn mt-4"
+                        className="relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn"
                       >
                         <Layout size={16} className="text-blue-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" />
                         Open Live Setup
                         <ArrowUpRight size={16} className="text-blue-200 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
                       </button>
-                    )}
+                    </div>
                   </motion.div>
                 ))
               ) : loadingSignals ? (
@@ -358,31 +359,33 @@ function getTimeAgo(timestamp: string) {
 }
 
 function getDisplayStatus(status: string, livePrice?: number, signal?: any) {
-  // ORGANIC PROTECTION: If price hit SL/TP before webhook, override status
-  if (livePrice && signal) {
+  const category = signal ? getSymbolCategory(signal.symbol) : 'CRYPTO';
+
+  // ORGANIC PROTECTION: Only for CRYPTO (as it's working great)
+  if (category === 'CRYPTO' && livePrice && signal) {
     const entry = Number(signal.entry_price);
     const sl = Number(signal.sl);
     const isBuy = signal.side === 'BUY';
 
-    // Check for Stop Loss hit
     if ((isBuy && livePrice <= sl) || (!isBuy && livePrice >= sl)) {
       return 'SL HIT (LIVE)';
     }
 
-    // Check for TP1 hit
     const tp1 = Number(signal.tp);
     if ((isBuy && livePrice >= tp1) || (!isBuy && livePrice <= tp1)) {
       if (status === 'ENTRY') return 'TP1 TARGETED';
     }
   }
 
+  // Backup Logic for METALS, INDICES, FOREX or Fallback
   switch (status?.toUpperCase()) {
     case 'PENDING': return 'In Progress';
     case 'ENTRY': return 'Active';
-    case 'TP1': return 'Partial TP1';
-    case 'TP1 + SL (BE)': return 'Secured BE';
+    case 'TP1': return 'TP1 Hit';
+    case 'TP1 + SL (BE)': return 'Partial TP1';
     case 'SL': return 'Stopped Out';
-    case 'TP2': return 'Final TP Hit';
+    case 'TP2': return 'TP1 / TP2';
+    case 'WIN': return 'Take Profit';
     default: return status || 'Active';
   }
 }
@@ -436,19 +439,19 @@ function calculateLiveRR(signal: any, livePrices: { [key: string]: number }) {
   const tp1 = Number(signal.tp || 0);
   const tp2 = Number(signal.tp_secondary || 0);
   const risk = Math.abs(entry - sl);
+  const category = getSymbolCategory(signal.symbol);
 
   if (!entry || !sl || risk === 0) return '0.00R';
 
-  // --- SEALING LOGIC (Reference from Backup) ---
-  // If trade is closed, use the known outcome instead of live price
-  if (status === 'SL') return '-1.00R';
-  if (status === 'TP2' && tp2) return `+${(Math.abs(tp2 - entry) / risk).toFixed(2)}R`;
-  if ((status === 'TP1' || status === 'TP1 + SL (BE)') && tp1) return `+${(Math.abs(tp1 - entry) / risk).toFixed(2)}R`;
+  // --- SEALING LOGIC: Only for CRYPTO (as it's working great) ---
+  if (category === 'CRYPTO') {
+    if (status === 'SL') return '-1.00R';
+    if (status === 'TP2' && tp2) return `+${(Math.abs(tp2 - entry) / risk).toFixed(2)}R`;
+    if ((status === 'TP1' || status === 'TP1 + SL (BE)') && tp1) return `+${(Math.abs(tp1 - entry) / risk).toFixed(2)}R`;
+  }
 
-  // Normalize symbol to match WebSocket keys
-  const cleanSymbol = signal.symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-
-  // Use the live price from state, fallback to signal's current_price (last known)
+  // Backup Logic: Always live calculation for Metals, Indices, Forex
+  const cleanSymbol = normalizeSymbol(signal.symbol);
   const current = livePrices[cleanSymbol] ?? Number(signal.current_price || entry);
   const side = signal.side?.toUpperCase();
 

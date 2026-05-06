@@ -51,10 +51,33 @@ export default function SymbolAudit() {
   // Helper for categories (Improved)
   const getSymbolCategory = (symbol: string) => {
     const upper = symbol?.toUpperCase().replace(/[^A-Z0-9]/g, '') || '';
-    if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) return 'METALS';
-    if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40', 'GER30', 'UK100', 'FRA40'].includes(upper)) return 'INDICES';
-    const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY', 'USDCAD', 'AUDJPY', 'EURAUD', 'GBPAUD'];
-    if (forexPairs.some(p => upper.includes(p))) return 'FOREX';
+    
+    // METALS
+    if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU') || upper === 'GOLD' || upper === 'SILVER') {
+      return 'METALS';
+    }
+
+    // INDICES
+    const indexSymbols = [
+      'NAS100', 'US100', 'USTEC', 'NDX',
+      'US30', 'DJI', 'WALLSTREET',
+      'SPX500', 'US500', 'SPX',
+      'GER40', 'DE30', 'GER30', 'DAX', 'DAX40',
+      'UK100', 'FTSE',
+      'FR40', 'CAC',
+      'US2000', 'RUSSELL'
+    ];
+    if (indexSymbols.includes(upper)) {
+      return 'INDICES';
+    }
+
+    // FOREX
+    const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'];
+    const isForex = upper.length === 6 && (currencies.some(c => upper.startsWith(c)) || currencies.some(c => upper.endsWith(c)));
+    if (isForex) {
+      return 'FOREX';
+    }
+
     return 'CRYPTO';
   };
 
