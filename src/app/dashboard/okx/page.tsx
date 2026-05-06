@@ -38,6 +38,7 @@ export default function OKXDashboard() {
   const [riskPercent, setRiskPercent] = useState(1.0);
   const [minRR, setMinRR] = useState(1.2);
   const [maxConcurrent, setMaxConcurrent] = useState(3);
+  const [alignment, setAlignment] = useState('Both');
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [passphrase, setPassphrase] = useState(''); // NEW: OKX Specific Passphrase State
@@ -78,6 +79,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
             setRiskPercent(parsed.data.risk_percentage || 1.0);
             setMinRR(parsed.data.rr || 1.2);
             setMaxConcurrent(parsed.data.max_concurrent_setups || 3);
+            setAlignment(parsed.data.alignment || 'Both');
             setIsBotEnabled(parsed.data.is_bot_enabled ?? true);
             setApiKey(parsed.data.api_key || '');
             setPassphrase(parsed.data.passphrase || '');
@@ -130,6 +132,7 @@ const fetchBotData = async (isSilentRefresh = false) => {
         setRiskPercent(config.risk_percentage || 1.0);
         setMinRR(config.rr || 1.2);
         setMaxConcurrent(config.max_concurrent_setups || 3);
+        setAlignment(config.alignment || 'Both');
         setIsBotEnabled(config.is_bot_enabled ?? true);
         setApiKey(config.api_key || '');
         setPassphrase(config.passphrase || '');
@@ -263,6 +266,7 @@ const saveAllSettings = async () => {
         passphrase: encryptedPass, 
         environment: environment,
         allowed_symbols: allowedSymbols,
+        alignment: alignment,
 
         updated_at: new Date().toISOString()
     };
@@ -462,6 +466,28 @@ const saveAllSettings = async () => {
                         className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:border-[var(--glass-border)]0 hover:border-white/20 transition-all"
                       />
                   </div>
+              </div>
+
+              {/* ALIGNMENT FILTER */}
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-1 tracking-widest flex items-center gap-2">
+                  <Activity size={10} /> Alignment Filter
+                </label>
+                <div className="flex bg-[var(--glass-bg)] rounded-xl p-1.5 border border-[var(--glass-border)]">
+                  {['Both', 'Aligned', 'Counter'].map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setAlignment(opt)}
+                      className={`flex-1 py-2 text-[9px] font-black rounded-lg transition-all uppercase tracking-widest ${
+                        alignment === opt 
+                          ? 'bg-white text-black shadow-lg' 
+                          : 'text-zinc-600 dark:text-zinc-500 hover:text-zinc-900 dark:text-white'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
               </div>
               
               <div className="py-2">
