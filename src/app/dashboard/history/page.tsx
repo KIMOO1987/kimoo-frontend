@@ -9,8 +9,29 @@ import SignalChart from '@/components/SignalChart';
 import { 
   Search, Activity, Target, Shield, Clock, Zap, 
   ChevronLeft, ChevronRight, TrendingUp, TrendingDown,
-  ArrowUpRight, Layout, X, AlertCircle
+  ArrowUpRight, Layout, AlertCircle
 } from 'lucide-react';
+
+// --- SYMBOL CATEGORIZATION HELPER ---
+const getSymbolData = (symbol: string) => {
+  const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  
+  // METALS: OANDA
+  if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) {
+    return { category: 'METALS', provider: 'OANDA', clean: upper };
+  }
+  // Indices: CAPITALCOM
+  if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) {
+    return { category: 'INDICES', provider: 'CAPITALCOM', clean: upper };
+  }
+  // Forex: FOREXCOM
+  const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY'];
+  if (forexPairs.includes(upper)) {
+    return { category: 'FOREX', provider: 'FOREXCOM', clean: upper };
+  }
+  // Default to Crypto: BINANCE
+  return { category: 'CRYPTO', provider: 'BINANCE', clean: upper };
+};
 
 const ITEMS_PER_PAGE = 12;
 
@@ -69,45 +90,8 @@ function getDynamicRR(signal: any) {
   return `1:${(Math.abs((tp2 || tp1) - entry) / risk).toFixed(1)}`;
 }
 
-import * as htmlToImage from 'html-to-image';
-
 const SignalCard = ({ signal, onClick }: { signal: any, onClick: () => void }) => {
-  const [isCapturing, setIsCapturing] = useState(false);
   const isBuy = signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH';
-  const isCompleted = ['TP1', 'TP2', 'WIN', 'SL'].includes(signal.status?.toUpperCase());
-
-  const captureAndUpload = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsCapturing(true);
-    try {
-      const cardEl = document.getElementById(`signal-card-${signal.id}`);
-      if (!cardEl) return;
-      
-      // Temporarily hide the button during capture
-      const btn = cardEl.querySelector('.action-btn') as HTMLElement;
-      if (btn) btn.style.display = 'none';
-      
-      const dataUrl = await htmlToImage.toPng(cardEl, { backgroundColor: '#0a0c10', pixelRatio: 2 });
-      if (btn) btn.style.display = 'flex';
-      
-      const blob = await fetch(dataUrl).then(res => res.blob());
-      if (!blob) return;
-      
-      const fileName = `screenshot_${signal.id}_${Date.now()}.png`;
-      const { data, error } = await supabase.storage.from('screenshots').upload(fileName, blob, { upsert: true });
-      if (error) throw error;
-      
-      const { data: urlData } = supabase.storage.from('screenshots').getPublicUrl(fileName);
-      await supabase.from('signals').update({ screenshot_url: urlData.publicUrl }).eq('id', signal.id);
-      
-      signal.screenshot_url = urlData.publicUrl;
-      // Force re-render (hacky but works since signal is passed by reference)
-      setIsCapturing(false);
-    } catch (error) {
-      console.error('Screenshot error:', error);
-      setIsCapturing(false);
-    }
-  };
 
   return (
     <motion.div 
@@ -146,20 +130,7 @@ const SignalCard = ({ signal, onClick }: { signal: any, onClick: () => void }) =
         </div>
       </div>
       
-      {isCompleted ? (
-        signal.screenshot_url ? (
-          <a href={signal.screenshot_url} target="_blank" rel="noreferrer" onClick={(e) => { e.stopPropagation(); }} className="action-btn relative z-10 w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-emerald-500/30 group/btn mt-4">
-            <Layout size={16} className="text-emerald-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" /> 
-            OPEN SCREENSHOT
-            <ArrowUpRight size={16} className="text-emerald-200 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
-          </a>
-        ) : (
-          <button onClick={captureAndUpload} disabled={isCapturing} className="action-btn relative z-10 w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-amber-500/30 group/btn mt-4">
-            {isCapturing ? <Activity size={16} className="animate-spin text-amber-200" /> : <Layout size={16} className="text-amber-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" />}
-            {isCapturing ? 'CAPTURING...' : 'CAPTURE SCREENSHOT'}
-          </button>
-        )
-      ) : (
+      {getSymbolData(signal.symbol).category === 'CRYPTO' && (
         <button onClick={(e) => { e.stopPropagation(); onClick(); }} className="action-btn relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn mt-4">
           <Layout size={16} className="text-blue-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" /> 
           Open Live Setup 
