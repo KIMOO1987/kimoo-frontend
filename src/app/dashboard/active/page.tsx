@@ -69,7 +69,7 @@ export default function ActiveSignalsPage() {
         .from('signals')
         .select('*')
         .gt('created_at', timeLimit)
-        .not('status', 'in', '("SL","TP2")') 
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -235,7 +235,13 @@ export default function ActiveSignalsPage() {
                           <div className="flex items-center gap-3 text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">
                               <Activity size={14} className="text-blue-400 animate-pulse"/> Status
                           </div>
-                          <span className="text-xs font-black uppercase tracking-widest text-blue-400">{getDisplayStatus(signal.status)}</span>
+                          <span className={`text-xs font-black uppercase tracking-widest ${
+                            getDisplayStatus(signal.status, livePrices[getSymbolData(signal.symbol).clean], signal).includes('SL HIT') 
+                            ? 'text-red-500 animate-pulse' 
+                            : 'text-blue-400'
+                          }`}>
+                            {getDisplayStatus(signal.status, livePrices[getSymbolData(signal.symbol).clean], signal)}
+                          </span>
                         </div>
 
                         <TradeDataRow icon={<TrendingUp size={12} className="text-indigo-400"/>} label="Trade R:R" value={getDynamicRR(signal)} valueClass="text-indigo-400" />
@@ -346,14 +352,33 @@ function getTimeAgo(timestamp: string) {
   return `${hrs}H ${diff % 60}M AGO`;
 }
 
-function getDisplayStatus(status: string) {
-  switch (status) {
+function getDisplayStatus(status: string, livePrice?: number, signal?: any) {
+  // ORGANIC PROTECTION: If price hit SL/TP before webhook, override status
+  if (livePrice && signal) {
+    const entry = Number(signal.entry_price);
+    const sl = Number(signal.sl);
+    const isBuy = signal.side === 'BUY';
+    
+    // Check for Stop Loss hit
+    if ((isBuy && livePrice <= sl) || (!isBuy && livePrice >= sl)) {
+      return 'SL HIT (LIVE)';
+    }
+    
+    // Check for TP1 hit
+    const tp1 = Number(signal.tp);
+    if ((isBuy && livePrice >= tp1) || (!isBuy && livePrice <= tp1)) {
+      if (status === 'ENTRY') return 'TP1 TARGETED';
+    }
+  }
+
+  switch (status?.toUpperCase()) {
     case 'PENDING': return 'In Progress';
-    case 'TP1': return 'TP1 Hit';
-    case 'TP1 + SL (BE)': return 'Partial TP1';
+    case 'ENTRY': return 'Active';
+    case 'TP1': return 'Partial TP1';
+    case 'TP1 + SL (BE)': return 'Secured BE';
     case 'SL': return 'Stopped Out';
-    case 'TP2': return 'TP1 / TP2';
-    default: return 'Active';
+    case 'TP2': return 'Final TP Hit';
+    default: return status || 'Active';
   }
 }
 
