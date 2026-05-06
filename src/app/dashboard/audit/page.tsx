@@ -48,40 +48,88 @@ export default function SymbolAudit() {
   const [search, setSearch] = useState('');
   const [assetClass, setAssetClass] = useState('ALL');
 
-  // Helper for categories (No change)
+  // Helper for categories (Improved)
   const getSymbolCategory = (symbol: string) => {
-    if (!symbol) return 'CRYPTO';
-    const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const upper = symbol?.toUpperCase().replace(/[^A-Z0-9]/g, '') || '';
     if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) return 'METALS';
-    if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) return 'INDICES';
-    const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY'];
-    if (forexPairs.includes(upper)) return 'FOREX';
+    if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40', 'GER30', 'UK100', 'FRA40'].includes(upper)) return 'INDICES';
+    const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY', 'USDCAD', 'AUDJPY', 'EURAUD', 'GBPAUD'];
+    if (forexPairs.some(p => upper.includes(p))) return 'FOREX';
     return 'CRYPTO';
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const fetchPerformance = async () => {
-      // 2. USE THE NEW RPC (Much faster than select('*'))
-      const { data, error } = await supabase.rpc('get_symbol_audit', { p_user_id: user.id });
+      try {
+        // 1. Fetch ALL completed signals directly to include PUBLIC signals
+        const { data, error } = await supabase
+          .from('signals')
+          .select('symbol, status, entry_price, sl, tp, tp_secondary')
+          .eq('is_active', false);
 
-      if (data) {
-        // Map keys to match your existing frontend variable names
-        const formatted = data.map((item: any) => ({
-          symbol: item.symbol,
-          trades: item.total_trades,
-          wins: item.wins,
-          losses: item.losses,
-          be: item.be,
-          winRate: item.win_rate,
-          totalRR: item.net_rr
-        }));
+        if (data) {
+          // 2. Aggregate manually by symbol
+          const symbolMap: { [key: string]: any } = {};
+          
+          data.forEach(s => {
+            const sym = s.symbol.toUpperCase();
+            if (!symbolMap[sym]) {
+              symbolMap[sym] = { 
+                symbol: sym, 
+                total_trades: 0, 
+                wins: 0, 
+                losses: 0, 
+                be: 0, 
+                total_rr: 0 
+              };
+            }
+            
+            const stats = symbolMap[sym];
+            stats.total_trades++;
+            
+            const entry = Number(s.entry_price || 0);
+            const sl = Number(s.sl || 0);
+            const risk = Math.abs(entry - sl);
+            if (!risk) return;
+            
+            const status = s.status?.toUpperCase();
+            if (status === 'TP2' || status === 'WIN') {
+              stats.wins++;
+              stats.total_rr += Math.abs(Number(s.tp_secondary || s.tp || 0) - entry) / risk;
+            } else if (status === 'TP1' || status === 'TP1 + SL (BE)') {
+              stats.wins++; // Treat partial as win for audit
+              stats.total_rr += Math.abs(Number(s.tp || 0) - entry) / risk;
+            } else if (status === 'SL' || status === 'LOSS') {
+              stats.losses++;
+              stats.total_rr -= 1;
+            } else {
+              stats.be++;
+            }
+          });
 
-        setStats(formatted);
-        localStorage.setItem('audit_stats_cache', JSON.stringify(formatted));
+          const formatted = Object.values(symbolMap).map((item: any) => ({
+            symbol: item.symbol,
+            trades: item.total_trades,
+            wins: item.wins,
+            losses: item.losses,
+            be: item.be,
+            winRate: item.total_trades > 0 ? Number(((item.wins / item.total_trades) * 100).toFixed(1)) : 0,
+            totalRR: Number(item.total_rr.toFixed(1))
+          }));
+
+          setStats(formatted);
+          localStorage.setItem('audit_stats_cache', JSON.stringify(formatted));
+        }
+      } catch (err) {
+        console.error("Audit Fetch Error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchPerformance();
@@ -90,7 +138,7 @@ export default function SymbolAudit() {
   // 3. DYNAMIC FILTERING (Optimized with useMemo)
   const filteredStats = useMemo(() => {
     return stats.filter(s => {
-      const searchMatch = s.symbol.includes(search.toUpperCase());
+      const searchMatch = s.symbol.toUpperCase().includes(search.toUpperCase());
       const assetMatch = assetClass === 'ALL' || getSymbolCategory(s.symbol) === assetClass;
       return searchMatch && assetMatch;
     });
@@ -105,8 +153,8 @@ export default function SymbolAudit() {
     let gWins = 0;
     let gTotal = 0;
     filteredStats.forEach(s => {
-      gWins += s.wins;
-      gTotal += (s.wins + s.losses + s.be);
+      gWins += Number(s.wins || 0);
+      gTotal += Number(s.trades || (s.wins + s.losses + s.be) || 0);
     });
     return {
       winRate: gTotal > 0 ? Number(((gWins / gTotal) * 100).toFixed(1)) : 0,

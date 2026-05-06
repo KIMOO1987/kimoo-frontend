@@ -30,11 +30,21 @@ const ITEMS_PER_PAGE = 20;
 // --- 1. UI HELPERS ---
 const getSymbolData = (symbol: string) => {
   const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) return { category: 'METALS', provider: 'OANDA' };
-  if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) return { category: 'INDICES', provider: 'CAPITALCOM' };
+  // METALS: OANDA
+  if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) {
+    return { category: 'METALS', provider: 'OANDA', clean: upper };
+  }
+  // Indices: CAPITALCOM
+  if (['US100', 'US30', 'US500', 'NAS100', 'DJI', 'SPX', 'GER40'].includes(upper)) {
+    return { category: 'INDICES', provider: 'CAPITALCOM', clean: upper };
+  }
+  // Forex: FOREXCOM
   const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'EURJPY', 'NZDUSD', 'CHFJPY'];
-  if (forexPairs.includes(upper)) return { category: 'FOREX', provider: 'FOREXCOM' };
-  return { category: 'CRYPTO', provider: 'BINANCE' };
+  if (forexPairs.includes(upper)) {
+    return { category: 'FOREX', provider: 'FOREXCOM', clean: upper };
+  }
+  // Default to Crypto: BINANCE
+  return { category: 'CRYPTO', provider: 'BINANCE', clean: upper };
 };
 
 const DetailBox = ({ label, value, color = "text-zinc-900 dark:text-white", highlight = false }: any) => (
@@ -55,7 +65,7 @@ const ResultBadge = ({ status }: { status: string }) => {
   const s = status?.toUpperCase();
   if (s === 'TP2' || s === 'WIN') return (
     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/5">
-      <CheckCircle2 size={12} /> Full TP
+      <CheckCircle2 size={12} /> Full TP Hit
     </span>
   );
   if (s === 'TP1 + SL (BE)' || s === 'TP1') return (
@@ -70,7 +80,7 @@ const ResultBadge = ({ status }: { status: string }) => {
   );
   return (
     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-500/20 bg-[var(--glass-bg)] text-zinc-700 dark:text-zinc-400 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg">
-      <Clock size={12} /> {status}
+      <Clock size={12} /> {status || 'CLOSED'}
     </span>
   );
 };
@@ -160,30 +170,99 @@ export default function PerformancePage() {
   const [assetClass, setAssetClass] = useState('ALL');
 
   const fetchPerformance = useCallback(async (page: number, isSilent = false) => {
-    if (!user) return;
+    if (!user) {
+      if (!isSilent) setLoading(false);
+      return;
+    }
     if (!isSilent) setLoading(true);
 
-    const { data, error } = await supabase.rpc('get_performance_dashboard', {
-      p_user_id: user.id,
-      p_search: searchTerm,
-      p_asset_class: assetClass,
-      p_date_from: dateFrom ? new Date(dateFrom).toISOString() : null,
-      p_date_to: dateTo ? new Date(dateTo).toISOString() : null,
-      p_page: page,
-      p_page_size: ITEMS_PER_PAGE
-    });
+    try {
+      // 1. Fetch RAW data directly to include PUBLIC signals (user_id is NULL)
+      let query = supabase.from('signals').select('*', { count: 'exact' });
 
-    if (data) {
-      setHistory(data.history);
-      setStats(data.stats);
-      setTotalCount(data.totalCount);
-      
-      if (page === 1 && !searchTerm && assetClass === 'ALL') {
-        localStorage.setItem('perf_history_cache', JSON.stringify(data.history));
-        localStorage.setItem('perf_stats_cache', JSON.stringify(data.stats));
+      // Only show completed/inactive signals in history
+      query = query.eq('is_active', false);
+
+      if (searchTerm) {
+        query = query.ilike('symbol', `%${searchTerm}%`);
       }
+      if (assetClass !== 'ALL') {
+        query = query.eq('category', assetClass);
+      }
+      if (dateFrom) {
+        query = query.gte('created_at', new Date(dateFrom).toISOString());
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setDate(toDate.getDate() + 1);
+        query = query.lte('created_at', toDate.toISOString());
+      }
+
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const { data, count, error } = await query
+        .order('created_at', { ascending: false })
+        .range(from, from + ITEMS_PER_PAGE - 1);
+
+      if (data) {
+        // 2. Fetch ALL signals for this user/public to calculate AGGREGATE stats
+        // We do this once to get total win rate etc accurately
+        const { data: allData } = await supabase
+          .from('signals')
+          .select('status, entry_price, sl, tp, tp_secondary')
+          .eq('is_active', false);
+
+        let totalNetR = 0;
+        let wins = 0;
+        let total = allData?.length || 0;
+        let profitFactor = 0;
+        let totalWinR = 0;
+        let totalLossR = 0;
+
+        allData?.forEach(s => {
+          const entry = Number(s.entry_price || 0);
+          const sl = Number(s.sl || 0);
+          const risk = Math.abs(entry - sl);
+          if (!risk) return;
+
+          const status = s.status?.toUpperCase();
+          let rr = 0;
+          if (status === 'TP2' || status === 'WIN') {
+            rr = Math.abs(Number(s.tp_secondary || s.tp || 0) - entry) / risk;
+            wins++;
+            totalWinR += rr;
+          } else if (status === 'TP1' || status === 'TP1 + SL (BE)') {
+            rr = Math.abs(Number(s.tp || 0) - entry) / risk;
+            wins++;
+            totalWinR += rr;
+          } else if (status === 'SL' || status === 'LOSS') {
+            rr = -1;
+            totalLossR += 1;
+          }
+          totalNetR += rr;
+        });
+
+        const calculatedStats = {
+          winRate: total > 0 ? ((wins / total) * 100).toFixed(1) : "0",
+          totalTrades: total,
+          profitFactor: totalLossR > 0 ? (totalWinR / totalLossR).toFixed(2) : totalWinR.toFixed(2),
+          totalNetR: totalNetR.toFixed(1),
+          expectancy: total > 0 ? (totalNetR / total).toFixed(2) : "0.00"
+        };
+
+        setHistory(data);
+        setStats(calculatedStats);
+        setTotalCount(count || 0);
+        
+        if (page === 1 && !searchTerm && assetClass === 'ALL') {
+          localStorage.setItem('perf_history_cache', JSON.stringify(data));
+          localStorage.setItem('perf_stats_cache', JSON.stringify(calculatedStats));
+        }
+      }
+    } catch (err) {
+      console.error("Performance Fetch Error:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user, searchTerm, assetClass, dateFrom, dateTo]);
 
   useEffect(() => {
@@ -308,7 +387,12 @@ export default function PerformancePage() {
                             </span>
                           </td>
                           <td className="py-6"><ResultBadge status={signal.status} /></td>
-                          <td className={`py-6 text-[14px] font-mono font-black ${signal.status === 'TP2' ? 'text-emerald-400' : signal.status === 'SL' ? 'text-red-400' : signal.status === 'TP1 + SL (BE)' ? 'text-yellow-400' : 'text-indigo-400'}`}>
+                          <td className={`py-6 text-[14px] font-mono font-black ${
+                            ['TP2', 'WIN'].includes(signal.status?.toUpperCase()) ? 'text-emerald-400' : 
+                            ['SL', 'LOSS'].includes(signal.status?.toUpperCase()) ? 'text-red-400' : 
+                            ['TP1', 'TP1 + SL (BE)'].includes(signal.status?.toUpperCase()) ? 'text-yellow-400' : 
+                            'text-indigo-400'
+                          }`}>
                             {calculateRRFromRow(signal)}
                           </td>
                           <td className="py-6 hidden md:table-cell text-xs font-mono text-zinc-600 dark:text-zinc-500">{new Date(signal.created_at).toLocaleDateString()}</td>
@@ -360,11 +444,20 @@ export default function PerformancePage() {
 function calculateRRFromRow(signal: any) {
   const entry = Number(signal.entry_price || 0); 
   const sl = Number(signal.sl || 0); 
+  const status = signal.status?.toUpperCase();
   const risk = Math.abs(entry - sl);
+  
   if (!risk) return "0.0R";
-  if (signal.status === 'TP2') return `+${(Math.abs(Number(signal.tp_secondary || 0) - entry) / risk).toFixed(1)}R`;
-  if (signal.status === 'TP1 + SL (BE)' || signal.status === 'TP1') return `+${(Math.abs(Number(signal.tp || 0) - entry) / risk).toFixed(1)}R`;
-  if (signal.status === 'SL') return "-1.0R";
+  
+  if (status === 'TP2' || status === 'WIN') {
+    return `+${(Math.abs(Number(signal.tp_secondary || signal.tp || 0) - entry) / risk).toFixed(1)}R`;
+  }
+  if (status === 'TP1 + SL (BE)' || status === 'TP1') {
+    return `+${(Math.abs(Number(signal.tp || 0) - entry) / risk).toFixed(1)}R`;
+  }
+  if (status === 'SL' || status === 'LOSS') {
+    return "-1.0R";
+  }
   return "0.0R";
 }
 

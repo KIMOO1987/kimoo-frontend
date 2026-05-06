@@ -75,7 +75,7 @@ export default function SignalChart({ symbol, signal, onLoaded }: { symbol: stri
           // Finnhub API for non-crypto
           const FINNHUB_KEY = 'd78oc2pr01qp0fl5vgi0d78oc2pr01qp0fl5vgig'; // Extracted from active/page.tsx
           let finnhubSymbol = clean;
-          if (category === 'FOREX') finnhubSymbol = `OANDA:${clean.replace(/(USD|JPY|GBP|AUD|NZD|EUR|CHF)/, '$1_').replace(/_$/, '')}`; 
+          if (category === 'FOREX') finnhubSymbol = `OANDA:${clean.replace(/(USD|JPY|GBP|AUD|NZD|EUR|CHF)/, '$1_').replace(/_$/, '')}`;
           if (category === 'METALS') finnhubSymbol = `OANDA:${clean.replace('USD', '_USD')}`;
           if (category === 'INDICES') finnhubSymbol = `OANDA:${clean}`; // Finnhub CFD is usually prefixed with OANDA or similar
 

@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import AccessGuard from '@/components/AccessGuard'; // Switched to AccessGuard
-import { 
-  Clock, Activity, Zap, ArrowUpRight, TrendingUp, 
+import {
+  Clock, Activity, Zap, ArrowUpRight, TrendingUp,
   TrendingDown, Layout, Target, Shield, AlertCircle
 } from 'lucide-react';
 import SignalModal from '@/components/SignalModal';
@@ -19,7 +19,7 @@ export default function ActiveSignalsPage() {
   // --- SYMBOL CATEGORIZATION HELPER ---
   const getSymbolData = (symbol: string) => {
     const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    
+
     // METALS: OANDA
     if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU')) {
       return { category: 'METALS', provider: 'OANDA', clean: upper };
@@ -55,7 +55,7 @@ export default function ActiveSignalsPage() {
             return next;
           });
           setLoadingSignals(false); // Instantly hide loader if cache is found
-        } catch (e) {}
+        } catch (e) { }
       } else {
         // Only show loading screen if there is no cache
         setLoadingSignals(true);
@@ -64,7 +64,7 @@ export default function ActiveSignalsPage() {
       // 2. Fetch fresh data silently in the background
       // Fetches signals from the last 24 hours
       const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      
+
       const { data, error } = await supabase
         .from('signals')
         .select('*')
@@ -78,7 +78,7 @@ export default function ActiveSignalsPage() {
         setActiveSignals(data);
         // Save the fresh signals to cache for the next refresh
         sessionStorage.setItem('active_signals_cache', JSON.stringify(data));
-        
+
         // Initialize live prices only for symbols we aren't tracking yet
         setLivePrices(prev => {
           const next = { ...prev };
@@ -113,30 +113,38 @@ export default function ActiveSignalsPage() {
 
     if (cryptoPairs.length > 0) {
       const streams = cryptoPairs.map(s => `${getSymbolData(s.symbol).clean.toLowerCase()}@ticker`).join('/');
-      socket = new WebSocket(`wss://stream.binance.com:9443/ws/${streams}`);
+      const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
+      
+      socket = new WebSocket(url);
       socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.s && data.c) {
-          setLivePrices(prev => ({ ...prev, [data.s.toUpperCase()]: parseFloat(data.c) }));
+        try {
+          const rawData = JSON.parse(event.data);
+          // Combined streams wrap the data in a "data" property, single streams don't
+          const data = rawData.data || rawData;
+          if (data.s && data.c) {
+            setLivePrices(prev => ({ ...prev, [data.s.toUpperCase()]: parseFloat(data.c) }));
+          }
+        } catch (err) {
+          console.error("[Binance WS] Parse Error:", err);
         }
       };
     }
 
     // --- B. NON-CRYPTO POLLING (FOREX, METALS, INDICES) ---
     const otherSignals = activeSignals.filter(s => getSymbolData(s.symbol).category !== 'CRYPTO');
-    
+
     const pollInterval = setInterval(async () => {
       if (otherSignals.length === 0) return;
-      
+
       // Finnhub API Key integrated
       const FINNHUB_KEY = 'd78oc2pr01qp0fl5vgi0d78oc2pr01qp0fl5vgig';
-      
+
       for (const s of otherSignals) {
         const { category, provider, clean } = getSymbolData(s.symbol);
         let finnhubSymbol = clean;
 
         // Format symbols for Finnhub according to provider logic
-        if (category === 'FOREX') finnhubSymbol = `OANDA:${clean.replace(/(USD|JPY|GBP|AUD|NZD|EUR|CHF)/, '$1_').replace(/_$/, '')}`; 
+        if (category === 'FOREX') finnhubSymbol = `OANDA:${clean.replace(/(USD|JPY|GBP|AUD|NZD|EUR|CHF)/, '$1_').replace(/_$/, '')}`;
         if (category === 'FOREX' && provider === 'FOREXCOM') finnhubSymbol = `FX:${clean}`;
         if (category === 'METALS') finnhubSymbol = `OANDA:${clean.replace('USD', '_USD')}`;
         if (category === 'INDICES') finnhubSymbol = `${provider}:${clean}`;
@@ -144,7 +152,7 @@ export default function ActiveSignalsPage() {
         try {
           const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${FINNHUB_KEY}`);
           const data = await response.json();
-          
+
           if (data.c) { // 'c' is the current price in Finnhub
             setLivePrices(prev => ({
               ...prev,
@@ -161,12 +169,12 @@ export default function ActiveSignalsPage() {
       if (socket) socket.close();
       clearInterval(pollInterval);
     };
-  }, [activeSignals]); 
+  }, [activeSignals]);
 
   return (
     <AccessGuard requiredTier={1} tierName="PRO">
       <div className="relative p-4 md:p-12 lg:p-16 lg:ml-72  min-h-screen text-zinc-900 dark:text-white font-sans overflow-x-hidden">
-        
+
         {/* Ambient Glowing Backgrounds */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
           <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[150px] rounded-full mix-blend-screen" />
@@ -174,7 +182,7 @@ export default function ActiveSignalsPage() {
         </div>
 
         <div className="max-w-[1700px] mx-auto relative z-10 space-y-6 md:space-y-8">
-          
+
           {/* Header Section */}
           <div className="mb-8 md:mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
             <div>
@@ -207,9 +215,8 @@ export default function ActiveSignalsPage() {
                     className="relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-500 group shadow-2xl flex flex-col justify-between min-h-[500px]"
                   >
                     {/* Internal Ambient Glow */}
-                    <div className={`absolute -top-24 -right-24 w-64 h-64 blur-[120px] opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity duration-700 ${
-                      signal.side === 'BUY' ? 'bg-emerald-500' : 'bg-red-500'
-                    }`} />
+                    <div className={`absolute -top-24 -right-24 w-64 h-64 blur-[120px] opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity duration-700 ${signal.side === 'BUY' ? 'bg-emerald-500' : 'bg-red-500'
+                      }`} />
 
                     <div className="relative z-10">
                       <div className="flex justify-between items-start mb-8 border-b border-[var(--glass-border)] pb-6">
@@ -219,12 +226,11 @@ export default function ActiveSignalsPage() {
                             {signal.strategy || 'KIMOO CRT PRO'} • {signal.tf_alignment || '5M'}
                           </p>
                         </div>
-                        
-                        <div className={`px-4 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg ${
-                          signal.side === 'BUY' 
-                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.2)]' 
-                            : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
-                        }`}>
+
+                        <div className={`px-4 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg ${signal.side === 'BUY'
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.2)]'
+                          : 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+                          }`}>
                           {signal.side === 'BUY' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                           {signal.side}
                         </div>
@@ -233,44 +239,43 @@ export default function ActiveSignalsPage() {
                       <div className="space-y-1.5 mb-8">
                         <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl p-4 mb-4 flex justify-between items-center group-hover:border-white/[0.1] transition-colors">
                           <div className="flex items-center gap-3 text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">
-                              <Activity size={14} className="text-blue-400 animate-pulse"/> Status
+                            <Activity size={14} className="text-blue-400 animate-pulse" /> Status
                           </div>
-                          <span className={`text-xs font-black uppercase tracking-widest ${
-                            getDisplayStatus(signal.status, livePrices[getSymbolData(signal.symbol).clean], signal).includes('SL HIT') 
-                            ? 'text-red-500 animate-pulse' 
+                          <span className={`text-xs font-black uppercase tracking-widest ${getDisplayStatus(signal.status, livePrices[getSymbolData(signal.symbol).clean], signal).includes('SL HIT')
+                            ? 'text-red-500 animate-pulse'
                             : 'text-blue-400'
-                          }`}>
+                            }`}>
                             {getDisplayStatus(signal.status, livePrices[getSymbolData(signal.symbol).clean], signal)}
                           </span>
                         </div>
 
-                        <TradeDataRow icon={<TrendingUp size={12} className="text-indigo-400"/>} label="Trade R:R" value={getDynamicRR(signal)} valueClass="text-indigo-400" />
-                        <TradeDataRow icon={<Zap size={12} className="text-amber-400"/>} label="Entry Region" value={Number(signal.entry_price || 0).toFixed(5)} />
-                        <TradeDataRow icon={<Shield size={12} className="text-red-400"/>} label="Invalidation" value={Number(signal.sl || 0).toFixed(5)} valueClass="text-red-400" />
-                        
-                        <div className="my-2 border-t border-[var(--glass-border)]" />
-
-                        <TradeDataRow 
-                          icon={<Target size={12} className="text-emerald-400"/>} 
-                          label="TP-1 (EQ)" 
-                          value={`${Number(signal.tp || 0).toFixed(5)} (${calculateTargetRR(signal.tp, signal.entry_price, signal.sl)})`} 
-                          valueClass="text-emerald-400" 
-                        />
-
-                        <TradeDataRow 
-                          icon={<Zap size={12} className="text-yellow-500"/>} 
-                          label="TP-2 (TARGET)" 
-                          value={signal.tp_secondary ? `${Number(signal.tp_secondary).toFixed(5)} (${calculateTargetRR(signal.tp_secondary, signal.entry_price, signal.sl)})` : '---'} 
-                          valueClass="text-yellow-500" 
-                        />
+                        <TradeDataRow icon={<TrendingUp size={12} className="text-indigo-400" />} label="Trade R:R" value={getDynamicRR(signal)} valueClass="text-indigo-400" />
+                        <TradeDataRow icon={<Zap size={12} className="text-amber-400" />} label="Entry Region" value={Number(signal.entry_price || 0).toFixed(5)} />
+                        <TradeDataRow icon={<Shield size={12} className="text-red-400" />} label="Invalidation" value={Number(signal.sl || 0).toFixed(5)} valueClass="text-red-400" />
 
                         <div className="my-2 border-t border-[var(--glass-border)]" />
 
-                        <TradeDataRow 
-                          icon={<Layout size={12} className="text-zinc-600 dark:text-zinc-500"/>} 
-                          label="Confluences" 
-                          value={signal.confluences || 'Institutional Bias Confirmed'} 
-                          valueClass="text-zinc-700 dark:text-zinc-400 text-[11px] italic" 
+                        <TradeDataRow
+                          icon={<Target size={12} className="text-emerald-400" />}
+                          label="TP-1 (EQ)"
+                          value={`${Number(signal.tp || 0).toFixed(5)} (${calculateTargetRR(signal.tp, signal.entry_price, signal.sl)})`}
+                          valueClass="text-emerald-400"
+                        />
+
+                        <TradeDataRow
+                          icon={<Zap size={12} className="text-yellow-500" />}
+                          label="TP-2 (TARGET)"
+                          value={signal.tp_secondary ? `${Number(signal.tp_secondary).toFixed(5)} (${calculateTargetRR(signal.tp_secondary, signal.entry_price, signal.sl)})` : '---'}
+                          valueClass="text-yellow-500"
+                        />
+
+                        <div className="my-2 border-t border-[var(--glass-border)]" />
+
+                        <TradeDataRow
+                          icon={<Layout size={12} className="text-zinc-600 dark:text-zinc-500" />}
+                          label="Confluences"
+                          value={signal.confluences || 'Institutional Bias Confirmed'}
+                          valueClass="text-zinc-700 dark:text-zinc-400 text-[11px] italic"
                         />
 
                         {/* Live Realtime RR */}
@@ -286,7 +291,7 @@ export default function ActiveSignalsPage() {
                             </div>
                           );
                         })()}
-                        
+
                         <div className="flex justify-between items-center pt-4 mt-2">
                           <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Time Elapsed</span>
                           <span className="text-[10px] font-mono text-zinc-700 dark:text-zinc-400 font-black uppercase flex items-center gap-2 bg-[var(--glass-bg)] px-3 py-1.5 rounded-lg border border-[var(--glass-border)]">
@@ -297,12 +302,12 @@ export default function ActiveSignalsPage() {
                     </div>
 
                     {getSymbolData(signal.symbol).category === 'CRYPTO' && (
-                      <button 
+                      <button
                         onClick={() => setSelectedSignal(signal)}
                         className="relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-zinc-900 dark:text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-3 border border-blue-500/30 group/btn mt-4"
                       >
-                        <Layout size={16} className="text-blue-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" /> 
-                        Open Live Setup 
+                        <Layout size={16} className="text-blue-200 group-hover/btn:text-zinc-900 dark:text-white transition-colors" />
+                        Open Live Setup
                         <ArrowUpRight size={16} className="text-blue-200 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
                       </button>
                     )}
@@ -322,7 +327,7 @@ export default function ActiveSignalsPage() {
               )}
             </AnimatePresence>
           </div>
-          
+
           <AnimatePresence>
             {selectedSignal && <SignalModal signal={selectedSignal} onClose={() => setSelectedSignal(null)} />}
           </AnimatePresence>
@@ -358,12 +363,12 @@ function getDisplayStatus(status: string, livePrice?: number, signal?: any) {
     const entry = Number(signal.entry_price);
     const sl = Number(signal.sl);
     const isBuy = signal.side === 'BUY';
-    
+
     // Check for Stop Loss hit
     if ((isBuy && livePrice <= sl) || (!isBuy && livePrice >= sl)) {
       return 'SL HIT (LIVE)';
     }
-    
+
     // Check for TP1 hit
     const tp1 = Number(signal.tp);
     if ((isBuy && livePrice >= tp1) || (!isBuy && livePrice <= tp1)) {
@@ -406,7 +411,7 @@ function getDynamicRR(signal: any) {
 
   if (!entry || !sl || entry === sl) return '0.0R';
   const risk = Math.abs(entry - sl);
-  
+
   // Outcome-based results
   if (signal.status === 'SL') return '-1.0R';
   if (signal.status === 'TP2' && tp2) {
@@ -425,22 +430,31 @@ function getDynamicRR(signal: any) {
  * Calculates Realtime R:R based on current price vs entry and risk
  */
 function calculateLiveRR(signal: any, livePrices: { [key: string]: number }) {
+  const status = signal.status?.toUpperCase();
   const entry = Number(signal.entry_price || 0);
   const sl = Number(signal.sl || 0);
-  
-  // Normalize symbol to match WebSocket keys (remove slashes and force uppercase)
+  const tp1 = Number(signal.tp || 0);
+  const tp2 = Number(signal.tp_secondary || 0);
+  const risk = Math.abs(entry - sl);
+
+  if (!entry || !sl || risk === 0) return '0.00R';
+
+  // --- SEALING LOGIC (Reference from Backup) ---
+  // If trade is closed, use the known outcome instead of live price
+  if (status === 'SL') return '-1.00R';
+  if (status === 'TP2' && tp2) return `+${(Math.abs(tp2 - entry) / risk).toFixed(2)}R`;
+  if ((status === 'TP1' || status === 'TP1 + SL (BE)') && tp1) return `+${(Math.abs(tp1 - entry) / risk).toFixed(2)}R`;
+
+  // Normalize symbol to match WebSocket keys
   const cleanSymbol = signal.symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-  
-  // Use the live price from state, fallback to signal's current_price or entry
+
+  // Use the live price from state, fallback to signal's current_price (last known)
   const current = livePrices[cleanSymbol] ?? Number(signal.current_price || entry);
   const side = signal.side?.toUpperCase();
-  const risk = Math.abs(entry - sl);
-  
-  if (!entry || !sl || risk === 0) return '0.00R';
 
   const isBuy = side === 'BUY' || side === 'BULLISH';
   const reward = isBuy ? (current - entry) : (entry - current);
   const rr = reward / risk;
-  
+
   return `${rr >= 0 ? '+' : ''}${rr.toFixed(2)}R`;
 }
