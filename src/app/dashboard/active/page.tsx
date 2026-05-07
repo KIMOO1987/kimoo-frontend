@@ -11,7 +11,7 @@ import {
 import SignalModal from '@/components/SignalModal';
 
 // --- SYMBOL CATEGORIZATION HELPER ---
-import { normalizeSymbol, getSymbolCategory, deduplicateSignals, getMappedSymbol } from '@/lib/symbol-mapper';
+import { normalizeSymbol, getSymbolCategory, deduplicateSignals, getMappedSymbol, SYMBOL_MAP } from '@/lib/symbol-mapper';
 import { fetchFinnhubQuote } from '@/lib/finnhub';
 
 // --- UI HANDLERS ---
@@ -99,22 +99,30 @@ export default function ActiveSignalsPage() {
   useEffect(() => {
     if (activeSignals.length === 0) return;
 
-    // --- A. CRYPTO WEBSOCKET (BINANCE) ---
-    const cryptoPairs = activeSignals.filter(s => getSymbolCategory(s.symbol) === 'CRYPTO');
+    // --- A. BINANCE WEBSOCKET (ANY SUPPORTED ASSET) ---
+    const binanceSymbols = activeSignals.filter(s => {
+      const normalized = normalizeSymbol(s.symbol);
+      return SYMBOL_MAP[normalized]?.binance;
+    });
+
     let socket: WebSocket | null = null;
 
-    if (cryptoPairs.length > 0) {
-      const streams = cryptoPairs.map(s => `${getMappedSymbol(s.symbol, 'binance').toLowerCase()}@ticker`).join('/');
+    if (binanceSymbols.length > 0) {
+      const streams = binanceSymbols.map(s => {
+        const normalized = normalizeSymbol(s.symbol);
+        return `${SYMBOL_MAP[normalized].binance?.toLowerCase()}@ticker`;
+      }).join('/');
+      
       const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
 
       socket = new WebSocket(url);
       socket.onmessage = (event) => {
         try {
           const rawData = JSON.parse(event.data);
-          // Combined streams wrap the data in a "data" property, single streams don't
           const data = rawData.data || rawData;
           if (data.s && data.c) {
-            setLivePrices(prev => ({ ...prev, [data.s.toUpperCase()]: parseFloat(data.c) }));
+            const normalized = normalizeSymbol(data.s);
+            setLivePrices(prev => ({ ...prev, [normalized]: parseFloat(data.c) }));
           }
         } catch (err) {
           console.error("[Binance WS] Parse Error:", err);
@@ -122,8 +130,11 @@ export default function ActiveSignalsPage() {
       };
     }
 
-    // --- B. NON-CRYPTO POLLING (FINNHUB) ---
-    const otherSignals = activeSignals.filter(s => getSymbolCategory(s.symbol) !== 'CRYPTO');
+    // --- B. NON-BINANCE POLLING (FINNHUB FALLBACK) ---
+    const otherSignals = activeSignals.filter(s => {
+      const normalized = normalizeSymbol(s.symbol);
+      return !SYMBOL_MAP[normalized]?.binance;
+    });
 
     const pollInterval = setInterval(async () => {
       if (otherSignals.length === 0) return;
@@ -141,7 +152,7 @@ export default function ActiveSignalsPage() {
       } catch (err) {
         console.error(`Finnhub Polling Error:`, err);
       }
-    }, 8000); // Update every 8 seconds (Safe for free tier)
+    }, 10000); // Update every 10 seconds
 
     return () => {
       if (socket) socket.close();
@@ -360,18 +371,24 @@ function getTimeAgo(timestamp: string) {
 function getDisplayStatus(status: string, livePrice?: number, signal?: any) {
   const category = signal ? getSymbolCategory(signal.symbol) : 'CRYPTO';
 
-  // ORGANIC PROTECTION: Only for CRYPTO (as it's working great)
-  if (category === 'CRYPTO' && livePrice && signal) {
+  // ORGANIC PROTECTION: Now for ALL assets if price is available
+  if (livePrice && signal) {
     const entry = Number(signal.entry_price);
     const sl = Number(signal.sl);
-    const isBuy = signal.side === 'BUY';
+    const tp1 = Number(signal.tp);
+    const tp2 = Number(signal.tp_secondary);
+    const side = signal.side?.toUpperCase();
+    const isBuy = side === 'BUY' || side === 'BULLISH';
 
     if ((isBuy && livePrice <= sl) || (!isBuy && livePrice >= sl)) {
       return 'SL HIT (LIVE)';
     }
 
-    const tp1 = Number(signal.tp);
-    if ((isBuy && livePrice >= tp1) || (!isBuy && livePrice <= tp1)) {
+    if (tp2 && ((isBuy && livePrice >= tp2) || (!isBuy && livePrice <= tp2))) {
+      return 'TP2 TARGET HIT';
+    }
+
+    if (tp1 && ((isBuy && livePrice >= tp1) || (!isBuy && livePrice <= tp1))) {
       if (status === 'ENTRY') return 'TP1 TARGETED';
     }
   }
@@ -442,12 +459,10 @@ function calculateLiveRR(signal: any, livePrices: { [key: string]: number }) {
 
   if (!entry || !sl || risk === 0) return '0.00R';
 
-  // --- SEALING LOGIC: Only for CRYPTO (as it's working great) ---
-  if (category === 'CRYPTO') {
-    if (status === 'SL') return '-1.00R';
-    if (status === 'TP2' && tp2) return `+${(Math.abs(tp2 - entry) / risk).toFixed(2)}R`;
-    if ((status === 'TP1' || status === 'TP1 + SL (BE)') && tp1) return `+${(Math.abs(tp1 - entry) / risk).toFixed(2)}R`;
-  }
+  // Sealing logic for final states
+  if (status === 'SL') return '-1.00R';
+  if (status === 'TP2' && tp2) return `+${(Math.abs(tp2 - entry) / risk).toFixed(2)}R`;
+  if ((status === 'TP1' || status === 'TP1 + SL (BE)') && tp1) return `+${(Math.abs(tp1 - entry) / risk).toFixed(2)}R`;
 
   // Backup Logic: Always live calculation for Metals, Indices, Forex
   const cleanSymbol = normalizeSymbol(signal.symbol);
