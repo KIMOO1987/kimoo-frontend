@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { normalizeSymbol, getSymbolCategory, deduplicateSignals } from '@/lib/symbol-mapper';
+import { normalizeSymbol, getSymbolCategory, deduplicateSignals, getMappedSymbol } from '@/lib/symbol-mapper';
 import { fetchFinnhubQuote } from '@/lib/finnhub';
 import { supabase } from '@/lib/supabaseClient';
 import AccessGuard from '@/components/AccessGuard';
@@ -68,22 +68,22 @@ export default function RadarPage() {
     const cryptoPairs = liveSignals.filter(s => getSymbolCategory(s.symbol) === 'CRYPTO');
     let socket: WebSocket | null = null;
     if (cryptoPairs.length > 0) {
-      const streams = cryptoPairs.map(s => `${normalizeSymbol(s.symbol).toLowerCase()}@ticker`).join('/');
+      const streams = cryptoPairs.map(s => `${getMappedSymbol(s.symbol, 'binance').toLowerCase()}@ticker`).join('/');
       const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
-      
+
       socket = new WebSocket(url);
       socket.onmessage = (event) => {
         try {
           const rawData = JSON.parse(event.data);
           const data = rawData.data || rawData;
           if (data.s && data.c) setLivePrices(prev => ({ ...prev, [data.s.toUpperCase()]: parseFloat(data.c) }));
-        } catch (err) {}
+        } catch (err) { }
       };
     }
     const otherSignals = liveSignals.filter(s => getSymbolCategory(s.symbol) !== 'CRYPTO');
     const pollInterval = setInterval(async () => {
       if (otherSignals.length === 0) return;
-      
+
       const uniqueSymbols = Array.from(new Set(otherSignals.map(s => s.symbol)));
 
       try {
@@ -296,9 +296,9 @@ export default function RadarPage() {
                               {(() => {
                                 const current = livePrices[cleanSym] ?? Number(signal.current_price || entry);
                                 const pnlPercent = entry ? ((isBuy ? (current - entry) : (entry - current)) / entry) * 100 : 0;
-                                
+
                                 return (
-                                  <motion.div 
+                                  <motion.div
                                     key={`${signal.id}-${current}`}
                                     initial={{ scale: 1 }}
                                     animate={{ scale: [1, 1.05, 1] }}
