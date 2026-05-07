@@ -379,16 +379,17 @@ function getDisplayStatus(status: string, livePrice?: number, signal?: any) {
     const side = signal.side?.toUpperCase();
     const isBuy = side === 'BUY' || side === 'BULLISH';
 
-    if ((isBuy && livePrice <= sl) || (!isBuy && livePrice >= sl)) {
-      return 'SL HIT (LIVE)';
-    }
-
+    // 1. Live Target Detection (Immediate feedback before DB update)
     if (tp2 && ((isBuy && livePrice >= tp2) || (!isBuy && livePrice <= tp2))) {
-      return 'TP2 TARGET HIT';
+      return 'TP2 REACHED (LIVE)';
     }
 
     if (tp1 && ((isBuy && livePrice >= tp1) || (!isBuy && livePrice <= tp1))) {
-      if (status === 'ENTRY') return 'TP1 TARGETED';
+      if (status !== 'TP1' && status !== 'TP2') return 'TP1 REACHED (LIVE)';
+    }
+
+    if (sl && ((isBuy && livePrice <= sl) || (!isBuy && livePrice >= sl))) {
+      return 'SL HIT (LIVE)';
     }
   }
 
