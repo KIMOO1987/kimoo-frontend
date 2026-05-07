@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard';
-import { Search, Activity, Zap, TrendingUp, Layers, Target, Wallet, BarChart3, AlertCircle } from 'lucide-react';
+import { Search, Activity, Zap, TrendingUp, Layers, Target, Wallet, BarChart3, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
 
 // Sub-component remains the same as your original
 function AnalysisCard({ title, symbol, value, subValue, colorClass, icon: Icon }: any) {
@@ -13,7 +13,7 @@ function AnalysisCard({ title, symbol, value, subValue, colorClass, icon: Icon }
       <div className={`absolute top-0 left-0 w-full h-[2px] ${colorClass.replace('text-', 'bg-')} opacity-50 group-hover:opacity-100 transition-opacity`} />
       <div className="relative z-10 flex justify-between items-start mb-6">
         <p className="text-[10px] md:text-xs font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest">{title}</p>
-        {Icon && <div className={`p-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] ${colorClass} group-hover:scale-110 transition-transform duration-300 shadow-lg`}><Icon size={18}/></div>}
+        {Icon && <div className={`p-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] ${colorClass} group-hover:scale-110 transition-transform duration-300 shadow-lg`}><Icon size={18} /></div>}
       </div>
       <div className="relative z-10">
         <h3 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white italic uppercase tracking-tighter mb-2 drop-shadow-md">{symbol}</h3>
@@ -28,7 +28,7 @@ function AnalysisCard({ title, symbol, value, subValue, colorClass, icon: Icon }
 
 export default function SymbolAudit() {
   const { user, loading: authLoading } = useAuth();
-  
+
   // 1. INSTANT HYDRATION
   const [stats, setStats] = useState<any[]>(() => {
     if (typeof window !== 'undefined') {
@@ -47,11 +47,22 @@ export default function SymbolAudit() {
 
   const [search, setSearch] = useState('');
   const [assetClass, setAssetClass] = useState('ALL');
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({
+    key: 'totalRR',
+    direction: 'desc'
+  });
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
 
   // Helper for categories (Improved)
   const getSymbolCategory = (symbol: string) => {
     const upper = symbol?.toUpperCase().replace(/[^A-Z0-9]/g, '') || '';
-    
+
     // METALS
     if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU') || upper === 'GOLD' || upper === 'SILVER') {
       return 'METALS';
@@ -59,7 +70,7 @@ export default function SymbolAudit() {
 
     // INDICES
     const indexSymbols = [
-      'NAS100', 'US100', 'USTEC', 'NDX',
+      'NAS100', 'US100', 'USTEC', 'NDX', 'Nasdaq100',
       'US30', 'DJI', 'WALLSTREET',
       'SPX500', 'US500', 'SPX',
       'GER40', 'DE30', 'GER30', 'DAX', 'DAX40',
@@ -98,28 +109,28 @@ export default function SymbolAudit() {
         if (data) {
           // 2. Aggregate manually by symbol
           const symbolMap: { [key: string]: any } = {};
-          
+
           data.forEach(s => {
             const sym = s.symbol.toUpperCase();
             if (!symbolMap[sym]) {
-              symbolMap[sym] = { 
-                symbol: sym, 
-                total_trades: 0, 
-                wins: 0, 
-                losses: 0, 
-                be: 0, 
-                total_rr: 0 
+              symbolMap[sym] = {
+                symbol: sym,
+                total_trades: 0,
+                wins: 0,
+                losses: 0,
+                be: 0,
+                total_rr: 0
               };
             }
-            
+
             const stats = symbolMap[sym];
             stats.total_trades++;
-            
+
             const entry = Number(s.entry_price || 0);
             const sl = Number(s.sl || 0);
             const risk = Math.abs(entry - sl);
             if (!risk) return;
-            
+
             const status = s.status?.toUpperCase();
             if (status === 'TP2' || status === 'WIN') {
               stats.wins++;
@@ -160,18 +171,28 @@ export default function SymbolAudit() {
 
   // 3. DYNAMIC FILTERING (Optimized with useMemo)
   const filteredStats = useMemo(() => {
-    return stats.filter(s => {
+    const filtered = stats.filter(s => {
       const searchMatch = s.symbol.toUpperCase().includes(search.toUpperCase());
       const assetMatch = assetClass === 'ALL' || getSymbolCategory(s.symbol) === assetClass;
       return searchMatch && assetMatch;
     });
-  }, [stats, search, assetClass]);
+
+    return filtered.sort((a, b) => {
+      const { key, direction } = sortConfig;
+      let valA = a[key];
+      let valB = b[key];
+
+      if (valA < valB) return direction === 'asc' ? -1 : 1;
+      if (valA > valB) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [stats, search, assetClass, sortConfig]);
 
   // Derived metrics for Top Cards
   const mostProfitable = useMemo(() => [...filteredStats].sort((a, b) => b.totalRR - a.totalRR)[0], [filteredStats]);
   const highestWinRate = useMemo(() => [...filteredStats].filter(s => s.trades >= 2).sort((a, b) => b.winRate - a.winRate)[0], [filteredStats]);
   const mostTraded = useMemo(() => [...filteredStats].sort((a, b) => b.trades - a.trades)[0], [filteredStats]);
-  
+
   const filteredGlobalData = useMemo(() => {
     let gWins = 0;
     let gTotal = 0;
@@ -216,14 +237,14 @@ export default function SymbolAudit() {
                 • INSTITUTIONAL PERFORMANCE BREAKDOWN BY PAIR •
               </p>
             </div>
-            
+
             <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
               <div className="flex flex-col gap-1 w-full md:w-48">
                 <label className="text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase ml-2 tracking-widest">Asset Class</label>
                 <div className="relative">
                   <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" size={14} />
-                  <select 
-                    value={assetClass} 
+                  <select
+                    value={assetClass}
                     onChange={(e) => setAssetClass(e.target.value)}
                     className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-2.5 text-xs font-mono font-bold text-zinc-900 dark:text-white outline-none focus:border-blue-500/50 hover:border-white/20 transition-all cursor-pointer appearance-none w-full"
                   >
@@ -238,7 +259,7 @@ export default function SymbolAudit() {
 
               <div className="relative flex-grow md:w-64 self-end h-[42px] mb-0.5">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-500" size={16} />
-                <input 
+                <input
                   type="text" placeholder="Search symbol..."
                   className="w-full h-full pl-12 pr-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl text-xs font-mono text-zinc-900 dark:text-white focus:border-blue-500/50 hover:border-white/20 outline-none transition-all"
                   onChange={(e) => setSearch(e.target.value)}
@@ -248,29 +269,29 @@ export default function SymbolAudit() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 md:gap-8">
-            <AnalysisCard 
-              title="Most Profitable" 
-              symbol={mostProfitable?.symbol || "---"} 
-              value={mostProfitable ? `+${mostProfitable.totalRR.toFixed(2)}R` : "0.00R"} 
+            <AnalysisCard
+              title="Most Profitable"
+              symbol={mostProfitable?.symbol || "---"}
+              value={mostProfitable ? `+${mostProfitable.totalRR.toFixed(2)}R` : "0.00R"}
               colorClass="text-emerald-400" icon={Wallet}
             />
-            <AnalysisCard 
-              title="Highest Win Rate" 
-              symbol={highestWinRate?.symbol || "---"} 
-              value={highestWinRate ? `${highestWinRate.winRate}%` : "0%"} 
-              subValue={highestWinRate ? `(${highestWinRate.wins}W - ${highestWinRate.losses}L)` : ""} 
+            <AnalysisCard
+              title="Highest Win Rate"
+              symbol={highestWinRate?.symbol || "---"}
+              value={highestWinRate ? `${highestWinRate.winRate}%` : "0%"}
+              subValue={highestWinRate ? `(${highestWinRate.wins}W - ${highestWinRate.losses}L)` : ""}
               colorClass="text-blue-400" icon={Target}
             />
-            <AnalysisCard 
-              title="Most Traded" 
-              symbol={mostTraded?.symbol || "---"} 
-              value={mostTraded ? `${mostTraded.trades} Executions` : "0 Executions"} 
+            <AnalysisCard
+              title="Most Traded"
+              symbol={mostTraded?.symbol || "---"}
+              value={mostTraded ? `${mostTraded.trades} Executions` : "0 Executions"}
               colorClass="text-indigo-400" icon={BarChart3}
             />
-            <AnalysisCard 
-              title="Filtered Win Rate" 
-              symbol={`${filteredGlobalData.winRate}%`} 
-              value={`Across ${filteredGlobalData.total} Trades`} 
+            <AnalysisCard
+              title="Filtered Win Rate"
+              symbol={`${filteredGlobalData.winRate}%`}
+              value={`Across ${filteredGlobalData.total} Trades`}
               colorClass="text-amber-400" icon={Activity}
             />
           </div>
@@ -280,9 +301,48 @@ export default function SymbolAudit() {
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr className="text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest bg-[var(--glass-bg)] border-b border-[var(--glass-border)]">
-                    {['Symbol', 'Trades', 'Wins', 'Losses', 'BE', 'Win Rate', 'Net R:R'].map((h, i) => (
-                      <th key={h} className={`py-6 ${i === 0 ? 'px-6 md:px-8' : 'px-4'}`}>{h}</th>
-                    ))}
+                    <th className="px-6 md:px-8 py-6 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('symbol')}>
+                      <div className="flex items-center gap-1">
+                        Symbol
+                        {sortConfig.key === 'symbol' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
+                    <th className="px-4 py-6 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('trades')}>
+                      <div className="flex items-center gap-1">
+                        Trades
+                        {sortConfig.key === 'trades' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
+                    <th className="px-4 py-6 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('wins')}>
+                      <div className="flex items-center gap-1">
+                        Wins
+                        {sortConfig.key === 'wins' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
+                    <th className="px-4 py-6 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('losses')}>
+                      <div className="flex items-center gap-1">
+                        Losses
+                        {sortConfig.key === 'losses' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
+                    <th className="px-4 py-6 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('be')}>
+                      <div className="flex items-center gap-1">
+                        BE
+                        {sortConfig.key === 'be' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
+                    <th className="px-4 py-6 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('winRate')}>
+                      <div className="flex items-center gap-1">
+                        Win Rate
+                        {sortConfig.key === 'winRate' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
+                    <th className="px-4 py-6 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('totalRR')}>
+                      <div className="flex items-center gap-1">
+                        Net R:R
+                        {sortConfig.key === 'totalRR' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.05]">
