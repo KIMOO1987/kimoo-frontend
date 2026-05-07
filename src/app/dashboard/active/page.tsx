@@ -12,7 +12,7 @@ import SignalModal from '@/components/SignalModal';
 
 // --- SYMBOL CATEGORIZATION HELPER ---
 import { normalizeSymbol, getSymbolCategory, deduplicateSignals, getMappedSymbol, SYMBOL_MAP } from '@/lib/symbol-mapper';
-import { fetchFinnhubQuote } from '@/lib/finnhub';
+import { fetchMarketQuote } from '@/lib/market-data';
 
 // --- UI HANDLERS ---
 const handleViewSetup = (symbol: string) => {
@@ -130,7 +130,7 @@ export default function ActiveSignalsPage() {
       };
     }
 
-    // --- B. NON-BINANCE POLLING (FINNHUB FALLBACK) ---
+    // --- B. NON-BINANCE POLLING (UNIFIED FALLBACK) ---
     const otherSignals = activeSignals.filter(s => {
       const normalized = normalizeSymbol(s.symbol);
       return !SYMBOL_MAP[normalized]?.binance;
@@ -143,16 +143,15 @@ export default function ActiveSignalsPage() {
 
       try {
         for (const symbol of uniqueSymbols) {
-          const quote = await fetchFinnhubQuote(symbol);
-          if (quote) {
+          const price = await fetchMarketQuote(symbol);
+          if (price !== null) {
             const clean = normalizeSymbol(symbol);
-            setLivePrices(prev => ({ ...prev, [clean]: quote.price }));
+            setLivePrices(prev => ({ ...prev, [clean]: price }));
           }
+          await new Promise(r => setTimeout(r, 200)); // Minor throttle
         }
-      } catch (err) {
-        console.error(`Finnhub Polling Error:`, err);
-      }
-    }, 10000); // Update every 10 seconds
+      } catch (err) { }
+    }, 15000); // 15s refresh for polled assets
 
     return () => {
       if (socket) socket.close();
