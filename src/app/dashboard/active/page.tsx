@@ -261,7 +261,7 @@ export default function ActiveSignalsPage() {
                           const cleanSymbol = normalizeSymbol(signal.symbol);
                           const current = livePrices[cleanSymbol] ?? Number(signal.current_price || signal.entry_price);
                           const entry = Number(signal.entry_price);
-                          const isBuy = signal.side === 'BUY' || signal.side === 'BULLISH';
+                          const isBuy = signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH';
                           const pnlPercent = entry ? ((isBuy ? (current - entry) : (entry - current)) / entry) * 100 : 0;
 
                           const liveRRValue = calculateLiveRR(signal, livePrices);
@@ -274,7 +274,7 @@ export default function ActiveSignalsPage() {
                               animate={{ scale: [1, 1.02, 1] }}
                               transition={{ duration: 0.3 }}
                               className={`mt-4 p-4 rounded-2xl border flex justify-between items-center transition-all duration-500 ${isProfit ? 'bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]'
-                                  : 'bg-red-500/5 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
+                                : 'bg-red-500/5 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
                                 }`}
                             >
                               <div className="flex flex-col">
