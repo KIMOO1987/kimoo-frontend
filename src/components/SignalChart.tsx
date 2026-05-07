@@ -42,49 +42,9 @@ export default function SignalChart({ symbol, signal, onLoaded }: { symbol: stri
 
     const fetchData = async () => {
       setLoading(true);
-      const clean = normalizeSymbol(symbol);
-      const category = getSymbolCategory(symbol);
-      const binanceTicker = SYMBOL_MAP[clean]?.binance || (clean.endsWith('USD') ? clean + 'T' : clean);
-
       try {
-        let formattedData = [];
-
-        // 1. TRY FINNHUB (Primary)
-        try {
-          const { fetchFinnhubCandles } = await import('@/lib/finnhub');
-          formattedData = await fetchFinnhubCandles(symbol, '5', 500);
-        } catch (err) { }
-
-        // 2. FALLBACK TO YAHOO FINANCE (For Forex/Indices)
-        if (formattedData.length === 0 && (category === 'FOREX' || category === 'INDICES' || category === 'METALS')) {
-          try {
-            console.log(`[Chart] Finnhub failed for ${symbol}, trying Yahoo Fallback...`);
-            const { fetchYahooCandles } = await import('@/lib/yahoo-finance');
-            formattedData = await fetchYahooCandles(symbol, '5m', '5d');
-          } catch (err) { }
-        }
-
-        // 3. FALLBACK TO BINANCE (If others fail)
-        if (formattedData.length === 0) {
-          const endpoints = [
-            `https://api.binance.com/api/v3/klines?symbol=${binanceTicker}&interval=5m&limit=500`,
-            `https://fapi.binance.com/fapi/v1/klines?symbol=${binanceTicker}&interval=5m&limit=500`
-          ];
-          for (const url of endpoints) {
-            try {
-              const res = await fetch(url);
-              if (!res.ok) continue;
-              const data = await res.json();
-              if (Array.isArray(data) && data.length > 0) {
-                formattedData = data.map((d: any) => ({
-                  time: d[0] / 1000,
-                  open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]),
-                }));
-                break;
-              }
-            } catch (err) { }
-          }
-        }
+        const { fetchMarketCandles } = await import('@/lib/market-data');
+        const formattedData = await fetchMarketCandles(symbol, '5', 500);
 
         if (formattedData.length > 0) {
           series.setData(formattedData);
@@ -95,7 +55,6 @@ export default function SignalChart({ symbol, signal, onLoaded }: { symbol: stri
           series.setData([{ time: now, open: 0, high: 0, low: 0, close: 0 } as any]);
           chart.timeScale().setVisibleRange({ from: (now - 3600) as any, to: (now + 3600) as any });
         }
-
       } catch (err) {
         console.error("[Chart] Fatal fetch error:", err);
       } finally {
@@ -126,7 +85,7 @@ export default function SignalChart({ symbol, signal, onLoaded }: { symbol: stri
           <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
-      
+
 
       <div ref={chartContainerRef} className="w-full h-full" />
     </div>
