@@ -11,43 +11,9 @@ import {
   ChevronLeft, ChevronRight, TrendingUp, TrendingDown,
   ArrowUpRight, Layout, AlertCircle
 } from 'lucide-react';
+import { normalizeSymbol, getSymbolCategory } from '@/lib/symbol-mapper';
 
-// --- SYMBOL CATEGORIZATION HELPER ---
-const getSymbolData = (symbol: string) => {
-  const upper = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-  // METALS
-  if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU') || upper === 'GOLD' || upper === 'SILVER') {
-    const clean = upper.replace('GOLD', 'XAUUSD').replace('SILVER', 'XAGUSD');
-    return { category: 'METALS', provider: 'OANDA', clean };
-  }
-
-  // INDICES (Map to OANDA CFD tickers)
-  const indexMap: { [key: string]: string } = {
-    'NAS100': 'NAS100_USD', 'US100': 'NAS100_USD', 'USTEC': 'NAS100_USD', 'NDX': 'NAS100_USD',
-    'US30': 'US30_USD', 'DJI': 'US30_USD', 'WALLSTREET': 'US30_USD',
-    'SPX500': 'SPX500_USD', 'US500': 'SPX500_USD', 'SPX': 'SPX500_USD',
-    'GER40': 'DE30_EUR', 'DE30': 'DE30_EUR', 'GER30': 'DE30_EUR', 'DAX': 'DE30_EUR', 'DAX40': 'DE30_EUR',
-    'UK100': 'UK100_GBP', 'FTSE': 'UK100_GBP',
-    'FR40': 'FR40_EUR', 'CAC': 'FR40_EUR',
-    'US2000': 'US2000_USD', 'RUSSELL': 'US2000_USD'
-  };
-
-  if (indexMap[upper]) {
-    return { category: 'INDICES', provider: 'OANDA', clean: upper };
-  }
-
-  // FOREX (Generic 6-character check for major pairs)
-  const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'];
-  const isForex = upper.length === 6 && (currencies.some(c => upper.startsWith(c)) || currencies.some(c => upper.endsWith(c)));
-
-  if (isForex) {
-    return { category: 'FOREX', provider: 'OANDA', clean: upper };
-  }
-
-  // Default to Crypto
-  return { category: 'CRYPTO', provider: 'BINANCE', clean: upper };
-};
 
 const handleViewSetup = (symbol: string) => {
   const myLayoutId = "TWlqcP20"; 
