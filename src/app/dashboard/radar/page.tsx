@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { normalizeSymbol, getSymbolCategory, deduplicateSignals, getMappedSymbol } from '@/lib/symbol-mapper';
-import { fetchFinnhubQuote } from '@/lib/finnhub';
+import { fetchMarketQuote } from '@/lib/market-data';
 import { supabase } from '@/lib/supabaseClient';
 import AccessGuard from '@/components/AccessGuard';
 import { Shield, Activity, Radio, Search, Layers, ChevronRight, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
@@ -100,16 +100,15 @@ export default function RadarPage() {
 
       try {
         for (const symbol of uniqueSymbols) {
-          const quote = await fetchFinnhubQuote(symbol);
-          if (quote) {
+          const price = await fetchMarketQuote(symbol);
+          if (price !== null) {
             const clean = normalizeSymbol(symbol);
-            setLivePrices(prev => ({ ...prev, [clean]: quote.price }));
+            setLivePrices(prev => ({ ...prev, [clean]: price }));
           }
+          await new Promise(r => setTimeout(r, 200)); // Minor throttle
         }
-      } catch (err) {
-        console.error(`Finnhub Polling Error:`, err);
-      }
-    }, 8000); // Update every 8 seconds (Safe for free tier)
+      } catch (err) { }
+    }, 15000); // 15s refresh for polled assets
     return () => { if (socket) socket.close(); clearInterval(pollInterval); };
   }, [liveSignals]);
 
