@@ -1,4 +1,4 @@
-import { getMappedSymbol, getSymbolCategory, normalizeSymbol } from './symbol-mapper';
+import { getMappedSymbol, getSymbolCategory, normalizeSymbol, SYMBOL_MAP } from './symbol-mapper';
 
 // --- API KEYS ---
 const FCS_API_KEY = process.env.NEXT_PUBLIC_FCS_API_KEY;
@@ -70,6 +70,30 @@ export async function fetchMarketCandles(symbol: string, interval: string = '5',
         const { fetchYahooCandles } = await import('./yahoo-finance');
         candles = await fetchYahooCandles(symbol, interval === '5' ? '5m' : '1d', '5d');
       } catch (err) {}
+    }
+
+    // 3. Fallback to Binance (Highly reliable for Crypto)
+    if (candles.length === 0) {
+      const clean = normalizeSymbol(symbol);
+      const binanceTicker = SYMBOL_MAP[clean]?.binance || (clean.endsWith('USD') ? clean + 'T' : clean);
+      const endpoints = [
+        `https://api.binance.com/api/v3/klines?symbol=${binanceTicker}&interval=5m&limit=${limit}`,
+        `https://fapi.binance.com/fapi/v1/klines?symbol=${binanceTicker}&interval=5m&limit=${limit}`
+      ];
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            candles = data.map((d: any) => ({
+              time: d[0] / 1000,
+              open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]),
+            }));
+            break;
+          }
+        } catch (err) {}
+      }
     }
   } catch (err) {
     console.error(`[MarketData] Error fetching candles for ${symbol}:`, err);
