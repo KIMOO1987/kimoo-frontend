@@ -22,7 +22,9 @@ import {
   X,
   Layout,
   Layers,
-  AlertCircle
+  AlertCircle,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 20;
@@ -158,6 +160,17 @@ export default function PerformancePage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [assetClass, setAssetClass] = useState('ALL');
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({
+    key: 'created_at',
+    direction: 'desc'
+  });
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
 
   const fetchPerformance = useCallback(async (page: number, isSilent = false) => {
     if (!user) {
@@ -190,7 +203,7 @@ export default function PerformancePage() {
 
       const from = (page - 1) * ITEMS_PER_PAGE;
       const { data, count, error } = await query
-        .order('created_at', { ascending: false })
+        .order(sortConfig.key, { ascending: sortConfig.direction === 'asc' })
         .range(from, from + ITEMS_PER_PAGE - 1);
 
       if (data) {
@@ -269,7 +282,7 @@ export default function PerformancePage() {
   useEffect(() => {
     const delay = setTimeout(() => fetchPerformance(currentPage), 400);
     return () => clearTimeout(delay);
-  }, [fetchPerformance, currentPage]);
+  }, [fetchPerformance, currentPage, sortConfig]);
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, dateFrom, dateTo, assetClass]);
 
@@ -359,11 +372,31 @@ export default function PerformancePage() {
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr className="text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest bg-[var(--glass-bg)] border-b border-[var(--glass-border)]">
-                    <th className="px-6 md:px-8 py-6">Asset / Provider</th>
-                    <th className="py-6">Side</th>
-                    <th className="py-6">Outcome</th>
+                    <th className="px-6 md:px-8 py-6 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('symbol')}>
+                      <div className="flex items-center gap-1">
+                        Asset / Provider
+                        {sortConfig.key === 'symbol' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
+                    <th className="py-6 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('side')}>
+                      <div className="flex items-center gap-1">
+                        Side
+                        {sortConfig.key === 'side' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
+                    <th className="py-6 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('status')}>
+                      <div className="flex items-center gap-1">
+                        Outcome
+                        {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
                     <th className="py-6">Realized R</th>
-                    <th className="py-6 hidden md:table-cell">Execution</th>
+                    <th className="py-6 hidden md:table-cell cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('created_at')}>
+                      <div className="flex items-center gap-1">
+                        Execution
+                        {sortConfig.key === 'created_at' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </div>
+                    </th>
                     <th className="px-6 md:px-8 py-6 text-center">View</th>
                   </tr>
                 </thead>
