@@ -11,12 +11,12 @@ import {
 import SignalModal from '@/components/SignalModal';
 
 // --- SYMBOL CATEGORIZATION HELPER ---
-import { normalizeSymbol, getSymbolCategory, deduplicateSignals } from '@/lib/symbol-mapper';
+import { normalizeSymbol, getSymbolCategory, deduplicateSignals, getMappedSymbol } from '@/lib/symbol-mapper';
 import { fetchFinnhubQuote } from '@/lib/finnhub';
 
 // --- UI HANDLERS ---
 const handleViewSetup = (symbol: string) => {
-  const myLayoutId = "TWlqcP20"; 
+  const myLayoutId = "TWlqcP20";
   const cleanSymbol = symbol.includes(':') ? symbol.split(':')[1] : symbol;
   const tvUrl = `https://www.tradingview.com/chart/${myLayoutId}/?symbol=${cleanSymbol.toUpperCase()}`;
   window.open(tvUrl, '_blank');
@@ -104,9 +104,9 @@ export default function ActiveSignalsPage() {
     let socket: WebSocket | null = null;
 
     if (cryptoPairs.length > 0) {
-      const streams = cryptoPairs.map(s => `${normalizeSymbol(s.symbol).toLowerCase()}@ticker`).join('/');
+      const streams = cryptoPairs.map(s => `${getMappedSymbol(s.symbol, 'binance').toLowerCase()}@ticker`).join('/');
       const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
-      
+
       socket = new WebSocket(url);
       socket.onmessage = (event) => {
         try {
@@ -263,20 +263,19 @@ export default function ActiveSignalsPage() {
                           const entry = Number(signal.entry_price);
                           const isBuy = signal.side === 'BUY' || signal.side === 'BULLISH';
                           const pnlPercent = entry ? ((isBuy ? (current - entry) : (entry - current)) / entry) * 100 : 0;
-                          
+
                           const liveRRValue = calculateLiveRR(signal, livePrices);
                           const isProfit = pnlPercent >= 0;
 
                           return (
-                            <motion.div 
+                            <motion.div
                               key={`${signal.id}-${current}`}
                               initial={{ scale: 1 }}
                               animate={{ scale: [1, 1.02, 1] }}
                               transition={{ duration: 0.3 }}
-                              className={`mt-4 p-4 rounded-2xl border flex justify-between items-center transition-all duration-500 ${
-                                isProfit ? 'bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]' 
-                                         : 'bg-red-500/5 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
-                              }`}
+                              className={`mt-4 p-4 rounded-2xl border flex justify-between items-center transition-all duration-500 ${isProfit ? 'bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]'
+                                  : 'bg-red-500/5 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
+                                }`}
                             >
                               <div className="flex flex-col">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-500 flex items-center gap-2 mb-1">
