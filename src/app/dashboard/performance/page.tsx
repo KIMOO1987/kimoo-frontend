@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard';
 import SignalChart from '@/components/SignalChart';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getSymbolCategory, normalizeSymbol } from '@/lib/symbol-mapper';
 import { 
   TrendingUp, 
   Target, 
@@ -30,14 +31,7 @@ import {
 const ITEMS_PER_PAGE = 20;
 
 // --- 1. UI HELPERS ---
-const getSymbolData = (symbol: string) => {
-  const { getSymbolCategory, SYMBOL_MAP } = require('@/lib/symbol-mapper');
-  const category = getSymbolCategory(symbol);
-  const clean = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const provider = SYMBOL_MAP[clean]?.binance ? 'BINANCE' : 'OANDA';
-  
-  return { category, provider, clean };
-};
+
 
 const DetailBox = ({ label, value, color = "text-zinc-900 dark:text-white", highlight = false }: any) => (
   <div className={`p-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] ${highlight ? 'border-blue-500/20 bg-blue-500/[0.02]' : ''}`}>
@@ -411,8 +405,8 @@ export default function PerformancePage() {
                         >
                           <td className="px-6 md:px-8 py-6">
                             <div className="flex flex-col">
-                              <span className="text-base font-black text-zinc-900 dark:text-white uppercase tracking-tighter italic drop-shadow-sm">{signal.symbol}</span>
-                              <span className="text-[9px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mt-0.5">{getSymbolData(signal.symbol).provider}</span>
+                                <span className="text-base font-black text-zinc-900 dark:text-white uppercase tracking-tighter italic drop-shadow-sm">{signal.symbol}</span>
+                                <span className="text-[9px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mt-0.5">{getSymbolCategory(signal.symbol)}</span>
                             </div>
                           </td>
                           <td className="py-6">
