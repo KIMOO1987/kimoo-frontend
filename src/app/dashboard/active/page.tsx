@@ -151,7 +151,7 @@ export default function ActiveSignalsPage() {
           await new Promise(r => setTimeout(r, 200)); // Minor throttle
         }
       } catch (err) { }
-    }, 15000); // 15s refresh for polled assets
+    }, 5000); // 5s refresh for polled assets
 
     return () => {
       if (socket) socket.close();
