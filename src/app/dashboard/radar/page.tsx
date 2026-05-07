@@ -40,6 +40,7 @@ export default function RadarPage() {
     const { data, error } = await supabase
       .from('signals')
       .select('*')
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(50);
 
