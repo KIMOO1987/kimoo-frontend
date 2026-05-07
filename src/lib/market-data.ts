@@ -36,7 +36,18 @@ export async function fetchMarketQuote(symbol: string) {
       if (price === null) price = await fetchAlphaVantageQuote(symbol);
     } else {
       // General Backup (Crypto/Other)
-      price = await fetchAlphaVantageQuote(symbol);
+      // Primary for Crypto: Binance
+      const clean = normalizeSymbol(symbol);
+      const binanceTicker = SYMBOL_MAP[clean]?.binance || (clean.endsWith('USD') ? clean + 'T' : clean);
+      try {
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceTicker}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.price) price = parseFloat(data.price);
+        }
+      } catch (err) {}
+
+      if (price === null) price = await fetchAlphaVantageQuote(symbol);
     }
   } catch (err) {
     console.error(`[MarketData] Error fetching quote for ${symbol}:`, err);
