@@ -13,13 +13,13 @@ export interface SymbolMapEntry {
 
 export const SYMBOL_MAP: Record<string, SymbolMapEntry> = {
   // --- FOREX ---
-  "EURUSD": { "tradingview": "FX:EURUSD", "oanda": "EURUSD", "forexcom": "EURUSD", "binance": "EURUSDT", "fcs": "EUR/USD", "alphavantage": "EURUSD", "finnhub": "" },
-  "GBPUSD": { "tradingview": "FX:GBPUSD", "oanda": "GBPUSD", "forexcom": "GBPUSD", "binance": "GBPUSDT", "fcs": "GBP/USD", "alphavantage": "GBPUSD", "finnhub": "" },
+  "EURUSD": { "tradingview": "FX:EURUSD", "oanda": "EURUSD", "forexcom": "EURUSD", "fcs": "EUR/USD", "alphavantage": "EURUSD", "finnhub": "" },
+  "GBPUSD": { "tradingview": "FX:GBPUSD", "oanda": "GBPUSD", "forexcom": "GBPUSD", "fcs": "GBP/USD", "alphavantage": "GBPUSD", "finnhub": "" },
   "USDJPY": { "tradingview": "FX:USDJPY", "oanda": "USDJPY", "forexcom": "USDJPY", "fcs": "USD/JPY", "alphavantage": "USDJPY", "finnhub": "" },
   "GBPJPY": { "tradingview": "FX:GBPJPY", "oanda": "GBPJPY", "forexcom": "GBPJPY", "fcs": "GBP/JPY", "alphavantage": "GBPJPY", "finnhub": "" },
-  "AUDUSD": { "tradingview": "FX:AUDUSD", "oanda": "AUDUSD", "forexcom": "AUDUSD", "binance": "AUDUSDT", "fcs": "AUD/USD", "alphavantage": "AUDUSD", "finnhub": "" },
+  "AUDUSD": { "tradingview": "FX:AUDUSD", "oanda": "AUDUSD", "forexcom": "AUDUSD", "fcs": "AUD/USD", "alphavantage": "AUDUSD", "finnhub": "" },
   "EURJPY": { "tradingview": "FX:EURJPY", "oanda": "EURJPY", "forexcom": "EURJPY", "fcs": "EUR/JPY", "alphavantage": "EURJPY", "finnhub": "" },
-  "NZDUSD": { "tradingview": "FX:NZDUSD", "oanda": "NZDUSD", "forexcom": "NZDUSD", "binance": "NZDUSDT", "fcs": "NZD/USD", "alphavantage": "NZDUSD", "finnhub": "" },
+  "NZDUSD": { "tradingview": "FX:NZDUSD", "oanda": "NZDUSD", "forexcom": "NZDUSD", "fcs": "NZD/USD", "alphavantage": "NZDUSD", "finnhub": "" },
   "CHFJPY": { "tradingview": "FX:CHFJPY", "oanda": "CHFJPY", "forexcom": "CHFJPY", "fcs": "CHF/JPY", "alphavantage": "CHFJPY", "finnhub": "" },
   "USDCAD": { "tradingview": "FX:USDCAD", "oanda": "USDCAD", "forexcom": "USDCAD", "fcs": "USD/CAD", "alphavantage": "USDCAD", "finnhub": "" },
   "USDCHF": { "tradingview": "FX:USDCHF", "oanda": "USDCHF", "forexcom": "USDCHF", "fcs": "USD/CHF", "alphavantage": "USDCHF", "finnhub": "" },
