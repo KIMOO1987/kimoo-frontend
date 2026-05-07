@@ -38,13 +38,6 @@ export async function fetchMarketQuote(symbol: string) {
       // General Backup (Crypto/Other)
       price = await fetchAlphaVantageQuote(symbol);
     }
-
-    // Final Fallback: Finnhub (as a global failsafe if not already used)
-    if (price === null) {
-      const { fetchFinnhubQuote } = await import('./finnhub');
-      const quote = await fetchFinnhubQuote(symbol);
-      if (quote) price = quote.price;
-    }
   } catch (err) {
     console.error(`[MarketData] Error fetching quote for ${symbol}:`, err);
   }
@@ -71,13 +64,7 @@ export async function fetchMarketCandles(symbol: string, interval: string = '5',
       candles = await fetchEODHDCandles(symbol, interval, limit);
     }
 
-    // 2. Fallback to Finnhub (very reliable for candles)
-    if (candles.length === 0) {
-      const { fetchFinnhubCandles } = await import('./finnhub');
-      candles = await fetchFinnhubCandles(symbol, interval, limit);
-    }
-
-    // 3. Fallback to Yahoo Finance (via specialized scraper or public API if available)
+    // 2. Fallback to Yahoo Finance (via specialized scraper or public API if available)
     if (candles.length === 0) {
       try {
         const { fetchYahooCandles } = await import('./yahoo-finance');
