@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import AccessGuard from '@/components/AccessGuard';
 import { Search, Activity, Zap, TrendingUp, Layers, Target, Wallet, BarChart3, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import { normalizeSymbol, getSymbolCategory } from '@/lib/symbol-mapper';
 
 // Sub-component remains the same as your original
 function AnalysisCard({ title, symbol, value, subValue, colorClass, icon: Icon }: any) {
@@ -59,38 +60,7 @@ export default function SymbolAudit() {
     }));
   };
 
-  // Helper for categories (Improved)
-  const getSymbolCategory = (symbol: string) => {
-    const upper = symbol?.toUpperCase().replace(/[^A-Z0-9]/g, '') || '';
 
-    // METALS
-    if (upper.startsWith('XAU') || upper.startsWith('XAG') || upper.startsWith('XPT') || upper.startsWith('XCU') || upper === 'GOLD' || upper === 'SILVER') {
-      return 'METALS';
-    }
-
-    // INDICES
-    const indexSymbols = [
-      'NAS100', 'US100', 'USTEC', 'NDX', 'Nasdaq100',
-      'US30', 'DJI', 'WALLSTREET',
-      'SPX500', 'US500', 'SPX',
-      'GER40', 'DE30', 'GER30', 'DAX', 'DAX40',
-      'UK100', 'FTSE',
-      'FR40', 'CAC',
-      'US2000', 'RUSSELL'
-    ];
-    if (indexSymbols.includes(upper)) {
-      return 'INDICES';
-    }
-
-    // FOREX
-    const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'];
-    const isForex = upper.length === 6 && (currencies.some(c => upper.startsWith(c)) || currencies.some(c => upper.endsWith(c)));
-    if (isForex) {
-      return 'FOREX';
-    }
-
-    return 'CRYPTO';
-  };
 
   useEffect(() => {
     if (!user) {
