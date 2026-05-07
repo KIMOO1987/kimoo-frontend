@@ -112,7 +112,7 @@ export default function RadarPage() {
     const cleanSym = normalizeSymbol(signal.symbol);
     const current = livePrices[cleanSym] ?? entry;
     const risk = Math.abs(entry - sl);
-    const isBuy = signal.side === 'BUY' || signal.side === 'BULLISH';
+    const isBuy = signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH';
     const rr = risk ? (isBuy ? (current - entry) : (entry - current)) / risk : 0;
 
     // A. Freshness (40 points max)
