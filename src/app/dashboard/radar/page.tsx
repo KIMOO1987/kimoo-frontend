@@ -5,7 +5,7 @@ import { normalizeSymbol, getSymbolCategory, deduplicateSignals, getMappedSymbol
 import { fetchFinnhubQuote } from '@/lib/finnhub';
 import { supabase } from '@/lib/supabaseClient';
 import AccessGuard from '@/components/AccessGuard';
-import { Shield, Activity, Radio, Search, Layers, ChevronRight, AlertCircle } from 'lucide-react';
+import { Shield, Activity, Radio, Search, Layers, ChevronRight, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
@@ -29,6 +29,17 @@ export default function RadarPage() {
   const [livePrices, setLivePrices] = useState<{ [key: string]: number }>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [assetClass, setAssetClass] = useState('ALL');
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({
+    key: 'confidence',
+    direction: 'desc'
+  });
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
 
   // --- SYMBOL CATEGORIZATION HELPER (No change) ---
 
@@ -148,7 +159,53 @@ export default function RadarPage() {
       const assetMatch = assetClass === 'ALL' || getSymbolCategory(s.symbol) === assetClass;
       return isHighProb && symbolMatch && assetMatch;
     })
-    .sort((a, b) => b.confidence.val - a.confidence.val);
+    .sort((a, b) => {
+      const { key, direction } = sortConfig;
+      let valA: any;
+      let valB: any;
+
+      if (key === 'symbol') {
+        valA = a.symbol;
+        valB = b.symbol;
+      } else if (key === 'category') {
+        valA = getSymbolCategory(a.symbol);
+        valB = getSymbolCategory(b.symbol);
+      } else if (key === 'entry_price') {
+        valA = Number(a.entry_price);
+        valB = Number(b.entry_price);
+      } else if (key === 'confidence') {
+        valA = a.confidence.val;
+        valB = b.confidence.val;
+      } else if (key === 'side') {
+        valA = a.side;
+        valB = b.side;
+      } else if (key === 'pnl') {
+        const calculateRR = (signal: any) => {
+          const status = signal.status?.toUpperCase();
+          const entry = Number(signal.entry_price);
+          const sl = Number(signal.sl);
+          const tp1 = Number(signal.tp);
+          const tp2 = Number(signal.tp_secondary);
+          const risk = Math.abs(entry - sl);
+          const isBuy = signal.side?.toUpperCase() === 'BUY' || signal.side?.toUpperCase() === 'BULLISH';
+          const cleanSym = normalizeSymbol(signal.symbol);
+
+          if (status === 'SL') return -1.0;
+          if (status === 'TP2' && tp2) return risk ? Math.abs(tp2 - entry) / risk : 0;
+          if ((status === 'TP1' || status === 'TP1 + SL (BE)') && tp1) return risk ? Math.abs(tp1 - entry) / risk : 0;
+          
+          const current = livePrices[cleanSym] ?? Number(signal.current_price || entry);
+          const reward = isBuy ? (current - entry) : (entry - current);
+          return risk ? reward / risk : 0;
+        };
+        valA = calculateRR(a);
+        valB = calculateRR(b);
+      }
+
+      if (valA < valB) return direction === 'asc' ? -1 : 1;
+      if (valA > valB) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   if (isLoading && liveSignals.length === 0) {
     return (
@@ -234,12 +291,42 @@ export default function RadarPage() {
                 <table className="w-full text-left border-collapse min-w-[800px]">
                   <thead>
                     <tr className="text-[10px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest bg-[var(--glass-bg)] border-b border-[var(--glass-border)]">
-                      <th className="px-6 md:px-8 py-5">Instrument</th>
-                      <th className="hidden md:table-cell py-5">Category</th>
-                      <th className="py-5">Entry Price</th>
-                      <th className="py-5 w-[20%]">CRT Confidence</th>
-                      <th className="py-5 text-center">Bias</th>
-                      <th className="px-6 py-5">Live PnL</th>
+                      <th className="px-6 md:px-8 py-5 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('symbol')}>
+                        <div className="flex items-center gap-1">
+                          Instrument
+                          {sortConfig.key === 'symbol' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                        </div>
+                      </th>
+                      <th className="hidden md:table-cell py-5 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('category')}>
+                        <div className="flex items-center gap-1">
+                          Category
+                          {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                        </div>
+                      </th>
+                      <th className="py-5 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('entry_price')}>
+                        <div className="flex items-center gap-1">
+                          Entry Price
+                          {sortConfig.key === 'entry_price' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                        </div>
+                      </th>
+                      <th className="py-5 w-[20%] cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('confidence')}>
+                        <div className="flex items-center gap-1">
+                          CRT Confidence
+                          {sortConfig.key === 'confidence' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                        </div>
+                      </th>
+                      <th className="py-5 text-center cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('side')}>
+                        <div className="flex items-center justify-center gap-1">
+                          Bias
+                          {sortConfig.key === 'side' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                        </div>
+                      </th>
+                      <th className="px-6 py-5 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => handleSort('pnl')}>
+                        <div className="flex items-center gap-1">
+                          Live PnL
+                          {sortConfig.key === 'pnl' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                        </div>
+                      </th>
                       <th className="px-6 py-5 text-center">Action</th>
                     </tr>
                   </thead>
