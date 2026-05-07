@@ -65,13 +65,10 @@ export function normalizeSymbol(symbol: string): string {
     clean = clean.split(':')[1];
   }
 
-  // Handle USDT suffixes from watchlist images
-  clean = clean.replace(/USDT$/, 'USD');
-
+  // Strip common suffixes
+  clean = clean.replace(/USDT$/, '');
+  clean = clean.replace(/USD$/, '');
   clean = clean.replace(/[^A-Z0-9]/g, '');
-
-  // Check if it's already in the map as a key
-  if (SYMBOL_MAP[clean]) return clean;
 
   // Handle common aliases
   const aliasMap: Record<string, string> = {
@@ -83,12 +80,22 @@ export function normalizeSymbol(symbol: string): string {
     "SPX": "US500",
     "SPX500": "US500",
     "GOLD": "XAUUSD",
-    "SILVER": "XAGUSD"
+    "SILVER": "XAGUSD",
+    "XAU": "XAUUSD",
+    "XAG": "XAGUSD",
+    "BTC": "BTCUSD",
+    "ETH": "ETHUSD"
   };
 
-  if (aliasMap[clean]) return aliasMap[clean];
+  const base = aliasMap[clean] || clean;
 
-  return clean;
+  // If it's a known pair in SYMBOL_MAP, return it
+  if (SYMBOL_MAP[base]) return base;
+
+  // Fallback for pairs that might have lost their 'USD'
+  if (SYMBOL_MAP[base + "USD"]) return base + "USD";
+
+  return base;
 }
 
 /**
