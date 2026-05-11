@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Terminal, Copy, Power, Activity, ShieldAlert, Settings2, Server } from 'lucide-react';
+import { Power, Activity, ShieldAlert, Settings2, Terminal } from 'lucide-react';
 
 export default function CTraderDashboard() {
   const [status, setStatus] = useState<'stopped' | 'running'>('stopped');
@@ -12,7 +12,6 @@ export default function CTraderDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const terminalRef = useRef<HTMLDivElement>(null);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -147,14 +146,6 @@ export default function CTraderDashboard() {
     return () => { supabase.removeChannel(logChannel); }
   }, [botToken, userId, addLog, supabase]);
 
-  useEffect(() => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTo({
-        top: terminalRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
-  }, [logs]);
 
   const handleControl = async (action: 'start' | 'stop') => {
     addLog(`Sending ${action.toUpperCase()} command to Cloud Bridge...`);
@@ -235,8 +226,8 @@ export default function CTraderDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-          <div className="lg:col-span-4 space-y-6 md:space-y-8">
+        <div className="max-w-[800px] mx-auto grid grid-cols-1 gap-6 md:gap-8">
+          <div className="space-y-6 md:space-y-8">
             <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
               <h2 className="text-[11px] font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-3">
                 <Settings2 size={16} className="text-cyan-400" /> Bridge Controls
@@ -264,69 +255,9 @@ export default function CTraderDashboard() {
                 <Power size={16} /> STOP BRIDGE
               </button>
 
-              <div className="mt-8 pt-8 border-t border-[var(--glass-border)]">
-                <label className="block text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Server size={14} className="text-cyan-400" /> Unique Signal URL
-                </label>
-                <div className="relative group">
-                  <input
-                    readOnly
-                    value={fullUrl}
-                    className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-4 pr-12 py-4 text-[10px] md:text-xs font-mono text-cyan-400 outline-none hover:border-white/20 transition-all cursor-text overflow-hidden text-ellipsis"
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(fullUrl);
-                      addLog("URL Copied to clipboard.");
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/[0.05] border border-[var(--glass-border)] hover:bg-white/[0.1] hover:text-zinc-900 dark:text-white rounded-lg transition-all text-zinc-700 dark:text-zinc-400"
-                  >
-                    <Copy size={14} />
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
 
-          <div className="lg:col-span-8">
-            <div className="bg-[var(--input-bg)] border border-[var(--glass-border)] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[600px] relative">
-              <div className="absolute top-0 left-0 w-full h-full bg-cyan-500/5 blur-[100px] pointer-events-none" />
-
-              <div className="bg-[var(--glass-bg)] border-b border-[var(--glass-border)] px-6 py-4 flex justify-between items-center relative z-10 backdrop-blur-md">
-                <div className="flex items-center gap-3 text-[10px] font-black text-zinc-700 dark:text-zinc-400 uppercase tracking-widest">
-                  <Terminal size={14} className="text-cyan-400" /> CTRADER_CLOUD_STREAM
-                </div>
-              </div>
-
-              <div ref={terminalRef} className="p-6 md:p-8 overflow-y-auto flex-1 font-mono text-[11px] md:text-[13px] leading-relaxed space-y-3 relative z-10 scroll-smooth">
-                {logs.length === 0 ? (
-                  <div className="flex items-center justify-center h-full flex-col text-zinc-600 gap-4 opacity-50">
-                    <Activity size={32} className="animate-pulse" />
-                    <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Core Connection...</span>
-                  </div>
-                ) : (
-                  logs.map((log, i) => {
-                    const firstBracket = log.indexOf(']');
-                    const timeStr = log.substring(0, firstBracket + 1);
-                    const msgStr = log.substring(firstBracket + 2);
-                    return (
-                      <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-cyan-500/5 border-l-2 border-cyan-500 pl-3 py-1' : ''}`}>
-                        <span className="text-zinc-600 shrink-0 select-none">{timeStr}</span>
-                        <span className="shrink-0 font-bold select-none text-cyan-500">BRIDGE:</span>
-                        <span className={`break-words ${log.includes('❌') || log.includes('Error') ? 'text-red-400' :
-                          log.includes('🚀') ? 'text-cyan-300 font-bold' :
-                            log.includes('✅') ? 'text-emerald-400' :
-                              'text-zinc-800 dark:text-zinc-300'
-                          }`}>
-                          {msgStr}
-                        </span>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="mt-20 md:mt-32 space-y-20 relative">
@@ -423,8 +354,7 @@ export default function CTraderDashboard() {
                   { title: 'Files Deployment', desc: 'Download the .algo file and double-click it. cTrader will automatically install the bot into your cBot library.' },
                   { title: 'Instance Creation', desc: 'In cTrader Automate tab, find "Kimoo Guardian" and click the "+" button to create a new instance on your chosen symbol.' },
                   { title: 'Access Rights', desc: 'Ensure the bot has "Full Access" rights enabled. This is required for the bot to communicate with our Cloud API.' },
-                  { title: 'Cloud Sync', desc: 'Copy your Unique Signal URL from this dashboard and paste it into the "Signal URL" parameter in the cBot settings.' },
-                  { title: 'Auth Protocol', desc: 'Enter your registered Email and License Key (UserID) into the cBot parameters to unlock your tier features.' },
+                  { title: 'Cloud Sync', desc: 'Copy your Unique UUID (License Key) from your profile settings and paste it into the "License Key" parameter in the cBot settings.' },
                   { title: 'Engine Start', desc: 'Click the "Start Bridge" button at the top of this page, then click "Start" on your cBot instance in cTrader.' }
                 ].map((step, i) => (
                   <div key={i} className="flex gap-6">
