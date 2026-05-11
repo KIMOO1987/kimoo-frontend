@@ -151,8 +151,9 @@ const fetchBotData = async (isSilentRefresh = false) => {
       const formattedLogs = dashboardData.logs.map((log: any) => `[${new Date(log.created_at).toLocaleTimeString()}] ${log.message}`);
       
       setLogs((prev) => {
-        // 🚨 THE FIX: Array.from(new Set(...)) instantly deletes any duplicate text strings!
-        const uniqueLogs = Array.from(new Set([...formattedLogs.reverse(), ...prev]));
+        // 🚨 THE FIX: Append newest logs to the end of the array.
+        // formattedLogs is DESC (Newest first), so reverse it to get oldest first.
+        const uniqueLogs = Array.from(new Set([...prev, ...formattedLogs.reverse()]));
         const finalLogs = uniqueLogs.slice(-100); // Keep only the last 100
         
         localStorage.setItem('okx_terminal_logs', JSON.stringify(finalLogs)); 
