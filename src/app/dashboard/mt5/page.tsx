@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import AccessGuard from '@/components/AccessGuard';
-import { Terminal, Power, Settings2, Server, Activity, ShieldCheck, Copy } from 'lucide-react';
+import { Power, Settings2, Activity, ShieldCheck, Terminal } from 'lucide-react';
 
 export default function MT5Dashboard() {
   const [status, setStatus] = useState('stopped');
@@ -11,7 +11,6 @@ export default function MT5Dashboard() {
   const [botToken, setBotToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const terminalRef = useRef<HTMLDivElement>(null);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -159,14 +158,6 @@ export default function MT5Dashboard() {
   };
 
   // Auto-scroll terminal to bottom when new logs arrive
-  useEffect(() => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTo({
-        top: terminalRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
-  }, [logs]);
 
   if (loading) {
     return (
@@ -215,9 +206,9 @@ export default function MT5Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+          <div className="max-w-[800px] mx-auto grid grid-cols-1 gap-6 md:gap-8">
             {/* Controls & Config Column */}
-            <div className="lg:col-span-4 space-y-6 md:space-y-8">
+            <div className="space-y-6 md:space-y-8">
 
               {/* Terminal Control Panel */}
               <div className="bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-[var(--glass-border)] p-6 md:p-8 rounded-[2.5rem] shadow-2xl backdrop-blur-md">
@@ -245,78 +236,9 @@ export default function MT5Dashboard() {
                   <Power size={16} /> DISCONNECT
                 </button>
 
-                <div className="mt-8 pt-8 border-t border-[var(--glass-border)]">
-                  <label className="block text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <Server size={14} className="text-blue-400" /> Unique Signal URL
-                  </label>
-                  <div className="relative group">
-                    <input
-                      readOnly
-                      value={fullUrl}
-                      className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl pl-4 pr-12 py-4 text-[10px] md:text-xs font-mono text-blue-400 outline-none hover:border-white/20 transition-all cursor-text overflow-hidden text-ellipsis"
-                    />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(fullUrl);
-                        addLog("URL Copied to clipboard.");
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/[0.05] border border-[var(--glass-border)] hover:bg-white/[0.1] hover:text-zinc-900 dark:text-white rounded-lg transition-all text-zinc-700 dark:text-zinc-400"
-                    >
-                      <Copy size={14} />
-                    </button>
-                  </div>
-                  <p className="mt-5 text-[10px] text-zinc-600 dark:text-zinc-500 font-bold uppercase tracking-widest leading-relaxed">
-                    Paste this endpoint into your <span className="text-zinc-900 dark:text-white border-b border-white/20 pb-0.5">Kimoo EA</span> parameters within MT5.
-                  </p>
-                </div>
               </div>
             </div>
 
-            {/* Terminal Output Window */}
-            <div className="lg:col-span-8">
-              <div className="bg-[var(--input-bg)] border border-[var(--glass-border)] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[600px] relative">
-                <div className="absolute top-0 left-0 w-full h-full bg-blue-500/5 blur-[100px] pointer-events-none" />
-
-                <div className="bg-[var(--glass-bg)] border-b border-[var(--glass-border)] px-6 py-4 flex justify-between items-center relative z-10 backdrop-blur-md">
-                  <div className="flex items-center gap-3 text-[10px] font-black text-zinc-700 dark:text-zinc-400 uppercase tracking-widest">
-                    <Terminal size={14} className="text-blue-400" /> MT5_EXECUTION_STREAM
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500/50 border border-red-500/20"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/50 border border-yellow-500/20"></div>
-                    <div className="w-3 h-3 rounded-full bg-emerald-500/50 border border-emerald-500/20"></div>
-                  </div>
-                </div>
-
-                <div ref={terminalRef} className="p-6 md:p-8 overflow-y-auto flex-1 font-mono text-[11px] md:text-[13px] leading-relaxed space-y-3 relative z-10 scroll-smooth">
-                  {logs.length === 0 ? (
-                    <div className="flex items-center justify-center h-full flex-col text-zinc-600 gap-4 opacity-50">
-                      <Activity size={32} className="animate-pulse" />
-                      <span className="uppercase tracking-widest font-black text-[10px]">Awaiting Core Connection...</span>
-                    </div>
-                  ) : (
-                    logs.map((log, i) => {
-                      const firstBracket = log.indexOf(']');
-                      const timeStr = log.substring(0, firstBracket + 1);
-                      const msgStr = log.substring(firstBracket + 2);
-                      return (
-                        <div key={i} className={`flex gap-4 ${log.includes('SIGNAL') ? 'bg-blue-500/5 border-l-2 border-blue-500 pl-3 py-1' : ''}`}>
-                          <span className="text-zinc-600 shrink-0 select-none">{timeStr}</span>
-                          <span className="shrink-0 font-bold select-none text-blue-500">BRIDGE:</span>
-                          <span className={`break-words ${log.includes('❌') || log.includes('Error') ? 'text-red-400' :
-                            log.includes('🚀') ? 'text-blue-300 font-bold' :
-                              log.includes('✅') ? 'text-emerald-400' :
-                                'text-zinc-800 dark:text-zinc-300'
-                            }`}>
-                            {msgStr}
-                          </span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
 
           </div>
 
@@ -419,7 +341,7 @@ export default function MT5Dashboard() {
                     { title: 'MT5 Configuration', desc: 'Go to Tools > Options > Expert Advisors. Check "Allow WebRequest" and add: https://kimoocrt.vercel.app and https://kimoocrt.onrender.com' },
                     { title: 'Files Deployment', desc: 'Copy your downloaded .ex5 file. In MT5, go to File > Open Data Folder > MQL5 > Experts, and paste the file.' },
                     { title: 'Expert Activation', desc: 'Drag the Kimoo Guardian onto any chart. Ensure "Allow Algorithmic Trading" is enabled in the common tab.' },
-                    { title: 'Cloud Sync', desc: 'Copy your Signal URL from this dashboard and paste it into the "Signal URL" parameter in the EA settings.' },
+                    { title: 'Cloud Sync', desc: 'Copy your Unique UUID (License Key) from your profile settings and paste it into the "License Key" parameter in the EA settings.' },
                     { title: 'Auth Protocol', desc: 'Enter your registered Email and License Key (UserID) into the EA parameters to unlock your tier features.' },
                     { title: 'Engine Start', desc: 'Click the "Connect Engine" button at the top of this page to allow the cloud to start sending signals.' }
                   ].map((step, i) => (
