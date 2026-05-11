@@ -158,6 +158,61 @@ export default function ActiveSignalsPage() {
       clearInterval(pollInterval);
     };
   }, [activeSignals]);
+  
+  // 3. AUTO-SYNC STATUS TO SUPABASE
+  useEffect(() => {
+    if (activeSignals.length === 0) return;
+
+    const syncPending = async () => {
+      for (const signal of activeSignals) {
+        const cleanSymbol = normalizeSymbol(signal.symbol);
+        const livePrice = livePrices[cleanSymbol];
+        if (!livePrice) continue;
+
+        const displayStatus = getDisplayStatus(signal.status, livePrice, signal);
+        let newDbStatus = null;
+        let shouldDeactivate = false;
+
+        if (displayStatus === 'TP2 REACHED (LIVE)') {
+          newDbStatus = 'TP2';
+          shouldDeactivate = true;
+        } else if (displayStatus === 'TP1 REACHED (LIVE)') {
+          newDbStatus = 'TP1';
+        } else if (displayStatus === 'SL HIT (LIVE)') {
+          newDbStatus = 'SL';
+          shouldDeactivate = true;
+        } else if (displayStatus === 'BE REACHED (LIVE)') {
+          newDbStatus = 'TP1 + SL (BE)';
+          shouldDeactivate = true;
+        }
+
+        if (newDbStatus && newDbStatus !== signal.status) {
+          console.log(`[Sync] Detected status change for ${signal.symbol}: ${signal.status} -> ${newDbStatus}`);
+          
+          const { error } = await supabase
+            .from('signals')
+            .update({ 
+              status: newDbStatus, 
+              is_active: !shouldDeactivate,
+              current_price: livePrice 
+            })
+            .eq('id', signal.id);
+
+          if (error) {
+            console.error(`[Sync] Error updating ${signal.symbol}:`, error.message);
+          } else {
+            // Optimistically update local state to prevent redundant requests
+            setActiveSignals(prev => prev.map(s => 
+              s.id === signal.id ? { ...s, status: newDbStatus, is_active: !shouldDeactivate } : s
+            ));
+          }
+        }
+      }
+    };
+
+    const timer = setTimeout(syncPending, 2000); // Check for transitions every 2s
+    return () => clearTimeout(timer);
+  }, [livePrices, activeSignals]);
 
   return (
     <AccessGuard requiredTier={1} tierName="PRO">
@@ -378,18 +433,24 @@ function getDisplayStatus(status: string, livePrice?: number, signal?: any) {
     const tp2 = Number(signal.tp_secondary);
     const side = signal.side?.toUpperCase();
     const isBuy = side === 'BUY' || side === 'BULLISH';
+    const tolerance = 0.00005; // 0.005% alignment with backend worker
 
     // 1. Live Target Detection (Immediate feedback before DB update)
-    if (tp2 && ((isBuy && livePrice >= tp2) || (!isBuy && livePrice <= tp2))) {
+    if (tp2 && ((isBuy && livePrice >= (tp2 * (1 - tolerance))) || (!isBuy && livePrice <= (tp2 * (1 + tolerance))))) {
       return 'TP2 REACHED (LIVE)';
     }
 
-    if (tp1 && ((isBuy && livePrice >= tp1) || (!isBuy && livePrice <= tp1))) {
+    if (tp1 && ((isBuy && livePrice >= (tp1 * (1 - tolerance))) || (!isBuy && livePrice <= (tp1 * (1 + tolerance))))) {
       if (status !== 'TP1' && status !== 'TP2') return 'TP1 REACHED (LIVE)';
     }
 
-    if (sl && ((isBuy && livePrice <= sl) || (!isBuy && livePrice >= sl))) {
+    if (sl && ((isBuy && livePrice <= (sl * (1 + tolerance))) || (!isBuy && livePrice >= (sl * (1 - tolerance))))) {
       return 'SL HIT (LIVE)';
+    }
+
+    // 2. Break Even Detection (TP1 -> BE)
+    if (status === 'TP1' && entry && ((isBuy && livePrice <= (entry * (1 + tolerance))) || (!isBuy && livePrice >= (entry * (1 - tolerance))))) {
+      return 'BE REACHED (LIVE)';
     }
   }
 
