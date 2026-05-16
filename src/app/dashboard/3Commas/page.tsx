@@ -316,7 +316,7 @@ export default function ThreeCommasDashboard() {
                     </div>
                     <div className="mt-4">
                       <p className="text-[9px] text-zinc-500 uppercase font-black">Equity</p>
-                      <p className="text-xl font-mono font-bold">${parseFloat(acc.equity_usd || 0).toLocaleString()}</p>
+                      <p className="text-xl font-mono font-bold">${parseFloat(acc.usd_amount || 0).toLocaleString()}</p>
                     </div>
 
                     <div className="mt-6 pt-4 border-t border-white/5 flex gap-2">
