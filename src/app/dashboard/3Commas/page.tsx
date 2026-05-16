@@ -24,6 +24,7 @@ export default function ThreeCommasDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userTier, setUserTier] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
   
   // 3Commas Specific State
   const [activeTab, setActiveTab] = useState<'overview' | 'deals' | 'smart_trades' | 'signals' | 'history'>('overview');
@@ -97,11 +98,17 @@ export default function ThreeCommasDashboard() {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
         const res = await fetch(`${baseUrl}/signals/3commas/accounts?user_id=${user.id}`);
-        if (res.ok) {
-          const accountData = await res.json();
-          setAccounts(Array.isArray(accountData) ? accountData : []);
+        const accountData = await res.json();
+        
+        if (res.ok && Array.isArray(accountData)) {
+          setAccounts(accountData);
+          setApiError(null);
+        } else {
+          setApiError(accountData.message || accountData.error || "Failed to fetch accounts");
+          setAccounts([]);
         }
-      } catch (e) {
+      } catch (e: any) {
+        setApiError("Backend Connection Error: " + e.message);
         console.error("Failed to fetch 3Commas accounts", e);
       }
     }
@@ -278,7 +285,13 @@ export default function ThreeCommasDashboard() {
           {/* MAIN CONTENT */}
           <div className="lg:col-span-8 space-y-8">
             {activeTab === 'overview' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                {apiError && (
+                  <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-2xl flex items-center gap-3 text-red-500 text-[11px] font-black uppercase tracking-widest animate-pulse">
+                    <ShieldAlert size={16} /> {apiError}
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {accounts.length > 0 ? accounts
                   .filter(acc => !selectedAccountId || acc.id === selectedAccountId)
                   .map((acc) => (
@@ -330,7 +343,8 @@ export default function ThreeCommasDashboard() {
                   </div>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
             {activeTab === 'signals' && (
               <div className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] overflow-hidden">
