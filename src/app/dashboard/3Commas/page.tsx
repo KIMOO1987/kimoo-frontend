@@ -96,26 +96,13 @@ export default function ThreeCommasDashboard() {
       // Note: In a real app, this would be a call to your FastAPI /three-commas/accounts endpoint
       // For this demo, we'll simulate the call
       try {
-        const ports = [8080, 8000];
-        let res = null;
-        let successfulPort = 8080;
-
-        for (const port of ports) {
-          try {
-            const url = `${process.env.NEXT_PUBLIC_BACKEND_URL || `http://localhost:${port}`}/signals/3commas/accounts?user_id=${user.id}`;
-            const testRes = await fetch(url);
-            if (testRes.ok || testRes.status === 404 || testRes.status === 403) {
-              res = testRes;
-              successfulPort = port;
-              break;
-            }
-          } catch (e) {
-            continue; 
-          }
+        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        if (!baseUrl) {
+          throw new Error("NEXT_PUBLIC_BACKEND_URL is not set in Vercel environment variables.");
         }
 
-        if (!res) throw new Error("Could not connect to backend on port 8080 or 8000. Ensure your FastAPI server is running.");
-
+        const url = `${baseUrl}/signals/3commas/accounts?user_id=${user.id}`;
+        const res = await fetch(url);
         const accountData = await res.json();
         
         if (res.ok && Array.isArray(accountData)) {
