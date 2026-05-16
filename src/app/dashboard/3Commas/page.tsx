@@ -32,6 +32,7 @@ export default function ThreeCommasDashboard() {
   const [deals, setDeals] = useState<any[]>([]);
   const [smartTrades, setSmartTrades] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [signals, setSignals] = useState<any[]>([]);
   
   // API Vault State
   const [apiKey, setApiKey] = useState('');
@@ -74,6 +75,10 @@ export default function ThreeCommasDashboard() {
     }
 
     setUserTier(profile.tier);
+
+    // Fetch Latest Signals
+    const { data: latestSignals } = await supabase.from('signals').select('*').order('created_at', { ascending: false }).limit(10);
+    setSignals(latestSignals || []);
 
     // Fetch 3Commas Auth
     const { data: auth } = await supabase.from('three_commas_auth').select('*').eq('user_id', user.id).single();
@@ -181,7 +186,7 @@ export default function ThreeCommasDashboard() {
                 Exit Exchange
               </button>
             )}
-            {['overview', 'deals', 'smart_trades', 'history'].map((tab) => (
+            {['overview', 'deals', 'smart_trades', 'signals', 'history'].map((tab) => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -304,6 +309,37 @@ export default function ThreeCommasDashboard() {
                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">No linked exchanges found</p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'signals' && (
+              <div className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] overflow-hidden">
+                <div className="p-8 border-b border-white/5 bg-white/5">
+                  <h3 className="text-[11px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <Terminal size={14} /> Live KimooCRT Signals
+                  </h3>
+                </div>
+                <div className="p-4 space-y-2">
+                  {signals.length > 0 ? signals.map((sig) => (
+                    <div key={sig.id} className="flex items-center justify-between p-4 bg-white/[0.02] rounded-2xl border border-white/5">
+                      <div className="flex items-center gap-4">
+                         <div className={`w-2 h-2 rounded-full ${sig.side === 'BUY' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'}`} />
+                         <div>
+                           <p className="text-xs font-black uppercase tracking-wider">{sig.symbol}</p>
+                           <p className="text-[9px] text-zinc-500 uppercase tracking-widest">{sig.tf_alignment} • {sig.grade}</p>
+                         </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-mono font-bold">${sig.entry_price}</p>
+                        <p className="text-[9px] text-zinc-500 uppercase tracking-widest">{new Date(sig.created_at).toLocaleTimeString()}</p>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="py-20 flex flex-col items-center opacity-30 italic">
+                      No signals detected...
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
