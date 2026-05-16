@@ -122,7 +122,7 @@ export default function ThreeCommasDashboard() {
           setAccounts(accountData);
           setApiError(null);
         } else {
-          setApiError(accountData.message || accountData.error || `Server Error (${res.status})`);
+          setApiError(accountData.detail || accountData.message || accountData.error || `Server Error (${res.status})`);
           setAccounts([]);
         }
       } catch (e: any) {
