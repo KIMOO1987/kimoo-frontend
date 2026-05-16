@@ -96,19 +96,37 @@ export default function ThreeCommasDashboard() {
       // Note: In a real app, this would be a call to your FastAPI /three-commas/accounts endpoint
       // For this demo, we'll simulate the call
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
-        const res = await fetch(`${baseUrl}/signals/3commas/accounts?user_id=${user.id}`);
+        const ports = [8080, 8000];
+        let res = null;
+        let successfulPort = 8080;
+
+        for (const port of ports) {
+          try {
+            const url = `${process.env.NEXT_PUBLIC_BACKEND_URL || `http://localhost:${port}`}/signals/3commas/accounts?user_id=${user.id}`;
+            const testRes = await fetch(url);
+            if (testRes.ok || testRes.status === 404 || testRes.status === 403) {
+              res = testRes;
+              successfulPort = port;
+              break;
+            }
+          } catch (e) {
+            continue; 
+          }
+        }
+
+        if (!res) throw new Error("Could not connect to backend on port 8080 or 8000. Ensure your FastAPI server is running.");
+
         const accountData = await res.json();
         
         if (res.ok && Array.isArray(accountData)) {
           setAccounts(accountData);
           setApiError(null);
         } else {
-          setApiError(accountData.message || accountData.error || "Failed to fetch accounts");
+          setApiError(accountData.message || accountData.error || `Server Error (${res.status})`);
           setAccounts([]);
         }
       } catch (e: any) {
-        setApiError("Backend Connection Error: " + e.message);
+        setApiError("Connection Error: " + e.message);
         console.error("Failed to fetch 3Commas accounts", e);
       }
     }
