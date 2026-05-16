@@ -26,8 +26,9 @@ export default function ThreeCommasDashboard() {
   const [error, setError] = useState<string | null>(null);
   
   // 3Commas Specific State
-  const [activeTab, setActiveTab] = useState<'overview' | 'deals' | 'smart_trades' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'deals' | 'smart_trades' | 'signals' | 'history'>('overview');
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
+  const [selectedTradingAccountId, setSelectedTradingAccountId] = useState<number | null>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
   const [smartTrades, setSmartTrades] = useState<any[]>([]);
@@ -84,6 +85,7 @@ export default function ThreeCommasDashboard() {
     const { data: auth } = await supabase.from('three_commas_auth').select('*').eq('user_id', user.id).single();
     if (auth) {
       setApiKey(auth.api_key);
+      setSelectedTradingAccountId(auth.selected_account_id);
       if (auth.risk_settings) {
         setDailyRisk(auth.risk_settings.daily_risk_wallet || 1000);
         setRiskPercent(auth.risk_settings.risk_percentage || 1.0);
@@ -122,6 +124,7 @@ export default function ThreeCommasDashboard() {
       user_id: userId,
       api_key: apiKey,
       api_secret: encryptedSecret,
+      selected_account_id: selectedTradingAccountId,
       risk_settings: { daily_risk_wallet: dailyRisk, risk_percentage: riskPercent },
       updated_at: new Date().toISOString()
     });
@@ -297,6 +300,23 @@ export default function ThreeCommasDashboard() {
                       <p className="text-[9px] text-zinc-500 uppercase font-black">Equity</p>
                       <p className="text-xl font-mono font-bold">${parseFloat(acc.equity_usd || 0).toLocaleString()}</p>
                     </div>
+
+                    <div className="mt-6 pt-4 border-t border-white/5 flex gap-2">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTradingAccountId(acc.id);
+                        }}
+                        className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                          selectedTradingAccountId === acc.id 
+                          ? 'bg-[#37ac9a] text-black shadow-[0_0_15px_rgba(55,172,154,0.4)]' 
+                          : 'bg-white/5 text-zinc-500 hover:text-white border border-white/10'
+                        }`}
+                      >
+                        {selectedTradingAccountId === acc.id ? 'Active Trading Target' : 'Set as Trading Target'}
+                      </button>
+                    </div>
+
                     {selectedAccountId === acc.id && (
                        <div className="mt-4 pt-4 border-t border-white/10 text-[10px] font-black uppercase tracking-widest text-[#37ac9a]">
                          Viewing Detailed Account Data
