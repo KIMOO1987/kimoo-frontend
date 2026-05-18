@@ -125,7 +125,8 @@ export default function OKXBotDashboard() {
         throw new Error(saveErr.message);
       }
 
-      alert("🎉 OKX Native Signal Bot credentials saved successfully! Your bot is active.");
+      const statusMsg = isEnabled ? "ACTIVE" : "PAUSED";
+      alert(`🎉 OKX Native Signal Bot credentials saved successfully! Your bot is now ${statusMsg}.`);
       fetchData();
     } catch (err: any) {
       alert("Error saving configuration: " + err.message);
