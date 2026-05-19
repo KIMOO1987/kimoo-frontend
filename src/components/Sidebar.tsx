@@ -57,7 +57,6 @@ const menuGroups = [
     items: [
       // { name: 'Binance', icon: (props: { size?: number }) => <img src="/binance.png" alt="Binance" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/binance', minTier: 2 },
       { name: 'OKX (API)', icon: (props: { size?: number }) => <img src="/okx.png" alt="OKX" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/okx', minTier: 2 },
-      { name: 'OKX Signal Bot', icon: (props: { size?: number }) => <img src="/okx.png" alt="OKX Signal Bot" width={props.size || 18} height={props.size || 18} className="object-contain" style={{ filter: 'hue-rotate(90deg)' }} />, path: '/dashboard/okx_bot', minTier: 2 },
       // { name: 'MEXC', icon: (props: { size?: number }) => <img src="/mexc.png" alt="MEXC" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/mexc', minTier: 2 },
       // { name: 'Kraken', icon: (props: { size?: number }) => <img src="/kraken.png" alt="Kraken" width={props.size || 18} height={props.size || 18} className="object-contain" />, path: '/dashboard/kraken', minTier: 2 },
     ]
